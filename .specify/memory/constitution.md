@@ -44,6 +44,9 @@ src/               # backend source code (all server-side modules)
 src/public/        # frontend assets (one .html + .css + .js per game page)
 tests/             # backend test files (*.test.js)
 specs/             # feature specs, plans, and contracts (read-only at runtime)
+src/public/js      # frontend JS files
+src/public/css     # frontend CSS files
+
 ```
 
 ## Tech Stack

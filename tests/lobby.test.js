@@ -17,12 +17,27 @@ before(() => {
   // Read source files
   const html = fs.readFileSync(path.join(publicDir, 'lobby.html'), 'utf8');
   const css = fs.readFileSync(path.join(publicDir, 'lobby.css'), 'utf8');
-  const js = fs.readFileSync(path.join(publicDir, 'lobby.js'), 'utf8');
 
-  // Replace <link> and <script src> with inline equivalents so JSDOM needs no network
-  inlinedHTML = html
-    .replace(/<link[^>]+lobby\.css[^>]*>/i, `<style>${css}</style>`)
-    .replace(/<script[^>]+lobby\.js[^>]*><\/script>/i, `<script>${js}</script>`);
+  const jsFiles = [
+    { src: '/js/Toast.js',         path: path.join(publicDir, 'js', 'Toast.js') },
+    { src: '/js/LobbyRenderer.js', path: path.join(publicDir, 'js', 'LobbyRenderer.js') },
+    { src: '/js/LobbySocket.js',   path: path.join(publicDir, 'js', 'LobbySocket.js') },
+    { src: '/js/LobbyApp.js',      path: path.join(publicDir, 'js', 'LobbyApp.js') },
+    { src: '/lobby.js',            path: path.join(publicDir, 'lobby.js') },
+  ];
+
+  // Replace <link> with inline <style>
+  inlinedHTML = html.replace(/<link[^>]+lobby\.css[^>]*>/i, `<style>${css}</style>`);
+
+  // Replace each <script src="..."> with its inlined equivalent
+  for (const { src, path: filePath } of jsFiles) {
+    const js = fs.readFileSync(filePath, 'utf8');
+    const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    inlinedHTML = inlinedHTML.replace(
+      new RegExp(`<script[^>]+${escapedSrc}[^>]*><\\/script>`, 'i'),
+      `<script>${js}</script>`,
+    );
+  }
 });
 
 /**
