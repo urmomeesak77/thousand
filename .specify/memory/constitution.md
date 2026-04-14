@@ -32,21 +32,24 @@ Keep classes and functions small and focused. A class should represent a single 
 ### X. Logical Cohesion
 Place functions where they belong logically — methods that operate on a class's data belong on that class; pure utilities that are feature-specific belong in the feature module, not a generic `utils` file.
 
+### XI. Frontend Engine/Game-Logic Separation
+Game pages use a two-layer frontend architecture. Layer 1 — the engine (`src/public/js/antlion/`) — is generic and game-agnostic: it owns the game loop, input registration, event dispatch, and render cycle. Layer 2 — game logic (`src/public/js/<game-name>/`) — is game-specific: rules, state transitions, win conditions. Game logic plugs into the engine exclusively via its registration API. The engine never references game-specific modules; game logic never attaches raw DOM input listeners or `setInterval` calls directly. Lobby UI (`LobbyApp.js`, `LobbyRenderer.js`, `LobbySocket.js`) predates this pattern and is exempt.
+
 ## File Structure
 
 ```text
-src/server.js      # single backend entry point
-src/controlles     # backend controllers
-src/models         # backend models
-src/services       # backend services
-src/utils          # backend utils
-src/               # backend source code (all server-side modules)
-src/public/        # frontend assets (one .html + .css + .js per game page)
-tests/             # backend test files (*.test.js)
-specs/             # feature specs, plans, and contracts (read-only at runtime)
-src/public/js      # frontend JS files
-src/public/css     # frontend CSS files
-
+src/server.js                        # single backend entry point
+src/controllers/                     # backend controllers
+src/models/                          # backend models
+src/services/                        # backend services
+src/utils/                           # backend utils
+src/public/                          # frontend assets
+  lobby.html / lobby.css / lobby.js  # lobby entry point (pre-engine UI — exempt from §XI)
+  js/
+    antlion/                         # engine layer — generic, game-agnostic (§XI)
+    <game-name>/                     # game logic layer — one directory per game (§XI)
+tests/                               # backend test files (*.test.js)
+specs/                               # feature specs, plans, and contracts (read-only at runtime)
 ```
 
 ## Tech Stack
@@ -60,10 +63,10 @@ src/public/css     # frontend CSS files
 
 - Edit files directly; refresh browser to test frontend
 - Run `node server.js` (or equivalent) to start backend
-- No linting, no CI, no pre-commit hooks unless added
+- ESLint (`npm run lint`) and `npm test` run via pre-commit hook and GitHub Actions CI
 
 ## Governance
 
 This constitution supersedes CLAUDE.md for architectural decisions. Keep it minimal — only amend when a new constraint is truly project-wide.
 
-**Version**: 1.5.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
+**Version**: 1.6.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14

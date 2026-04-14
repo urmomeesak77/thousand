@@ -2,6 +2,8 @@
 
 Auto-generated from all feature plans. Last updated: 2026-04-14
 
+> Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
+
 ## Active Technologies
 
 - Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages) (001-card-game-lobby)
@@ -32,27 +34,18 @@ specs/                               # feature specs, plans, and contracts (read
 
 Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 
-## Frontend Architecture
+## Frontend Architecture (see constitution.md §XI for rationale)
 
-**Applies to game pages only. Lobby files (`LobbyApp.js`, `LobbyRenderer.js`, `LobbySocket.js`) are pre-engine UI — do not apply this pattern to them.**
+**Game pages only — lobby files are exempt.**
 
-### Layer 1 — Engine (`src/public/js/antlion/`)
-- Generic, game-agnostic runtime: game loop, input capture, event bus, render cycle.
-- Zero game-specific logic. Exposes a registration API only.
-- Key API surface (implement as needed):
-  - `engine.onInput(type, handler)` — register a handler for a named input event
-  - `engine.onTick(handler)` — register a per-frame/per-tick callback
-  - `engine.emit(type, data)` — dispatch an engine-level event
-  - `engine.start()` / `engine.stop()` — lifecycle control
+### Antlion engine API surface (`src/public/js/antlion/`)
+- `Antlion.onInput(type, handler)` — register a named input handler
+- `Antlion.onTick(handler)` — register a per-tick callback
+- `Antlion.emit(type, data)` — dispatch an engine-level event
+- `Antlion.start()` / `Antlion.stop()` — lifecycle control
 
-### Layer 2 — Game Logic (`src/public/js/<game-name>/`)
-- Game-specific: rules, state transitions, win conditions, UI wiring.
-- Plugs into the engine via the registration API only.
-- One directory per game (e.g., `src/public/js/thousand/`).
-
-### Hard rules
-- Engine never imports or references any game-specific module.
-- Game logic never attaches raw DOM input listeners or `setInterval` for game ticks directly — always registers via engine APIs.
+### Game logic (`src/public/js/<game-name>/`)
+- Registers into Antlion via the API above — no direct DOM listeners, no raw `setInterval`.
 
 ## Recent Changes
 
