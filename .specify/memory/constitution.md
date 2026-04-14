@@ -39,6 +39,8 @@ The Antlion engine is the single entry point for all frontend behaviour. This co
 - `Antlion.onInput(type, handler)` — register a named input handler
 - `Antlion.onTick(handler)` — register a per-tick callback
 - `Antlion.emit(type, data)` — dispatch an engine-level event
+- `Antlion.bindInput(element, domEvent, type)` — wire a DOM element's native event to a named engine input event
+- `Antlion.schedule(delay, cb)` — schedule a delayed callback (replaces direct `setTimeout`)
 - `Antlion.start()` / `Antlion.stop()` — lifecycle control
 
 **Feature module rules:**
@@ -48,17 +50,28 @@ The Antlion engine is the single entry point for all frontend behaviour. This co
 ## File Structure
 
 ```text
-src/server.js                        # single backend entry point
-src/controllers/                     # backend controllers
-src/models/                          # backend models
-src/services/                        # backend services
-src/utils/                           # backend utils
+src/server.js                        # single backend entry point (http + ws upgrade)
+src/controllers/
+  RequestHandler.js                  # routes all HTTP requests
+src/services/
+  LobbyStore.js                      # all in-memory game state + WS connection handling
+src/utils/
+  HttpUtil.js                        # shared HTTP response helpers
+  StaticServer.js                    # serves src/public/ as static files
 src/public/                          # frontend assets
   index.html / index.css / index.js  # lobby entry point (uses Antlion — see §XI)
   js/
     antlion/                         # engine layer — generic, game-agnostic (§XI)
+      EventBus.js                    # subscribe/emit for named engine events
+      Antlion.js                     # lifecycle, input capture, tick loop, scheduling
+    LobbyApp.js                      # lobby coordinator — state + orchestration
+    LobbyRenderer.js                 # lobby stateless DOM rendering
+    LobbySocket.js                   # lobby WebSocket wrapper
+    GameApi.js                       # all HTTP calls to the game API
+    ModalController.js               # new-game modal open/close/submit
+    Toast.js                         # shared notification utility
     <game-name>/                     # game logic layer — one directory per game (§XI)
-tests/                               # backend test files (*.test.js)
+tests/                               # test files (*.test.js) — both backend and frontend
 specs/                               # feature specs, plans, and contracts (read-only at runtime)
 ```
 
@@ -72,11 +85,11 @@ specs/                               # feature specs, plans, and contracts (read
 ## Development Workflow
 
 - Edit files directly; refresh browser to test frontend
-- Run `node server.js` (or equivalent) to start backend
+- Run `npm start` (`node src/server.js`) to start backend
 - ESLint (`npm run lint`) and `npm test` run via pre-commit hook and GitHub Actions CI
 
 ## Governance
 
 This constitution supersedes CLAUDE.md for architectural decisions. Keep it minimal — only amend when a new constraint is truly project-wide.
 
-**Version**: 2.0.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
+**Version**: 2.1.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
