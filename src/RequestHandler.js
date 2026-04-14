@@ -1,74 +1,8 @@
 'use strict';
 
 const crypto = require('crypto');
-const path = require('path');
-const fs = require('fs');
-
-// ---------------------------------------------------------------------------
-// HTTP utilities — used only within this module
-// ---------------------------------------------------------------------------
-
-function sendJSON(res, status, body) {
-  const json = JSON.stringify(body);
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Content-Length': Buffer.byteLength(json),
-  });
-  res.end(json);
-}
-
-function sendError(res, status, code, message) {
-  sendJSON(res, status, { error: code, message });
-}
-
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', (chunk) => { data += chunk; });
-    req.on('end', () => {
-      try { resolve(JSON.parse(data || '{}')); }
-      catch { reject(new Error('Invalid JSON')); }
-    });
-    req.on('error', reject);
-  });
-}
-
-// Static file serving — used only within this module
-const MIME = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.json': 'application/json',
-};
-
-function serveStatic(req, res) {
-  const filePath = req.url === '/'
-    ? path.join(__dirname, 'public', 'lobby.html')
-    : path.join(__dirname, 'public', req.url.split('?')[0]);
-
-  const publicDir = path.join(__dirname, 'public');
-  if (!filePath.startsWith(publicDir)) {
-    res.writeHead(404); res.end('Not Found');
-    return;
-  }
-
-  const ext = path.extname(filePath);
-  const contentType = MIME[ext] || 'text/plain';
-
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not Found');
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(data);
-  });
-}
-
-// ---------------------------------------------------------------------------
-// RequestHandler — owns HTTP routing and request/response logic
-// ---------------------------------------------------------------------------
+const HttpUtil = require('./HttpUtil');
+const StaticServer = require('./StaticServer');
 
 class RequestHandler {
   constructor(store) {
@@ -124,25 +58,25 @@ class RequestHandler {
 
   // T017 – GET /api/games
   handleGetGames(req, res) {
-    sendJSON(res, 200, { games: this.store.getLobbyGames() });
+    HttpUtil.sendJSON(res, 200, { games: this.store.getLobbyGames() });
   }
 
   // T027 – POST /api/games  (create)
   async handleCreateGame(req, res) {
     let body;
-    try { body = await parseBody(req); } catch {
-      sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+    try { body = await HttpUtil.parseBody(req); } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
 
     const { type, nickname, playerId: clientPlayerId } = body;
 
     if (!RequestHandler._validateNickname(nickname)) {
-      sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
       return;
     }
     if (type !== 'public' && type !== 'private') {
-      sendError(res, 400, 'invalid_request', 'type must be "public" or "private"');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'type must be "public" or "private"');
       return;
     }
 
@@ -164,21 +98,21 @@ class RequestHandler {
     // T035, T041 – broadcast and notify host
     this._admitPlayerToGame(game, gameId, playerId);
 
-    sendJSON(res, 201, { gameId, inviteCode, playerId });
+    HttpUtil.sendJSON(res, 201, { gameId, inviteCode, playerId });
   }
 
   // T018 – POST /api/games/:id/join  (join public game)
   async handleJoinGame(req, res, gameId) {
     let body;
-    try { body = await parseBody(req); } catch {
-      sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+    try { body = await HttpUtil.parseBody(req); } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
 
     const { nickname, playerId: clientPlayerId } = body;
 
     if (!RequestHandler._validateNickname(nickname)) {
-      sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
       return;
     }
 
@@ -186,11 +120,11 @@ class RequestHandler {
 
     // T040 – race-condition guard
     if (!game || game.type !== 'public') {
-      sendError(res, 404, 'not_found', 'Game not found');
+      HttpUtil.sendError(res, 404, 'not_found', 'Game not found');
       return;
     }
     if (game.status !== 'waiting' || game.players.size >= game.maxPlayers) {
-      sendError(res, 409, 'game_full', 'Game is full');
+      HttpUtil.sendError(res, 409, 'game_full', 'Game is full');
       return;
     }
 
@@ -198,39 +132,39 @@ class RequestHandler {
     const playerId = this._resolveOrCreatePlayer(clientPlayerId, nick);
     this._admitPlayerToGame(game, gameId, playerId);
 
-    sendJSON(res, 200, { gameId });
+    HttpUtil.sendJSON(res, 200, { gameId });
   }
 
   // T028 – POST /api/games/join-invite
   async handleJoinInvite(req, res) {
     let body;
-    try { body = await parseBody(req); } catch {
-      sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+    try { body = await HttpUtil.parseBody(req); } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
 
     const { code, nickname, playerId: clientPlayerId } = body;
 
     if (!RequestHandler._validateNickname(nickname)) {
-      sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
       return;
     }
 
     const gameId = this.store.inviteCodes.get(code);
     if (!gameId) {
-      sendError(res, 404, 'not_found', 'Invalid invite code');
+      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
       return;
     }
 
     const game = this.store.games.get(gameId);
     if (!game || game.status !== 'waiting') {
-      sendError(res, 404, 'not_found', 'Invalid invite code');
+      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
       return;
     }
 
     // T040 – race-condition guard
     if (game.players.size >= game.maxPlayers) {
-      sendError(res, 409, 'game_full', 'Game is full');
+      HttpUtil.sendError(res, 409, 'game_full', 'Game is full');
       return;
     }
 
@@ -238,7 +172,7 @@ class RequestHandler {
     const playerId = this._resolveOrCreatePlayer(clientPlayerId, nick);
     this._admitPlayerToGame(game, gameId, playerId);
 
-    sendJSON(res, 200, { gameId });
+    HttpUtil.sendJSON(res, 200, { gameId });
   }
 
   async handleRequest(req, res) {
@@ -253,7 +187,7 @@ class RequestHandler {
     const joinMatch = pathname.match(/^\/api\/games\/([^/]+)\/join$/);
     if (req.method === 'POST' && joinMatch) return this.handleJoinGame(req, res, joinMatch[1]);
 
-    serveStatic(req, res);
+    StaticServer.serve(req, res);
   }
 }
 
