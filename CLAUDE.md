@@ -14,7 +14,7 @@ Auto-generated from all feature plans. Last updated: 2026-04-14
 src/server.js                        # single backend entry point
 src/                                 # backend source code (all server-side modules)
 src/public/                          # frontend assets
-  lobby.html / lobby.css / lobby.js  # lobby entry point (pre-engine UI — no engine pattern)
+  index.html / index.css / index.js  # lobby entry point (pre-engine UI — no engine pattern)
   js/
     LobbyApp.js                      # lobby coordinator — state + orchestration
     LobbyRenderer.js                 # lobby stateless DOM rendering

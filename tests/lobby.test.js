@@ -15,15 +15,15 @@ let inlinedHTML;
 
 before(() => {
   // Read source files
-  const html = fs.readFileSync(path.join(publicDir, 'lobby.html'), 'utf8');
-  const css = fs.readFileSync(path.join(publicDir, 'lobby.css'), 'utf8');
+  const html = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(publicDir, 'index.css'), 'utf8');
 
   const jsFiles = [
     { src: '/js/Toast.js',         path: path.join(publicDir, 'js', 'Toast.js') },
     { src: '/js/LobbyRenderer.js', path: path.join(publicDir, 'js', 'LobbyRenderer.js') },
     { src: '/js/LobbySocket.js',   path: path.join(publicDir, 'js', 'LobbySocket.js') },
     { src: '/js/LobbyApp.js',      path: path.join(publicDir, 'js', 'LobbyApp.js') },
-    { src: '/lobby.js',            path: path.join(publicDir, 'lobby.js') },
+    { src: '/index.js',            path: path.join(publicDir, 'index.js') },
   ];
 
   // Replace <link> with inline <style>

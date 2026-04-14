@@ -16,7 +16,7 @@ class StaticServer {
   static serve(req, res) {
     const publicDir = path.join(__dirname, '..', 'public');
     const filePath = req.url === '/'
-      ? path.join(publicDir, 'lobby.html')
+      ? path.join(publicDir, 'index.html')
       : path.join(publicDir, req.url.split('?')[0]);
 
     if (!filePath.startsWith(publicDir)) {

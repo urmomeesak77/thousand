@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(gh repo:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(powershell.exe -File \".specify/scripts/powershell/setup-plan.ps1\" -Json)",
+      "Bash(powershell.exe -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(npm test:*)",
+      "Bash(git rm:*)",
+      "Bash(npx eslint:*)",
+      "Bash(chmod +x:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

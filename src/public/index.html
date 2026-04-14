@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thousand — Lobby</title>
+  <link rel="stylesheet" href="/index.css" />
+</head>
+<body>
+
+  <!-- ======================================================
+       Nickname screen (shown before entering lobby)
+  ======================================================= -->
+  <section id="nickname-screen" class="screen">
+    <div class="card">
+      <h1>Thousand</h1>
+      <p class="subtitle">Card Game for 2–4 players</p>
+      <form id="nickname-form">
+        <label for="nickname-input">Choose a nickname</label>
+        <input
+          id="nickname-input"
+          type="text"
+          minlength="3"
+          maxlength="20"
+          placeholder="e.g. Alice"
+          autocomplete="off"
+          required
+        />
+        <button type="submit" class="btn btn-primary">Enter Lobby</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Lobby screen (shown after nickname is set)
+  ======================================================= -->
+  <section id="lobby-screen" class="screen hidden">
+    <header class="lobby-header">
+      <h2>Lobby</h2>
+      <span id="player-name-display" class="player-badge"></span>
+    </header>
+
+    <div class="lobby-actions">
+      <button id="new-game-btn" class="btn btn-primary">+ New Game</button>
+      <div class="join-invite-row">
+        <input
+          id="invite-code-input"
+          type="text"
+          maxlength="6"
+          placeholder="Invite code (e.g. A3FX9C)"
+          autocomplete="off"
+        />
+        <button id="join-invite-btn" class="btn btn-secondary">Join with Code</button>
+      </div>
+    </div>
+
+    <div class="game-list-section">
+      <h3>Open Games</h3>
+      <ul id="game-list" aria-label="Available games"></ul>
+      <p id="empty-state" class="empty-state hidden">No open games yet. Create one!</p>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       Game waiting room (shown after joining)
+  ======================================================= -->
+  <section id="game-screen" class="screen hidden">
+    <div class="card">
+      <h2>Waiting Room</h2>
+      <p id="game-id-display" class="game-id"></p>
+      <div id="invite-display" class="invite-display hidden">
+        <p>Share this invite code with friends:</p>
+        <div class="invite-code-box">
+          <span id="invite-code-value" class="invite-code"></span>
+          <button id="copy-invite-btn" class="btn btn-sm" aria-label="Copy invite code">Copy</button>
+        </div>
+      </div>
+      <ul id="player-list" class="player-list" aria-label="Players in game"></ul>
+      <p class="waiting-hint">Waiting for players… (2–4 needed to start)</p>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       New Game modal
+  ======================================================= -->
+  <div id="new-game-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <h2 id="modal-title">Create a New Game</h2>
+      <form id="new-game-form">
+        <fieldset>
+          <legend>Game type</legend>
+          <label class="radio-label">
+            <input type="radio" name="game-type" value="public" checked />
+            Public — anyone can join from the lobby
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="game-type" value="private" />
+            Private — invite only
+          </label>
+        </fieldset>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">Create Game</button>
+          <button type="button" id="modal-cancel-btn" class="btn btn-ghost">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       Error toast
+  ======================================================= -->
+  <div id="toast" class="toast hidden" role="alert" aria-live="assertive"></div>
+
+  <script src="/js/Toast.js"></script>
+  <script src="/js/LobbyRenderer.js"></script>
+  <script src="/js/LobbySocket.js"></script>
+  <script src="/js/LobbyApp.js"></script>
+  <script src="/index.js"></script>
+</body>
+</html>

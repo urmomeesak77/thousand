@@ -134,7 +134,7 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('Static files', () => {
-  it('serves lobby.html at /', async () => {
+  it('serves index.html at /', async () => {
     const res = await request('GET', '/');
     assert.equal(res.status, 200);
   });

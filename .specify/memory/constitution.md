@@ -44,7 +44,7 @@ src/models/                          # backend models
 src/services/                        # backend services
 src/utils/                           # backend utils
 src/public/                          # frontend assets
-  lobby.html / lobby.css / lobby.js  # lobby entry point (pre-engine UI — exempt from §XI)
+  index.html / index.css / index.js  # lobby entry point (pre-engine UI — exempt from §XI)
   js/
     antlion/                         # engine layer — generic, game-agnostic (§XI)
     <game-name>/                     # game logic layer — one directory per game (§XI)
