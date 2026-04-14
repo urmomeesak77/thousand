@@ -14,7 +14,7 @@ Auto-generated from all feature plans. Last updated: 2026-04-14
 src/server.js                        # single backend entry point
 src/                                 # backend source code (all server-side modules)
 src/public/                          # frontend assets
-  index.html / index.css / index.js  # lobby entry point (pre-engine UI — no engine pattern)
+  index.html / index.css / index.js  # lobby entry point (uses Antlion — see §XI)
   js/
     LobbyApp.js                      # lobby coordinator — state + orchestration
     LobbyRenderer.js                 # lobby stateless DOM rendering
@@ -36,7 +36,7 @@ Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 
 ## Frontend Architecture (see constitution.md §XI for rationale)
 
-**Game pages only — lobby files are exempt.**
+**Applies to all frontend pages including lobby files.**
 
 ### Antlion engine API surface (`src/public/js/antlion/`)
 - `Antlion.onInput(type, handler)` — register a named input handler
@@ -44,8 +44,10 @@ Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 - `Antlion.emit(type, data)` — dispatch an engine-level event
 - `Antlion.start()` / `Antlion.stop()` — lifecycle control
 
-### Game logic (`src/public/js/<game-name>/`)
+### Feature logic (`src/public/js/<feature-name>/`)
 - Registers into Antlion via the API above — no direct DOM listeners, no raw `setInterval`.
+- Lobby modules (`LobbyApp.js`, `LobbyRenderer.js`, `LobbySocket.js`) follow this pattern.
+- Game-specific logic lives under `src/public/js/thousand/`.
 
 ## Recent Changes
 
