@@ -1,0 +1,516 @@
+/* ============================================================
+   Base reset & custom properties
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #0f0e17;
+  --color-surface: #1a1a2e;
+  --color-surface-alt: #16213e;
+  --color-border: #2a2a4a;
+  --color-primary: #7c5cbf;
+  --color-primary-hover: #9370db;
+  --color-accent: #e94560;
+  --color-text: #ececec;
+  --color-text-muted: #888aaa;
+  --color-success: #3ecf8e;
+  --color-error: #e94560;
+  --radius: 0.5rem;
+  --radius-lg: 1rem;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --touch-min: 2.75rem; /* 44px */
+  --transition: 0.2s ease;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Utility
+   ============================================================ */
+.hidden {
+  display: none !important;
+}
+
+/* ============================================================
+   Screens
+   ============================================================ */
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* ============================================================
+   Card
+   ============================================================ */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  width: 100%;
+  max-width: 28rem;
+  box-shadow: var(--shadow);
+}
+
+/* ============================================================
+   Typography
+   ============================================================ */
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--color-primary-hover);
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--touch-min);
+  padding: 0 1.25rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), opacity var(--transition);
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.btn-sm {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   Form elements
+   ============================================================ */
+label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.4rem;
+}
+
+input[type="text"] {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 0.875rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 1rem;
+  transition: border-color var(--transition);
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+input[type="text"]::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+/* ============================================================
+   Nickname form
+   ============================================================ */
+#nickname-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#nickname-form .btn {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+/* ============================================================
+   Lobby layout
+   ============================================================ */
+#lobby-screen {
+  justify-content: flex-start;
+  padding-top: 2rem;
+}
+
+.lobby-header {
+  width: 100%;
+  max-width: 42rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.player-badge {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  padding: 0.25rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.lobby-actions {
+  width: 100%;
+  max-width: 42rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.join-invite-row {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.join-invite-row input {
+  flex: 1;
+  min-width: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ============================================================
+   Game list
+   ============================================================ */
+.game-list-section {
+  width: 100%;
+  max-width: 42rem;
+}
+
+#game-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#game-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  gap: 1rem;
+  transition: border-color var(--transition);
+}
+
+#game-list li:hover {
+  border-color: var(--color-primary);
+}
+
+.game-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.game-id-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+.game-player-count {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.empty-state {
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   Waiting room / game screen
+   ============================================================ */
+#game-screen {
+  justify-content: center;
+}
+
+.game-id {
+  font-family: monospace;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.invite-display {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.invite-display p {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.invite-code-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.invite-code {
+  font-family: monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-success);
+}
+
+.player-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.player-list li {
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+}
+
+.waiting-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ============================================================
+   New Game modal
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.modal-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  width: 100%;
+  max-width: 26rem;
+  box-shadow: var(--shadow);
+}
+
+.modal-card h2 {
+  margin-bottom: 1.25rem;
+}
+
+fieldset {
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+fieldset legend {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: var(--color-text);
+  min-height: var(--touch-min);
+  padding: 0.5rem 0;
+}
+
+.radio-label input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primary);
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+/* ============================================================
+   Error toast  (T043 / T045)
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-error);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  z-index: 200;
+  max-width: calc(100vw - 2rem);
+  text-align: center;
+  /* Accessible contrast — error red on white text is > 4.5:1 */
+}
+
+/* ============================================================
+   Responsive breakpoints  (mobile-first)
+   ============================================================ */
+
+/* 480px — small phones */
+@media (max-width: 480px) {
+  h1 { font-size: 2rem; }
+
+  .lobby-actions {
+    flex-direction: column;
+  }
+
+  .join-invite-row {
+    width: 100%;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .invite-code {
+    font-size: 1.4rem;
+  }
+}
+
+/* 768px — tablets */
+@media (max-width: 768px) {
+  .card {
+    padding: 1.5rem 1rem;
+  }
+
+  .modal-card {
+    padding: 1.5rem 1rem;
+  }
+
+  #game-list li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #game-list li .btn {
+    width: 100%;
+  }
+}
