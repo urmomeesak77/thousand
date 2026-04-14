@@ -19,15 +19,17 @@ before(() => {
   const css = fs.readFileSync(path.join(publicDir, 'index.css'), 'utf8');
 
   const jsFiles = [
-    { src: '/js/Toast.js',         path: path.join(publicDir, 'js', 'Toast.js') },
-    { src: '/js/LobbyRenderer.js', path: path.join(publicDir, 'js', 'LobbyRenderer.js') },
-    { src: '/js/LobbySocket.js',   path: path.join(publicDir, 'js', 'LobbySocket.js') },
-    { src: '/js/LobbyApp.js',      path: path.join(publicDir, 'js', 'LobbyApp.js') },
-    { src: '/index.js',            path: path.join(publicDir, 'index.js') },
+    { src: '/js/Toast.js',            path: path.join(publicDir, 'js', 'Toast.js') },
+    { src: '/js/LobbyRenderer.js',    path: path.join(publicDir, 'js', 'LobbyRenderer.js') },
+    { src: '/js/LobbySocket.js',      path: path.join(publicDir, 'js', 'LobbySocket.js') },
+    { src: '/js/GameApi.js',          path: path.join(publicDir, 'js', 'GameApi.js') },
+    { src: '/js/ModalController.js',  path: path.join(publicDir, 'js', 'ModalController.js') },
+    { src: '/js/LobbyApp.js',         path: path.join(publicDir, 'js', 'LobbyApp.js') },
+    { src: '/index.js',               path: path.join(publicDir, 'index.js') },
   ];
 
   // Replace <link> with inline <style>
-  inlinedHTML = html.replace(/<link[^>]+lobby\.css[^>]*>/i, `<style>${css}</style>`);
+  inlinedHTML = html.replace(/<link[^>]+index\.css[^>]*>/i, `<style>${css}</style>`);
 
   // Replace each <script src="..."> with its inlined equivalent
   for (const { src, path: filePath } of jsFiles) {

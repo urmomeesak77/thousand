@@ -1,8 +1,8 @@
 'use strict';
-/* global $, Toast, LobbySocket, LobbyRenderer */
+/* global $, Toast, LobbySocket, LobbyRenderer, GameApi, ModalController */
 
 // ============================================================
-// LobbyApp — coordinator: player state, UI binding, API calls
+// LobbyApp — coordinator: player state, UI binding, message handling
 // ============================================================
 
 class LobbyApp {
@@ -12,6 +12,12 @@ class LobbyApp {
     this._gameId = null;
     this._inviteCode = null;
     this._toast = new Toast();
+    this._api = new GameApi((msg) => this._toast.show(msg));
+    this._modal = new ModalController(
+      () => this._nickname,
+      (type) => this._createGame(type),
+      (msg) => this._toast.show(msg),
+    );
     this._socket = new LobbySocket(
       (msg) => this._handleMessage(msg),
       (err) => this._toast.show(err),
@@ -48,7 +54,7 @@ class LobbyApp {
 
   _bindUI() {
     this._bindNicknameForm();
-    this._bindModal();
+    this._modal.bind();
     this._bindInviteJoin();
     this._bindCopyInvite();
   }
@@ -65,23 +71,6 @@ class LobbyApp {
       this._nickname = nick;
       $('player-name-display').textContent = nick;
       LobbyRenderer.showScreen('lobby-screen');
-    });
-  }
-
-  _bindModal() {
-    $('new-game-btn').addEventListener('click', () => this._openModal());
-    $('modal-cancel-btn').addEventListener('click', () => this._closeModal());
-    $('new-game-modal').addEventListener('click', (e) => {
-      if (e.target === $('new-game-modal')) this._closeModal();
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') this._closeModal();
-    });
-    $('new-game-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (!this._nickname) { this._toast.show('Enter a nickname first.'); return; }
-      const type = document.querySelector('input[name="game-type"]:checked').value;
-      this._createGame(type);
     });
   }
 
@@ -111,73 +100,18 @@ class LobbyApp {
     });
   }
 
-  _openModal() {
-    const modal = $('new-game-modal');
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-  }
-
-  _closeModal() {
-    const modal = $('new-game-modal');
-    modal.classList.add('hidden');
-    modal.style.display = '';
-  }
-
-  async _post(url, body) {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return { res, data: await res.json() };
-  }
-
   async _joinGame(gameId) {
-    if (!this._nickname) { this._toast.show('Enter a nickname first.'); return; }
-    try {
-      const { res, data } = await this._post(`/api/games/${gameId}/join`, {
-        nickname: this._nickname, playerId: this._playerId,
-      });
-      if (!res.ok) {
-        this._toast.show(data.message || (res.status === 409 ? 'Game is full' : 'Failed to join game'));
-        return;
-      }
-      this._gameId = data.gameId;
-    } catch {
-      this._toast.show('Network error. Please try again.');
-    }
+    const data = await this._api.join(gameId, this._nickname, this._playerId);
+    if (data) this._gameId = data.gameId;
   }
 
   async _createGame(type) {
-    this._closeModal();
-    try {
-      const { res, data } = await this._post('/api/games', {
-        type, nickname: this._nickname, playerId: this._playerId,
-      });
-      if (!res.ok) { this._toast.show(data.message || 'Failed to create game'); return; }
-      this._gameId = data.gameId;
-      this._inviteCode = data.inviteCode;
-    } catch {
-      this._toast.show('Network error. Please try again.');
-    }
+    const data = await this._api.create(type, this._nickname, this._playerId);
+    if (data) { this._gameId = data.gameId; this._inviteCode = data.inviteCode; }
   }
 
   async _joinWithCode(code) {
-    try {
-      const { res, data } = await this._post('/api/games/join-invite', {
-        code, nickname: this._nickname, playerId: this._playerId,
-      });
-      if (!res.ok) {
-        const msg = res.status === 409 ? 'Game is full'
-          : res.status === 404 ? 'Invalid or expired invite code'
-          : data.message || 'Failed to join game';
-        this._toast.show(msg);
-        return;
-      }
-      this._gameId = data.gameId;
-      $('invite-code-input').value = '';
-    } catch {
-      this._toast.show('Network error. Please try again.');
-    }
+    const data = await this._api.joinWithCode(code, this._nickname, this._playerId);
+    if (data) { this._gameId = data.gameId; $('invite-code-input').value = ''; }
   }
 }

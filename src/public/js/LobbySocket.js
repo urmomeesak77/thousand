@@ -13,11 +13,13 @@ class LobbySocket {
   connect() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
-
     // Expose for tests (jsdom looks for window._lobbyWS)
     window._lobbyWS = ws;
     try { self._lobbyWS = ws; } catch (_) {}
+    this._attachHandlers(ws);
+  }
 
+  _attachHandlers(ws) {
     ws.onopen = () => {};
     ws.onmessage = (event) => {
       let msg;
