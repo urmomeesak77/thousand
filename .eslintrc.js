@@ -21,7 +21,7 @@ module.exports = {
       },
       rules: {
         'no-empty': ['error', { allowEmptyCatch: true }],
-        'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^(Toast|LobbyRenderer|LobbySocket|GameApi|ModalController|LobbyApp|\\$)$' }],
+        'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^(Toast|LobbyRenderer|LobbySocket|GameApi|ModalController|LobbyApp|EventBus|Antlion|\\$)$' }],
       },
     },
   ],
