@@ -106,7 +106,7 @@ function waitForMessage(ws, type, timeoutMs = 1500) {
 
 before(async () => {
   // Clear module cache so each test run gets fresh state
-  const mod = require('../server');
+  const mod = require('../src/server');
   server = mod.server;
   store = mod.store;
   games = store.games;

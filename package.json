@@ -2,9 +2,9 @@
   "name": "thousand",
   "version": "1.0.0",
   "description": "Card Game 1000 — Lobby & Game Creation",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node src/server.js",
     "test": "node --test tests/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage tests/*.test.js",
     "dev": "node --run start -- --watch"

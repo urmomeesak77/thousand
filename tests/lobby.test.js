@@ -10,7 +10,7 @@ const fs = require('fs');
 // Helpers
 // ---------------------------------------------------------------------------
 
-const publicDir = path.join(__dirname, '..', 'public');
+const publicDir = path.join(__dirname, '..', 'src', 'public');
 let inlinedHTML;
 
 before(() => {

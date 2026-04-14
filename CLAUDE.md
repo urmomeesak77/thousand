@@ -9,9 +9,11 @@ Auto-generated from all feature plans. Last updated: 2026-04-14
 ## Project Structure
 
 ```text
-backend/
-frontend/
-tests/
+src/server.js      # single backend entry point
+src/               # backend source code (all server-side modules)
+src/public/        # frontend assets (one .html + .css + .js per game page)
+tests/             # backend test files (*.test.js)
+specs/             # feature specs, plans, and contracts (read-only at runtime)
 ```
 
 ## Commands
