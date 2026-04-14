@@ -1,8 +1,8 @@
 'use strict';
 
 const crypto = require('crypto');
-const HttpUtil = require('./HttpUtil');
-const StaticServer = require('./StaticServer');
+const HttpUtil = require('../utils/HttpUtil');
+const StaticServer = require('../utils/StaticServer');
 
 class RequestHandler {
   constructor(store) {
