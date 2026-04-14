@@ -6,7 +6,8 @@
 // ============================================================
 
 class LobbyApp {
-  constructor() {
+  constructor(antlion) {
+    this._antlion = antlion;
     this._playerId = null;
     this._nickname = null;
     this._gameId = null;
@@ -14,11 +15,13 @@ class LobbyApp {
     this._toast = new Toast();
     this._api = new GameApi((msg) => this._toast.show(msg));
     this._modal = new ModalController(
+      antlion,
       () => this._nickname,
       (type) => this._createGame(type),
       (msg) => this._toast.show(msg),
     );
     this._socket = new LobbySocket(
+      antlion,
       (msg) => this._handleMessage(msg),
       (err) => this._toast.show(err),
     );
@@ -35,7 +38,7 @@ class LobbyApp {
         this._playerId = msg.playerId;
         break;
       case 'lobby_update':
-        LobbyRenderer.renderGameList(msg.games, (id) => this._joinGame(id));
+        LobbyRenderer.renderGameList(msg.games);
         break;
       case 'game_joined':
         this._gameId = msg.gameId;
@@ -57,10 +60,12 @@ class LobbyApp {
     this._modal.bind();
     this._bindInviteJoin();
     this._bindCopyInvite();
+    this._bindGameListJoin();
   }
 
   _bindNicknameForm() {
-    $('nickname-form').addEventListener('submit', (e) => {
+    this._antlion.bindInput($('nickname-form'), 'submit', 'nickname-submit');
+    this._antlion.onInput('nickname-submit', (e) => {
       e.preventDefault();
       const nick = $('nickname-input').value.trim();
       if (!nick) return;
@@ -75,7 +80,8 @@ class LobbyApp {
   }
 
   _bindInviteJoin() {
-    $('join-invite-btn').addEventListener('click', () => {
+    this._antlion.bindInput($('join-invite-btn'), 'click', 'invite-join-click');
+    this._antlion.onInput('invite-join-click', () => {
       const code = $('invite-code-input').value.trim().toUpperCase();
       if (!code) { this._toast.show('Enter an invite code.'); return; }
       if (!this._nickname) { this._toast.show('Enter a nickname first.'); return; }
@@ -84,7 +90,8 @@ class LobbyApp {
   }
 
   _bindCopyInvite() {
-    $('copy-invite-btn').addEventListener('click', () => {
+    this._antlion.bindInput($('copy-invite-btn'), 'click', 'copy-invite-click');
+    this._antlion.onInput('copy-invite-click', () => {
       const code = $('invite-code-value').textContent;
       if (navigator.clipboard) {
         navigator.clipboard.writeText(code).then(() => this._toast.show('Code copied!'));
@@ -97,6 +104,14 @@ class LobbyApp {
       document.execCommand('copy');
       document.body.removeChild(ta);
       this._toast.show('Code copied!');
+    });
+  }
+
+  _bindGameListJoin() {
+    this._antlion.bindInput($('game-list'), 'click', 'game-list-click');
+    this._antlion.onInput('game-list-click', (e) => {
+      const btn = e.target.closest('.join-btn');
+      if (btn) this._joinGame(btn.dataset.gameId);
     });
   }
 

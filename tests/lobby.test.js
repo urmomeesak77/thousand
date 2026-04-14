@@ -19,13 +19,15 @@ before(() => {
   const css = fs.readFileSync(path.join(publicDir, 'index.css'), 'utf8');
 
   const jsFiles = [
-    { src: '/js/Toast.js',            path: path.join(publicDir, 'js', 'Toast.js') },
-    { src: '/js/LobbyRenderer.js',    path: path.join(publicDir, 'js', 'LobbyRenderer.js') },
-    { src: '/js/LobbySocket.js',      path: path.join(publicDir, 'js', 'LobbySocket.js') },
-    { src: '/js/GameApi.js',          path: path.join(publicDir, 'js', 'GameApi.js') },
-    { src: '/js/ModalController.js',  path: path.join(publicDir, 'js', 'ModalController.js') },
-    { src: '/js/LobbyApp.js',         path: path.join(publicDir, 'js', 'LobbyApp.js') },
-    { src: '/index.js',               path: path.join(publicDir, 'index.js') },
+    { src: '/js/antlion/EventBus.js',  path: path.join(publicDir, 'js', 'antlion', 'EventBus.js') },
+    { src: '/js/antlion/Antlion.js',   path: path.join(publicDir, 'js', 'antlion', 'Antlion.js') },
+    { src: '/js/Toast.js',             path: path.join(publicDir, 'js', 'Toast.js') },
+    { src: '/js/LobbyRenderer.js',     path: path.join(publicDir, 'js', 'LobbyRenderer.js') },
+    { src: '/js/LobbySocket.js',       path: path.join(publicDir, 'js', 'LobbySocket.js') },
+    { src: '/js/GameApi.js',           path: path.join(publicDir, 'js', 'GameApi.js') },
+    { src: '/js/ModalController.js',   path: path.join(publicDir, 'js', 'ModalController.js') },
+    { src: '/js/LobbyApp.js',          path: path.join(publicDir, 'js', 'LobbyApp.js') },
+    { src: '/index.js',                path: path.join(publicDir, 'index.js') },
   ];
 
   // Replace <link> with inline <style>

@@ -13,7 +13,7 @@ class LobbyRenderer {
     });
   }
 
-  static renderGameList(games, onJoin) {
+  static renderGameList(games) {
     const list = $('game-list');
     const emptyState = $('empty-state');
 
@@ -44,7 +44,6 @@ class LobbyRenderer {
         </div>
         <button class="btn btn-secondary join-btn" data-game-id="${game.id}">Join</button>
       `;
-      li.querySelector('.join-btn').addEventListener('click', () => onJoin(game.id));
     }
   }
 

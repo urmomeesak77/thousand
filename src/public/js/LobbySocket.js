@@ -5,7 +5,8 @@
 // ============================================================
 
 class LobbySocket {
-  constructor(onMessage, onError) {
+  constructor(antlion, onMessage, onError) {
+    this._antlion = antlion;
     this._onMessage = onMessage;
     this._onError = onError;
   }
@@ -27,6 +28,6 @@ class LobbySocket {
       this._onMessage(msg);
     };
     ws.onerror = () => this._onError('Connection error. Please refresh.');
-    ws.onclose = () => setTimeout(() => this.connect(), 3000);
+    ws.onclose = () => this._antlion.schedule(3000, () => this.connect());
   }
 }
