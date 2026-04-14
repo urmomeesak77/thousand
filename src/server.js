@@ -3,8 +3,8 @@
 const http = require('http');
 const { WebSocketServer } = require('ws');
 
-const LobbyStore = require('./LobbyStore');
-const RequestHandler = require('./RequestHandler');
+const LobbyStore = require('./services/LobbyStore');
+const RequestHandler = require('./controllers/RequestHandler');
 
 const PORT = process.env.PORT || 3000;
 
