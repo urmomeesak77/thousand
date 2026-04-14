@@ -7,12 +7,16 @@
     "start": "node src/server.js",
     "test": "node --test tests/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage tests/*.test.js",
-    "dev": "node --run start -- --watch"
+    "dev": "node --run start -- --watch",
+    "lint": "eslint src",
+    "build": "node -e \"require('./src/server')\"",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "eslint": "^8.57.1",
     "jsdom": "^25.0.0"
   }
 }
