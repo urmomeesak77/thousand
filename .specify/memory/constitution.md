@@ -11,6 +11,9 @@ Each game page is a single `.html` file. No inline CSS or JS. No bundlers, no im
 ### III. Simplicity First
 Write the least code that works. No abstractions for future requirements. No utility libraries unless a feature genuinely needs them.
 
+### VII. Classes Over Functions
+Prefer ES6 classes over standalone functions for encapsulating state and behaviour. Use functions only for pure utilities with no associated state.
+
 ### IV. Backend as Thin Server
 Node.js backend.
 
@@ -37,4 +40,4 @@ Every page must be usable on mobile, tablet, and desktop. Use CSS media queries 
 
 This constitution supersedes CLAUDE.md for architectural decisions. Keep it minimal — only amend when a new constraint is truly project-wide.
 
-**Version**: 1.1.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
+**Version**: 1.2.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14

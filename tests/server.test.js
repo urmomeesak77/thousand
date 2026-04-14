@@ -9,7 +9,7 @@ const { WebSocket } = require('ws');
 // Test helpers
 // ---------------------------------------------------------------------------
 
-let server, games, players, inviteCodes;
+let server, store, games, players, inviteCodes;
 let baseUrl, wsUrl;
 
 function request(method, path, body) {
@@ -108,9 +108,10 @@ before(async () => {
   // Clear module cache so each test run gets fresh state
   const mod = require('../server');
   server = mod.server;
-  games = mod.games;
-  players = mod.players;
-  inviteCodes = mod.inviteCodes;
+  store = mod.store;
+  games = store.games;
+  players = store.players;
+  inviteCodes = store.inviteCodes;
 
   await new Promise((resolve) => server.listen(0, resolve));
   const { port } = server.address();
