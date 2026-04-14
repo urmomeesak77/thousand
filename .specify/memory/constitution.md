@@ -33,7 +33,17 @@ Keep classes and functions small and focused. A class should represent a single 
 Place functions where they belong logically — methods that operate on a class's data belong on that class; pure utilities that are feature-specific belong in the feature module, not a generic `utils` file.
 
 ### XI. All Frontend Logic Goes Through Antlion
-The Antlion engine is the single entry point for all frontend behaviour. This covers: the game loop, all input/event registration, key bindings, timed callbacks, and render cycles. No frontend module — lobby or game — may call `addEventListener`, `setInterval`, `setTimeout`, or `requestAnimationFrame` directly. Layer 1 — the engine (`src/public/js/antlion/`) — owns these primitives and exposes them via its API. Layer 2 — feature modules (`src/public/js/<feature-name>/`) — register behaviour exclusively via `Antlion.onInput`, `Antlion.onTick`, and `Antlion.emit`. The engine never references feature modules; feature modules never bypass the engine.
+The Antlion engine is the single entry point for all frontend behaviour. This covers: the game loop, all input/event registration, key bindings, timed callbacks, and render cycles. No frontend module — lobby or game — may call `addEventListener`, `setInterval`, `setTimeout`, or `requestAnimationFrame` directly. Layer 1 — the engine (`src/public/js/antlion/`) — owns these primitives and exposes them via its API. Layer 2 — feature modules (`src/public/js/<feature-name>/`) — register behaviour exclusively via the engine API. The engine never references feature modules; feature modules never bypass the engine.
+
+**Antlion engine API:**
+- `Antlion.onInput(type, handler)` — register a named input handler
+- `Antlion.onTick(handler)` — register a per-tick callback
+- `Antlion.emit(type, data)` — dispatch an engine-level event
+- `Antlion.start()` / `Antlion.stop()` — lifecycle control
+
+**Feature module rules:**
+- Register all behaviour via the API above — no direct DOM listeners, no raw `setInterval`.
+- Game-specific logic lives under `src/public/js/thousand/`.
 
 ## File Structure
 
@@ -69,4 +79,4 @@ specs/                               # feature specs, plans, and contracts (read
 
 This constitution supersedes CLAUDE.md for architectural decisions. Keep it minimal — only amend when a new constraint is truly project-wide.
 
-**Version**: 1.9.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
+**Version**: 2.0.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
