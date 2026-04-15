@@ -54,19 +54,22 @@ src/server.js                        # single backend entry point (http + ws upg
 src/controllers/
   RequestHandler.js                  # routes all HTTP requests
 src/services/
-  LobbyStore.js                      # all in-memory game state + WS connection handling
+  ThousandStore.js                   # all in-memory game state + WS connection handling
 src/utils/
   HttpUtil.js                        # shared HTTP response helpers
   StaticServer.js                    # serves src/public/ as static files
 src/public/                          # frontend assets
-  index.html / index.css / index.js  # lobby entry point (uses Antlion — see §XI)
+  index.html                         # lobby entry point
+  css/
+    index.css                        # lobby styles
   js/
+    index.js                         # lobby entry point script (uses Antlion — see §XI)
     antlion/                         # engine layer — generic, game-agnostic (§XI)
       EventBus.js                    # subscribe/emit for named engine events
       Antlion.js                     # lifecycle, input capture, tick loop, scheduling
-    LobbyApp.js                      # lobby coordinator — state + orchestration
-    LobbyRenderer.js                 # lobby stateless DOM rendering
-    LobbySocket.js                   # lobby WebSocket wrapper
+    ThousandApp.js                   # lobby coordinator — state + orchestration
+    ThousandRenderer.js              # lobby stateless DOM rendering
+    ThousandSocket.js                # lobby WebSocket wrapper
     GameApi.js                       # all HTTP calls to the game API
     ModalController.js               # new-game modal open/close/submit
     Toast.js                         # shared notification utility
