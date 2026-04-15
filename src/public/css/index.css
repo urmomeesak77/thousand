@@ -215,7 +215,7 @@ input[type="text"]::placeholder {
    ============================================================ */
 #lobby-screen {
   height: 100vh;
-  min-height: unset;
+  min-height: 26rem;
   justify-content: flex-start;
   padding-top: 2rem;
   overflow: hidden;
@@ -277,7 +277,7 @@ input[type="text"]::placeholder {
   width: 100%;
   max-width: 42rem;
   flex: 1;
-  min-height: 0;
+  min-height: 3rem;
   display: flex;
   flex-direction: column;
   overflow: hidden;
