@@ -40,8 +40,14 @@
       <span id="player-name-display" class="player-badge"></span>
     </header>
 
+    <div class="game-list-section">
+      <h3>Open Games</h3>
+      <ul id="game-list" aria-label="Available games"></ul>
+      <p id="empty-state" class="empty-state hidden">No open games yet. Create one!</p>
+    </div>
+
     <div class="lobby-actions">
-      <button id="new-game-btn" class="btn btn-primary">+ New Game</button>
+      <button id="join-selected-btn" class="btn btn-primary" disabled>Join Selected Game</button>
       <div class="join-invite-row">
         <input
           id="invite-code-input"
@@ -50,14 +56,9 @@
           placeholder="Invite code (e.g. A3FX9C)"
           autocomplete="off"
         />
-        <button id="join-invite-btn" class="btn btn-secondary">Join with Code</button>
+        <button id="join-invite-btn" class="btn btn-secondary" disabled>Join with Code</button>
       </div>
-    </div>
-
-    <div class="game-list-section">
-      <h3>Open Games</h3>
-      <ul id="game-list" aria-label="Available games"></ul>
-      <p id="empty-state" class="empty-state hidden">No open games yet. Create one!</p>
+      <button id="new-game-btn" class="btn btn-ghost">+ New Game</button>
     </div>
   </section>
 

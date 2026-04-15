@@ -41,7 +41,6 @@ class ThousandRenderer {
           <span class="game-id-label">Game #${game.id}</span>
           <span class="game-player-count">${game.playerCount} / ${game.maxPlayers} players</span>
         </div>
-        <button class="btn btn-secondary join-btn" data-game-id="${game.id}">Join</button>
       `;
     }
   }

@@ -240,10 +240,14 @@ input[type="text"]::placeholder {
   width: 100%;
   max-width: 42rem;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  align-items: center;
+  margin-top: 1rem;
+}
+
+#join-selected-btn,
+#new-game-btn {
+  width: 100%;
 }
 
 .join-invite-row {
@@ -287,8 +291,17 @@ input[type="text"]::placeholder {
   transition: border-color var(--transition);
 }
 
+#game-list li {
+  cursor: pointer;
+}
+
 #game-list li:hover {
   border-color: var(--color-primary);
+}
+
+#game-list li.selected {
+  border-color: var(--color-primary);
+  background: var(--color-surface-alt);
 }
 
 .game-info {
@@ -477,14 +490,6 @@ fieldset legend {
 /* 480px — small phones */
 @media (max-width: 480px) {
   h1 { font-size: 2rem; }
-
-  .lobby-actions {
-    flex-direction: column;
-  }
-
-  .join-invite-row {
-    width: 100%;
-  }
 
   .modal-actions {
     flex-direction: column;

@@ -17,6 +17,7 @@ class ThousandApp {
     this._nickname = null;
     this._gameId = null;
     this._inviteCode = null;
+    this._selectedGameId = null;
     this._toast = new Toast();
     this._api = new GameApi((msg) => this._toast.show(msg));
     this._modal = new ModalController(
@@ -44,9 +45,13 @@ class ThousandApp {
         break;
       case 'lobby_update':
         ThousandRenderer.renderGameList(msg.games);
+        if (this._selectedGameId && !msg.games.find((g) => g.id === this._selectedGameId)) {
+          this._clearGameSelection();
+        }
         break;
       case 'game_joined':
         this._gameId = msg.gameId;
+        this._clearGameSelection();
         ThousandRenderer.renderWaitingRoom(this._gameId, this._inviteCode, msg.players);
         ThousandRenderer.showScreen('game-screen');
         break;
@@ -65,7 +70,8 @@ class ThousandApp {
     this._modal.bind();
     this._bindInviteJoin();
     this._bindCopyInvite();
-    this._bindGameListJoin();
+    this._bindGameListSelect();
+    this._bindJoinSelectedBtn();
   }
 
   _bindNicknameForm() {
@@ -87,6 +93,10 @@ class ThousandApp {
   }
 
   _bindInviteJoin() {
+    this._antlion.bindInput($('invite-code-input'), 'input', 'invite-code-input');
+    this._antlion.onInput('invite-code-input', () => {
+      $('join-invite-btn').disabled = !$('invite-code-input').value.trim();
+    });
     this._antlion.bindInput($('join-invite-btn'), 'click', 'invite-join-click');
     this._antlion.onInput('invite-join-click', () => {
       const code = $('invite-code-input').value.trim().toUpperCase();
@@ -114,12 +124,36 @@ class ThousandApp {
     });
   }
 
-  _bindGameListJoin() {
+  _bindGameListSelect() {
     this._antlion.bindInput($('game-list'), 'click', 'game-list-click');
     this._antlion.onInput('game-list-click', (e) => {
-      const btn = e.target.closest('.join-btn');
-      if (btn) this._joinGame(btn.dataset.gameId);
+      const li = e.target.closest('li[data-id]');
+      if (!li) return;
+      const gameId = li.dataset.id;
+      if (this._selectedGameId === gameId) {
+        this._clearGameSelection();
+      } else {
+        const prev = $('game-list').querySelector('li.selected');
+        if (prev) prev.classList.remove('selected');
+        li.classList.add('selected');
+        this._selectedGameId = gameId;
+        $('join-selected-btn').disabled = false;
+      }
     });
+  }
+
+  _bindJoinSelectedBtn() {
+    this._antlion.bindInput($('join-selected-btn'), 'click', 'join-selected-click');
+    this._antlion.onInput('join-selected-click', () => {
+      if (this._selectedGameId) this._joinGame(this._selectedGameId);
+    });
+  }
+
+  _clearGameSelection() {
+    const selected = $('game-list').querySelector('li.selected');
+    if (selected) selected.classList.remove('selected');
+    this._selectedGameId = null;
+    $('join-selected-btn').disabled = true;
   }
 
   async _joinGame(gameId) {
@@ -134,7 +168,11 @@ class ThousandApp {
 
   async _joinWithCode(code) {
     const data = await this._api.joinWithCode(code, this._nickname, this._playerId);
-    if (data) { this._gameId = data.gameId; $('invite-code-input').value = ''; }
+    if (data) {
+      this._gameId = data.gameId;
+      $('invite-code-input').value = '';
+      $('join-invite-btn').disabled = true;
+    }
   }
 }
 
