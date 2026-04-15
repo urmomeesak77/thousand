@@ -91,8 +91,12 @@ specs/                               # feature specs, plans, and contracts (read
 - Run `npm start` (`node src/server.js`) to start backend
 - ESLint (`npm run lint`) and `npm test` run via pre-commit hook and GitHub Actions CI
 
+## XII. Prefer Built-in Tools Over Shell Commands
+
+When working with files, prefer dedicated tools (Read, Grep, Glob, Edit, Write) over Bash equivalents (`cat`, `grep`, `find`, `sed`). Do not introduce new CLI tools (e.g. `python`, `jq`) unless genuinely necessary — if so, ask first and provide the reason.
+
 ## Governance
 
 This constitution supersedes CLAUDE.md for architectural decisions. Keep it minimal — only amend when a new constraint is truly project-wide.
 
-**Version**: 2.1.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-14
+**Version**: 2.2.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-15
