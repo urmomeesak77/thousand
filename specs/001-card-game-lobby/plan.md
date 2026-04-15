@@ -55,14 +55,34 @@ specs/001-card-game-lobby/
 
 ```text
 package.json
-server.js              ← Node.js HTTP + WebSocket server (all backend logic)
-public/
-├── lobby.html         ← Lobby page shell
-├── lobby.css          ← Lobby styles
-└── lobby.js           ← Lobby client logic (WebSocket, DOM updates)
+src/
+├── server.js                        ← Entry point — HTTP + WebSocket server wiring
+├── services/
+│   └── ThousandStore.js             ← In-memory state + WebSocket connection handling
+├── controllers/
+│   └── RequestHandler.js            ← HTTP routing and all endpoint logic
+└── utils/
+    ├── HttpUtil.js                  ← sendJSON / sendError / parseBody helpers
+    └── StaticServer.js              ← Static file serving from src/public/
+src/public/
+├── index.html                       ← Lobby page shell
+├── css/
+│   └── index.css                    ← Lobby styles
+└── js/
+    ├── index.js                     ← Entry point — wires Antlion + ThousandApp
+    ├── ThousandApp.js               ← Lobby coordinator — state + orchestration
+    ├── ThousandRenderer.js          ← Lobby stateless DOM rendering
+    ├── ThousandSocket.js            ← Lobby WebSocket wrapper
+    ├── Toast.js                     ← Shared notification utility
+    ├── GameApi.js                   ← HTTP API calls (fetch wrappers)
+    ├── ModalController.js           ← Modal open/close logic
+    └── antlion/
+        ├── Antlion.js               ← Engine — input/tick/event lifecycle
+        └── EventBus.js              ← Internal pub/sub event bus
+tests/                               ← Backend test files (*.test.js)
 ```
 
-**Structure Decision**: Web application layout — Node.js serves static files from `public/` and handles WebSocket upgrades on the same port. All game state lives in server.js memory. No subdirectories needed for v1 (single lobby page + future game page).
+**Structure Decision**: Web application layout — Node.js serves static files from `src/public/` and handles WebSocket upgrades on the same port. Backend logic is split across `services/`, `controllers/`, and `utils/` for separation of concerns. Frontend uses an Antlion engine layer (game-agnostic) with Thousand-specific modules layered on top.
 
 ## Complexity Tracking
 

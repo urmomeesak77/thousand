@@ -12,8 +12,9 @@ All messages are JSON strings. The `type` field is present on every message and 
 
 1. Client opens WebSocket to `/ws`.
 2. Server assigns a player ID and registers the connection.
-3. Server immediately sends a `lobby_update` with the current public games list.
-4. On disconnect, server removes the player and cleans up any empty waiting game they hosted.
+3. Server immediately sends `connected` with the assigned player ID.
+4. Server immediately sends `lobby_update` with the current public games list.
+5. On disconnect, server removes the player and cleans up any empty waiting game they hosted.
 
 ---
 
@@ -32,6 +33,16 @@ Server does not respond (no `pong` needed; connection staying open is the signal
 ---
 
 ## Server → Client Messages
+
+### `connected`
+
+Sent to the newly connected client immediately after the WebSocket handshake. Delivers the server-assigned player ID that the client must include in subsequent HTTP request bodies.
+
+```json
+{ "type": "connected", "playerId": "uuid-..." }
+```
+
+---
 
 ### `lobby_update`
 

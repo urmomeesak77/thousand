@@ -50,15 +50,15 @@ WebSocket is chosen because the game phase (future feature) requires bidirection
 
 ## Decision 4: In-Memory State Management
 
-**Decision**: Two plain `Map` objects in `server.js` — `games` and `players`.
+**Decision**: Three `Map` objects (`games`, `players`, `inviteCodes`) encapsulated in a `ThousandStore` class (`src/services/ThousandStore.js`), with WebSocket connection handling co-located there.
 
-**Rationale**: No persistence is required (games are ephemeral, no accounts). A `Map` is the simplest structure that supports O(1) lookup by ID and iteration for lobby listing. No ORM, no abstraction layer, consistent with constitution Principle III.
+**Rationale**: No persistence is required (games are ephemeral, no accounts). A `Map` supports O(1) lookup by ID and iteration for lobby listing. Grouping state + the WebSocket/broadcast logic into a single class keeps server.js thin and makes the store independently testable. This departs from the original "plain Map in server.js" plan but stays consistent with constitution Principle III — the class holds no business abstractions, just the Maps and the methods that operate on them together.
 
 **State cleared**: Server restart clears all games. Acceptable for v1.
 
 **Alternatives rejected**:
 - Flat JSON file: Adds I/O complexity; no benefit without persistence requirement.
-- Class-based models: Premature abstraction; plain objects are sufficient.
+- Module-level Maps in server.js: Retained as the initial approach during design; moved into a class during implementation to allow dependency injection for tests.
 
 ---
 

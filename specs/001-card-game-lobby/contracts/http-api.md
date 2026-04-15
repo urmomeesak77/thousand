@@ -10,9 +10,9 @@ All endpoints are served by `server.js` on `http://localhost:3000` (default port
 
 | Method | Path | Response |
 |--------|------|----------|
-| `GET` | `/` | `200` — `lobby.html` |
-| `GET` | `/lobby.css` | `200` — `lobby.css` |
-| `GET` | `/lobby.js` | `200` — `lobby.js` |
+| `GET` | `/` | `200` — `index.html` |
+| `GET` | `/css/index.css` | `200` — `index.css` |
+| `GET` | `/js/<module>.js` | `200` — JS module (ES module, not bundled) |
 
 ---
 
@@ -41,14 +41,15 @@ Creates a new game. The creating player becomes the host.
 
 **Request body**:
 ```json
-{ "type": "public" | "private", "nickname": "Alice" }
+{ "type": "public" | "private", "nickname": "Alice", "playerId": "uuid (optional — reconnect hint)" }
 ```
 
 **Response `201`**:
 ```json
 {
   "gameId": "a3f9c1",
-  "inviteCode": "A3FX9C"   // present only for private games, null for public
+  "inviteCode": "A3FX9C",   // present only for private games, null for public
+  "playerId": "uuid-..."    // server-assigned player ID; store client-side to link future requests to the same WS session
 }
 ```
 
@@ -65,7 +66,7 @@ Joins an existing public game by its ID.
 
 **Request body**:
 ```json
-{ "nickname": "Bob" }
+{ "nickname": "Bob", "playerId": "uuid (optional)" }
 ```
 
 **Response `200`**:
@@ -91,7 +92,7 @@ Joins a private game using an invite code.
 
 **Request body**:
 ```json
-{ "code": "A3FX9C", "nickname": "Charlie" }
+{ "code": "A3FX9C", "nickname": "Charlie", "playerId": "uuid (optional)" }
 ```
 
 **Response `200`**:

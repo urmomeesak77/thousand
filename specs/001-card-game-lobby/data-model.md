@@ -77,15 +77,16 @@ Not a separate data structure — embedded as the `inviteCode` field on a `Game`
 
 ## Server-Side State Shape
 
+State lives in `ThousandStore` (`src/services/ThousandStore.js`), instantiated once in `src/server.js` and injected into `RequestHandler`.
+
 ```js
-// games: Map<gameId, Game>
-const games = new Map();
-
-// players: Map<playerId, Player>
-const players = new Map();
-
-// inviteCodes: Map<inviteCode, gameId>  — fast lookup for join-by-code
-const inviteCodes = new Map();
+class ThousandStore {
+  constructor() {
+    this.games = new Map();       // Map<gameId, Game>
+    this.players = new Map();     // Map<playerId, Player>
+    this.inviteCodes = new Map(); // Map<inviteCode, gameId>  — fast lookup for join-by-code
+  }
+}
 ```
 
 ---

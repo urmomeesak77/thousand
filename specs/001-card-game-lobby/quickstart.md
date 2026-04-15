@@ -16,7 +16,7 @@ This installs the single dependency: `ws` (WebSocket server).
 ## Run
 
 ```bash
-node server.js
+node src/server.js
 ```
 
 Server starts on `http://localhost:3000`.
@@ -34,12 +34,23 @@ Open `http://localhost:3000` in one or more browser tabs.
 ## File Layout
 
 ```
-package.json        — declares ws dependency
-server.js           — HTTP + WebSocket server, all game state
-public/
-├── lobby.html      — lobby page shell
-├── lobby.css       — lobby styles
-└── lobby.js        — lobby client logic
+package.json                   — declares ws dependency
+src/
+├── server.js                  — HTTP + WebSocket server entry point
+├── services/ThousandStore.js  — in-memory state + WebSocket handling
+├── controllers/RequestHandler.js — HTTP routing and endpoint logic
+└── utils/                     — HttpUtil, StaticServer helpers
+src/public/
+├── index.html                 — lobby page shell
+├── css/index.css              — lobby styles
+└── js/
+    ├── index.js               — entry point
+    ├── ThousandApp.js         — lobby coordinator
+    ├── ThousandRenderer.js    — DOM rendering
+    ├── ThousandSocket.js      — WebSocket wrapper
+    ├── Toast.js / GameApi.js / ModalController.js
+    └── antlion/               — engine layer
+tests/                         — backend test files
 ```
 
 ## Port
@@ -47,5 +58,5 @@ public/
 Default port is `3000`. Override with the `PORT` environment variable:
 
 ```bash
-PORT=8080 node server.js
+PORT=8080 node src/server.js
 ```

@@ -11,7 +11,7 @@
 
 ## Path Conventions
 
-Web app layout: `server.js`, `public/`, `tests/` at repository root.
+Web app layout: `src/server.js`, `src/public/`, `tests/` under `src/`. Backend split into `src/services/`, `src/controllers/`, `src/utils/`. Frontend files at `src/public/index.html`, `src/public/css/index.css`, `src/public/js/` (ES modules). Note: task descriptions below use the original planned paths (`server.js`, `public/lobby.*`) — the actual paths diverged during implementation.
 
 ---
 
