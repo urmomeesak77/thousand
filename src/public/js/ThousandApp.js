@@ -59,8 +59,20 @@ class ThousandApp {
         ThousandRenderer.startWaitingTimer(msg.createdAt);
         break;
       case 'player_joined':
+        ThousandRenderer.renderWaitingRoomPlayers(msg.players);
+        this._toast.show(`${msg.player.nickname} joined the game.`);
+        break;
       case 'player_left':
         ThousandRenderer.renderWaitingRoomPlayers(msg.players);
+        this._toast.show(`${msg.nickname} left the game.`);
+        break;
+      case 'game_disbanded':
+        this._gameId = null;
+        this._inviteCode = null;
+        ThousandRenderer.stopWaitingTimer();
+        ThousandRenderer.showScreen('lobby-screen');
+        ThousandRenderer.startElapsedTimer();
+        this._toast.show('The host left — game was disbanded.');
         break;
       case 'error':
         this._toast.show(msg.message || 'An error occurred');

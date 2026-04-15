@@ -57,11 +57,20 @@ class ThousandStore {
     }
 
     if (game.hostId === playerId) {
-      game.hostId = [...game.players][0];
+      const disbandMsg = { type: 'game_disbanded', reason: 'host_left' };
+      for (const pid of game.players) {
+        const p = this.players.get(pid);
+        if (p) p.gameId = null;
+        this.sendToPlayer(pid, disbandMsg);
+      }
+      if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
+      this.games.delete(gameId);
+      this.broadcastLobbyUpdate();
+      return true;
     }
 
     const remaining = this.serializePlayers(game);
-    const leftMsg = { type: 'player_left', playerId, players: remaining };
+    const leftMsg = { type: 'player_left', playerId, nickname: player.nickname, players: remaining };
     for (const pid of game.players) {
       this.sendToPlayer(pid, leftMsg);
     }
@@ -119,7 +128,7 @@ class ThousandStore {
     const player = this.players.get(playerId);
     if (!player) return;
 
-    const { gameId } = player;
+    const { gameId, nickname } = player;
     this.players.delete(playerId);
     if (!gameId) return;
 
@@ -131,22 +140,33 @@ class ThousandStore {
     const isHost = game.hostId === playerId;
     const noPlayersLeft = game.players.size === 0;
 
-    if (isHost && game.status === 'waiting' && noPlayersLeft) {
-      // T036 – host leaves empty waiting game → delete
+    if (noPlayersLeft) {
       if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
       this.games.delete(gameId);
       this.broadcastLobbyUpdate();
       return;
     }
 
-    if (game.players.size > 0) {
-      const remaining = this.serializePlayers(game);
-      const leftMsg = { type: 'player_left', playerId, players: remaining };
+    if (isHost && game.status === 'waiting') {
+      // Host disconnected — disband the waiting room
+      const disbandMsg = { type: 'game_disbanded', reason: 'host_left' };
       for (const pid of game.players) {
-        this.sendToPlayer(pid, leftMsg);
+        const p = this.players.get(pid);
+        if (p) p.gameId = null;
+        this.sendToPlayer(pid, disbandMsg);
       }
+      if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
+      this.games.delete(gameId);
       this.broadcastLobbyUpdate();
+      return;
     }
+
+    const remaining = this.serializePlayers(game);
+    const leftMsg = { type: 'player_left', playerId, nickname, players: remaining };
+    for (const pid of game.players) {
+      this.sendToPlayer(pid, leftMsg);
+    }
+    this.broadcastLobbyUpdate();
   }
 }
 
