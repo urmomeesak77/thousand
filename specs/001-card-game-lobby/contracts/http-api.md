@@ -1,8 +1,8 @@
 # HTTP API Contract: Card Game 1000 — Lobby
 
-**Date**: 2026-04-14 | **Branch**: `001-card-game-lobby`
+**Date**: 2026-04-14 | **Last Updated**: 2026-04-15 | **Branch**: `001-card-game-lobby`
 
-All endpoints are served by `server.js` on `http://localhost:3000` (default port). JSON bodies use `Content-Type: application/json`.
+All endpoints are served by `src/server.js` on `http://localhost:3000` (default port). JSON bodies use `Content-Type: application/json`.
 
 ---
 
@@ -16,6 +16,36 @@ All endpoints are served by `server.js` on `http://localhost:3000` (default port
 
 ---
 
+## Player Endpoints
+
+### `POST /api/nickname`
+
+Claims a unique nickname for a connected player before they enter the lobby. The player must already have an active WebSocket connection (to obtain a `playerId`).
+
+**Request body**:
+```json
+{ "nickname": "Alice", "playerId": "uuid-..." }
+```
+
+**Response `200`**:
+```json
+{ "nickname": "Alice" }
+```
+
+**Response `400`** — missing/invalid nickname or unknown `playerId`:
+```json
+{ "error": "invalid_request", "message": "Nickname must be 3–20 characters" }
+```
+
+**Response `409`** — another connected player already holds this nickname:
+```json
+{ "error": "duplicate_nickname", "message": "That nickname is already taken" }
+```
+
+Nickname uniqueness is case-insensitive and scoped to currently connected players only.
+
+---
+
 ## Game Endpoints
 
 ### `GET /api/games`
@@ -26,12 +56,19 @@ Returns the list of public games currently in `waiting` status.
 ```json
 {
   "games": [
-    { "id": "a3f9c1", "playerCount": 2, "maxPlayers": 4 }
+    {
+      "id": "a3f9c1",
+      "playerCount": 2,
+      "maxPlayers": 4,
+      "owner": "Alice",
+      "createdAt": 1744747200000,
+      "players": ["Alice", "Bob"]
+    }
   ]
 }
 ```
 
-Private games and non-waiting games are excluded.
+Private games and non-waiting games are excluded. `players` is an array of nicknames (for tooltip display in the UI).
 
 ---
 
@@ -41,21 +78,23 @@ Creates a new game. The creating player becomes the host.
 
 **Request body**:
 ```json
-{ "type": "public" | "private", "nickname": "Alice", "playerId": "uuid (optional — reconnect hint)" }
+{ "type": "public" | "private", "nickname": "Alice", "playerId": "uuid (optional — links to existing WS session)" }
 ```
 
 **Response `201`**:
 ```json
 {
   "gameId": "a3f9c1",
-  "inviteCode": "A3FX9C",   // present only for private games, null for public
-  "playerId": "uuid-..."    // server-assigned player ID; store client-side to link future requests to the same WS session
+  "inviteCode": "A3FX9C",
+  "playerId": "uuid-..."
 }
 ```
 
-**Response `400`** — invalid body (missing fields, invalid type, blank nickname):
+`inviteCode` is present for private games, `null` for public. `playerId` is the server-assigned ID the client must use in future requests.
+
+**Response `400`** — invalid body:
 ```json
-{ "error": "invalid_request", "message": "nickname is required" }
+{ "error": "invalid_request", "message": "nickname must be 3–20 characters" }
 ```
 
 ---
@@ -105,10 +144,39 @@ Joins a private game using an invite code.
 { "error": "not_found", "message": "Invalid invite code" }
 ```
 
-**Response `409`** — game is full or no longer waiting:
+**Response `409`** — game is full:
 ```json
 { "error": "game_full", "message": "Game is full" }
 ```
+
+---
+
+### `POST /api/games/:id/leave`
+
+Voluntarily leaves a waiting game. Triggers the same server-side logic as a WebSocket disconnect for the leaving player.
+
+**Request body**:
+```json
+{ "playerId": "uuid-..." }
+```
+
+**Response `200`**:
+```json
+{}
+```
+
+**Response `404`** — game or player not found:
+```json
+{ "error": "not_found", "message": "Game or player not found" }
+```
+
+If the leaving player was the host:
+- Remaining players receive a `game_disbanded` WebSocket message.
+- The game is deleted.
+
+If a non-host player leaves:
+- Remaining players receive a `player_left` WebSocket message.
+- The game persists.
 
 ---
 
@@ -125,4 +193,5 @@ All error responses follow this shape:
 | `invalid_request` | 400 | Missing or malformed fields |
 | `not_found` | 404 | Game or invite code does not exist |
 | `game_full` | 409 | No seats available |
+| `duplicate_nickname` | 409 | Nickname already claimed by another connected player |
 | `internal_error` | 500 | Unexpected server fault |

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-card-game-lobby`
 **Created**: 2026-04-14
-**Status**: Draft
+**Status**: Implemented
 **Input**: User description: "I want to create a card game 1000. it should start with lobby where user can join some random new game, or create new game to play with friends (invite only)"
 
 ## User Scenarios & Testing *(mandatory)*

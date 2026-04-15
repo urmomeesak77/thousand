@@ -161,6 +161,22 @@ Task descriptions below use the original planned paths (`server.js`, `public/lob
 
 ---
 
+## Phase 7: Post-Plan Additions
+
+**Purpose**: Features added after the original plan was completed, recorded here for traceability.
+
+- [x] T048 Show game owner nickname, player count tooltip, and live elapsed wait time in the lobby game list (`ThousandRenderer.js`, `index.css`)
+- [x] T049 Ensure game list always shows at least 2 rows on small viewports (min-height CSS, `index.css`)
+- [x] T050 Add Leave Game button with confirmation modal in the waiting room (`index.html`, `index.css`, `ThousandApp.js`)
+- [x] T051 Add waiting room elapsed time display — counts up from `game_joined.createdAt` (`ThousandRenderer.js`)
+- [x] T052 Add `POST /api/nickname` endpoint — claim a nickname before entering the lobby; enforces uniqueness among connected players (`RequestHandler.js`)
+- [x] T053 Add `POST /api/games/:id/leave` endpoint — voluntary leave; mirrors WebSocket disconnect logic (`RequestHandler.js`, `ThousandStore.js`)
+- [x] T054 Disband waiting room when host leaves (via WS disconnect or `/leave`) — send `game_disbanded` to remaining players instead of keeping game alive (`ThousandStore.js`)
+- [x] T055 Add lobby header welcome text and icon buttons (rules, settings placeholders) (`index.html`, `index.css`)
+- [x] T056 Add double-click on game row to join directly (`ThousandApp.js`)
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

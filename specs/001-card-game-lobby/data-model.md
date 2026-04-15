@@ -1,6 +1,6 @@
 # Data Model: Card Game 1000 — Lobby & Game Creation
 
-**Date**: 2026-04-14 | **Branch**: `001-card-game-lobby`
+**Date**: 2026-04-14 | **Last Updated**: 2026-04-15 | **Branch**: `001-card-game-lobby`
 
 All state is in-memory on the server. No persistence layer.
 
@@ -19,6 +19,7 @@ Represents one game session (lobby phase only; gameplay fields are out of scope)
 | `maxPlayers` | number | Always `4` for v1 |
 | `status` | `"waiting"` \| `"playing"` \| `"finished"` | Current game phase |
 | `inviteCode` | string \| `null` | 6-char uppercase alphanumeric; `null` for public games |
+| `createdAt` | number | Unix timestamp (ms) when the game was created |
 
 ### State Transitions
 
@@ -28,7 +29,10 @@ Represents one game session (lobby phase only; gameplay fields are out of scope)
     ▼
  waiting ──(all seats filled or host starts)──► playing
     │
-    └──(host disconnects, no other players)──► [deleted]
+    ├──(host disconnects or leaves, no other players)──► [deleted]
+    │
+    └──(host disconnects or leaves, other players remain)──► [disbanded → deleted]
+         └── remaining players receive game_disbanded WS message
 
 playing ──(game ends)──► finished ──► [deleted from memory]
 ```
@@ -102,8 +106,13 @@ When pushing lobby updates to clients, only public waiting games are sent, and s
     {
       "id": "a3f9c1",
       "playerCount": 2,
-      "maxPlayers": 4
+      "maxPlayers": 4,
+      "owner": "Alice",
+      "createdAt": 1744747200000,
+      "players": ["Alice", "Bob"]
     }
   ]
 }
 ```
+
+`players` is an array of nicknames (not IDs) used for the hover tooltip in the lobby UI.

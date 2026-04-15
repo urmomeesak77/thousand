@@ -31,6 +31,7 @@ Build a browser-based lobby for the card game 1000: players enter a nickname, se
 | IV. Backend as Thin Server | Node.js `http` + `ws` for WebSocket — `ws` justified by real-time requirement | PASS |
 | V. No Build Step | Plain files, no compilation/transpilation | PASS |
 | VI. Responsive Design | Lobby CSS uses media queries + relative units; touch-friendly targets | PASS |
+| XII. Prefer Built-in Tools | No shell-command workarounds in source; Read/Grep/Glob used in tooling | PASS |
 
 **Post-Phase 1 re-check**: All principles maintained. `ws` is the single justified external dependency.
 
