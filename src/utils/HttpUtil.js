@@ -14,11 +14,16 @@ class HttpUtil {
     HttpUtil.sendJSON(res, status, { error: code, message });
   }
 
-  static parseBody(req) {
+  static parseBody(req, maxBytes = 65536) {
     return new Promise((resolve, reject) => {
       let data = '';
-      req.on('data', (chunk) => { data += chunk; });
+      let size = 0;
+      req.on('data', (chunk) => {
+        size += chunk.length;
+        if (size <= maxBytes) data += chunk;
+      });
       req.on('end', () => {
+        if (size > maxBytes) { reject(new Error('Request body too large')); return; }
         try { resolve(JSON.parse(data || '{}')); }
         catch { reject(new Error('Invalid JSON')); }
       });

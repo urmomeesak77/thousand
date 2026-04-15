@@ -50,22 +50,12 @@ class ThousandStore {
     player.gameId = null;
 
     if (game.players.size === 0) {
-      if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
-      this.games.delete(gameId);
-      this.broadcastLobbyUpdate();
+      this._deleteGame(gameId, game);
       return true;
     }
 
-    if (game.hostId === playerId) {
-      const disbandMsg = { type: 'game_disbanded', reason: 'host_left' };
-      for (const pid of game.players) {
-        const p = this.players.get(pid);
-        if (p) p.gameId = null;
-        this.sendToPlayer(pid, disbandMsg);
-      }
-      if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
-      this.games.delete(gameId);
-      this.broadcastLobbyUpdate();
+    if (game.hostId === playerId && game.status === 'waiting') {
+      this._disbandGame(gameId, game);
       return true;
     }
 
@@ -124,6 +114,22 @@ class ThousandStore {
     ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
   }
 
+  _deleteGame(gameId, game) {
+    if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
+    this.games.delete(gameId);
+    this.broadcastLobbyUpdate();
+  }
+
+  _disbandGame(gameId, game) {
+    const disbandMsg = { type: 'game_disbanded', reason: 'host_left' };
+    for (const pid of game.players) {
+      const p = this.players.get(pid);
+      if (p) p.gameId = null;
+      this.sendToPlayer(pid, disbandMsg);
+    }
+    this._deleteGame(gameId, game);
+  }
+
   _handleDisconnect(playerId) {
     const player = this.players.get(playerId);
     if (!player) return;
@@ -137,27 +143,13 @@ class ThousandStore {
 
     game.players.delete(playerId);
 
-    const isHost = game.hostId === playerId;
-    const noPlayersLeft = game.players.size === 0;
-
-    if (noPlayersLeft) {
-      if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
-      this.games.delete(gameId);
-      this.broadcastLobbyUpdate();
+    if (game.players.size === 0) {
+      this._deleteGame(gameId, game);
       return;
     }
 
-    if (isHost && game.status === 'waiting') {
-      // Host disconnected — disband the waiting room
-      const disbandMsg = { type: 'game_disbanded', reason: 'host_left' };
-      for (const pid of game.players) {
-        const p = this.players.get(pid);
-        if (p) p.gameId = null;
-        this.sendToPlayer(pid, disbandMsg);
-      }
-      if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
-      this.games.delete(gameId);
-      this.broadcastLobbyUpdate();
+    if (game.hostId === playerId && game.status === 'waiting') {
+      this._disbandGame(gameId, game);
       return;
     }
 

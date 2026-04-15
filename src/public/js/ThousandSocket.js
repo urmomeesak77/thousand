@@ -7,6 +7,7 @@ class ThousandSocket {
     this._antlion = antlion;
     this._onMessage = onMessage;
     this._onError = onError;
+    this._reconnectId = null;
   }
 
   connect() {
@@ -31,7 +32,13 @@ class ThousandSocket {
       this._onMessage(msg);
     };
     ws.onerror = () => this._onError('Connection error. Please refresh.');
-    ws.onclose = () => this._antlion.schedule(3000, () => this.connect());
+    ws.onclose = () => {
+      if (this._reconnectId !== null) this._antlion.cancelScheduled(this._reconnectId);
+      this._reconnectId = this._antlion.schedule(3000, () => {
+        this._reconnectId = null;
+        this.connect();
+      });
+    };
   }
 }
 

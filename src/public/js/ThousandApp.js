@@ -18,7 +18,7 @@ class ThousandApp {
     this._gameId = null;
     this._inviteCode = null;
     this._selectedGameId = null;
-    this._toast = new Toast();
+    this._toast = new Toast(antlion);
     this._api = new GameApi((msg) => this._toast.show(msg));
     this._modal = new ModalController(
       antlion,
@@ -35,7 +35,7 @@ class ThousandApp {
 
   init() {
     this._bindUI();
-    ThousandRenderer.bindTooltip();
+    ThousandRenderer.init(this._antlion);
     this._socket.connect();
   }
 

@@ -10,6 +10,7 @@ class Antlion {
     this._tickHandlers = [];
     this._domListeners = [];
     this._timers = [];
+    this._intervals = [];
     this._running = false;
     this._rafId = null;
   }
@@ -43,6 +44,25 @@ class Antlion {
     return id;
   }
 
+  // Cancel a scheduled timeout (replaces direct clearTimeout in feature modules)
+  cancelScheduled(id) {
+    clearTimeout(id);
+    this._timers = this._timers.filter((t) => t !== id);
+  }
+
+  // Schedule a repeating callback (replaces direct setInterval in feature modules)
+  scheduleInterval(delay, cb) {
+    const id = setInterval(cb, delay);
+    this._intervals.push(id);
+    return id;
+  }
+
+  // Cancel a repeating interval (replaces direct clearInterval in feature modules)
+  cancelInterval(id) {
+    clearInterval(id);
+    this._intervals = this._intervals.filter((t) => t !== id);
+  }
+
   start() {
     if (this._running) {
       return;
@@ -59,6 +79,8 @@ class Antlion {
     this._rafId = null;
     this._timers.forEach((id) => clearTimeout(id));
     this._timers = [];
+    this._intervals.forEach((id) => clearInterval(id));
+    this._intervals = [];
     this._domListeners.forEach(({ element, domEvent, handler }) => {
       element.removeEventListener(domEvent, handler);
     });

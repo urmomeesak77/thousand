@@ -5,7 +5,8 @@ const $ = (id) => document.getElementById(id);
 // ============================================================
 
 class Toast {
-  constructor() {
+  constructor(antlion) {
+    this._antlion = antlion;
     this._timer = null;
   }
 
@@ -13,11 +14,11 @@ class Toast {
     const el = $('toast');
     el.textContent = message;
     el.classList.remove('hidden');
-    if (this._timer) clearTimeout(this._timer);
-    this._timer = setTimeout(() => {
+    if (this._timer) this._antlion.cancelScheduled(this._timer);
+    this._timer = this._antlion.schedule(4000, () => {
       el.classList.add('hidden');
       this._timer = null;
-    }, 4000);
+    });
   }
 }
 
