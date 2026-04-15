@@ -214,11 +214,9 @@ input[type="text"]::placeholder {
    Lobby layout
    ============================================================ */
 #lobby-screen {
-  height: 100vh;
   min-height: 26rem;
   justify-content: flex-start;
   padding-top: 2rem;
-  overflow: hidden;
 }
 
 .lobby-header {
@@ -276,11 +274,8 @@ input[type="text"]::placeholder {
 .game-list-section {
   width: 100%;
   max-width: 42rem;
-  flex: 1;
-  min-height: 3rem;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 #game-list {
@@ -289,6 +284,7 @@ input[type="text"]::placeholder {
   flex-direction: column;
   gap: 0.5rem;
   overflow-y: auto;
+  max-height: calc(100vh - 21rem);
 }
 
 #game-list li {
