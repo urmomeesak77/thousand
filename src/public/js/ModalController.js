@@ -1,5 +1,4 @@
-'use strict';
-/* global $ */
+const $ = (id) => document.getElementById(id);
 
 // ============================================================
 // ModalController — new-game modal open/close/submit
@@ -52,3 +51,5 @@ class ModalController {
     modal.style.display = '';
   }
 }
+
+export default ModalController;

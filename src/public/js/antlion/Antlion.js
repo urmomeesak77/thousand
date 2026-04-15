@@ -1,5 +1,4 @@
-'use strict';
-/* global EventBus */
+import EventBus from './EventBus.js';
 
 // ============================================================
 // Antlion — game engine: lifecycle, input capture, tick loop
@@ -69,3 +68,5 @@ class Antlion {
     this._rafId = requestAnimationFrame(() => this._tick());
   }
 }
+
+export default Antlion;

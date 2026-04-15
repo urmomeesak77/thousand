@@ -1,5 +1,4 @@
-'use strict';
-/* global $ */
+const $ = (id) => document.getElementById(id);
 
 // ============================================================
 // Toast — owns toast timer state  (T043)
@@ -21,3 +20,5 @@ class Toast {
     }, 4000);
   }
 }
+
+export default Toast;

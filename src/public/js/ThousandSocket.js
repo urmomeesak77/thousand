@@ -1,5 +1,3 @@
-'use strict';
-
 // ============================================================
 // ThousandSocket — owns WebSocket connection and reconnect logic
 // ============================================================
@@ -31,3 +29,5 @@ class ThousandSocket {
     ws.onclose = () => this._antlion.schedule(3000, () => this.connect());
   }
 }
+
+export default ThousandSocket;

@@ -1,5 +1,4 @@
-'use strict';
-/* global $ */
+const $ = (id) => document.getElementById(id);
 
 // ============================================================
 // ThousandRenderer — stateless DOM rendering  (T021 / T038)
@@ -64,3 +63,5 @@ class ThousandRenderer {
     }
   }
 }
+
+export default ThousandRenderer;

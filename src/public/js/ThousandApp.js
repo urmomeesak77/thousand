@@ -1,5 +1,10 @@
-'use strict';
-/* global $, Toast, ThousandSocket, ThousandRenderer, GameApi, ModalController */
+import Toast from './Toast.js';
+import ThousandRenderer from './ThousandRenderer.js';
+import ThousandSocket from './ThousandSocket.js';
+import GameApi from './GameApi.js';
+import ModalController from './ModalController.js';
+
+const $ = (id) => document.getElementById(id);
 
 // ============================================================
 // ThousandApp — coordinator: player state, UI binding, message handling
@@ -130,3 +135,5 @@ class ThousandApp {
     if (data) { this._gameId = data.gameId; $('invite-code-input').value = ''; }
   }
 }
+
+export default ThousandApp;

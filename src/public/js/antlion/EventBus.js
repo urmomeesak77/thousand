@@ -1,5 +1,3 @@
-'use strict';
-
 // ============================================================
 // EventBus — subscribe/emit for named engine events
 // ============================================================
@@ -27,3 +25,5 @@ class EventBus {
     this._handlers.clear();
   }
 }
+
+export default EventBus;

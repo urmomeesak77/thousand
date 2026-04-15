@@ -1,5 +1,3 @@
-'use strict';
-
 // ============================================================
 // GameApi — all HTTP calls to the game API
 // ============================================================
@@ -61,3 +59,5 @@ class GameApi {
     return { res, data: await res.json() };
   }
 }
+
+export default GameApi;

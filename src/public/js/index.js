@@ -1,8 +1,5 @@
-'use strict';
-/* global Antlion, ThousandApp */
-
-// Pure DOM lookup utility — no state
-const $ = (id) => document.getElementById(id);
+import Antlion from './antlion/Antlion.js';
+import ThousandApp from './ThousandApp.js';
 
 const antlion = new Antlion();
 new ThousandApp(antlion).init();

@@ -19,9 +19,12 @@ module.exports = {
         browser: true,
         node: false,
       },
+      parserOptions: {
+        sourceType: 'module',
+      },
       rules: {
         'no-empty': ['error', { allowEmptyCatch: true }],
-        'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^(Toast|LobbyRenderer|LobbySocket|GameApi|ModalController|LobbyApp|ThousandRenderer|ThousandSocket|ThousandApp|EventBus|Antlion|\\$)$' }],
+        'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       },
     },
   ],

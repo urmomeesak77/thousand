@@ -18,30 +18,34 @@ before(() => {
   const html = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8');
   const css = fs.readFileSync(path.join(publicDir, 'css', 'index.css'), 'utf8');
 
+  // Files in dependency order — mirrors the import graph in the ES modules
   const jsFiles = [
-    { src: '/js/antlion/EventBus.js',  path: path.join(publicDir, 'js', 'antlion', 'EventBus.js') },
-    { src: '/js/antlion/Antlion.js',   path: path.join(publicDir, 'js', 'antlion', 'Antlion.js') },
-    { src: '/js/Toast.js',             path: path.join(publicDir, 'js', 'Toast.js') },
-    { src: '/js/ThousandRenderer.js',   path: path.join(publicDir, 'js', 'ThousandRenderer.js') },
-    { src: '/js/ThousandSocket.js',    path: path.join(publicDir, 'js', 'ThousandSocket.js') },
-    { src: '/js/GameApi.js',           path: path.join(publicDir, 'js', 'GameApi.js') },
-    { src: '/js/ModalController.js',   path: path.join(publicDir, 'js', 'ModalController.js') },
-    { src: '/js/ThousandApp.js',       path: path.join(publicDir, 'js', 'ThousandApp.js') },
-    { src: '/js/index.js',              path: path.join(publicDir, 'js', 'index.js') },
+    path.join(publicDir, 'js', 'antlion', 'EventBus.js'),
+    path.join(publicDir, 'js', 'antlion', 'Antlion.js'),
+    path.join(publicDir, 'js', 'Toast.js'),
+    path.join(publicDir, 'js', 'ThousandRenderer.js'),
+    path.join(publicDir, 'js', 'ThousandSocket.js'),
+    path.join(publicDir, 'js', 'GameApi.js'),
+    path.join(publicDir, 'js', 'ModalController.js'),
+    path.join(publicDir, 'js', 'ThousandApp.js'),
+    path.join(publicDir, 'js', 'index.js'),
   ];
 
-  // Replace <link> with inline <style>
-  inlinedHTML = html.replace(/<link[^>]+index\.css[^>]*>/i, `<style>${css}</style>`);
-
-  // Replace each <script src="..."> with its inlined equivalent
-  for (const { src, path: filePath } of jsFiles) {
+  // Strip ES module syntax for jsdom inline execution.
+  // Each file is wrapped in an IIFE so local `const` declarations (e.g. $)
+  // don't collide across files. `export default Foo` is replaced with
+  // `window.Foo = Foo` so classes remain accessible as globals to later IIFEs.
+  const combinedJs = jsFiles.map((filePath) => {
     const js = fs.readFileSync(filePath, 'utf8');
-    const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    inlinedHTML = inlinedHTML.replace(
-      new RegExp(`<script[^>]+${escapedSrc}[^>]*><\\/script>`, 'i'),
-      `<script>${js}</script>`,
-    );
-  }
+    const stripped = js
+      .replace(/^import\s+\w+\s+from\s+['"][^'"]+['"];\s*$/gm, '')
+      .replace(/^export default\s+(\w+);\s*$/gm, (_, name) => `window.${name} = ${name};`);
+    return `(function () {\n${stripped}\n})();`;
+  }).join('\n');
+
+  inlinedHTML = html
+    .replace(/<link[^>]+index\.css[^>]*>/i, `<style>${css}</style>`)
+    .replace(/<script[^>]+src="[^"]*index\.js"[^>]*><\/script>/i, `<script>${combinedJs}</script>`);
 });
 
 /**
