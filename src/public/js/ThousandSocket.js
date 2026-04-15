@@ -1,10 +1,10 @@
 'use strict';
 
 // ============================================================
-// LobbySocket — owns WebSocket connection and reconnect logic
+// ThousandSocket — owns WebSocket connection and reconnect logic
 // ============================================================
 
-class LobbySocket {
+class ThousandSocket {
   constructor(antlion, onMessage, onError) {
     this._antlion = antlion;
     this._onMessage = onMessage;

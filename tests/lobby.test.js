@@ -22,11 +22,11 @@ before(() => {
     { src: '/js/antlion/EventBus.js',  path: path.join(publicDir, 'js', 'antlion', 'EventBus.js') },
     { src: '/js/antlion/Antlion.js',   path: path.join(publicDir, 'js', 'antlion', 'Antlion.js') },
     { src: '/js/Toast.js',             path: path.join(publicDir, 'js', 'Toast.js') },
-    { src: '/js/LobbyRenderer.js',     path: path.join(publicDir, 'js', 'LobbyRenderer.js') },
-    { src: '/js/LobbySocket.js',       path: path.join(publicDir, 'js', 'LobbySocket.js') },
+    { src: '/js/ThousandRenderer.js',   path: path.join(publicDir, 'js', 'ThousandRenderer.js') },
+    { src: '/js/ThousandSocket.js',    path: path.join(publicDir, 'js', 'ThousandSocket.js') },
     { src: '/js/GameApi.js',           path: path.join(publicDir, 'js', 'GameApi.js') },
     { src: '/js/ModalController.js',   path: path.join(publicDir, 'js', 'ModalController.js') },
-    { src: '/js/LobbyApp.js',          path: path.join(publicDir, 'js', 'LobbyApp.js') },
+    { src: '/js/ThousandApp.js',       path: path.join(publicDir, 'js', 'ThousandApp.js') },
     { src: '/index.js',                path: path.join(publicDir, 'index.js') },
   ];
 

@@ -3,12 +3,12 @@
 const http = require('http');
 const { WebSocketServer } = require('ws');
 
-const LobbyStore = require('./services/LobbyStore');
+const ThousandStore = require('./services/ThousandStore');
 const RequestHandler = require('./controllers/RequestHandler');
 
 const PORT = process.env.PORT || 3000;
 
-const store = new LobbyStore();
+const store = new ThousandStore();
 const handler = new RequestHandler(store);
 
 // T009 – HTTP server

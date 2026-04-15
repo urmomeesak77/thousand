@@ -1,9 +1,9 @@
 'use strict';
-/* global Antlion, LobbyApp */
+/* global Antlion, ThousandApp */
 
 // Pure DOM lookup utility — no state
 const $ = (id) => document.getElementById(id);
 
 const antlion = new Antlion();
-new LobbyApp(antlion).init();
+new ThousandApp(antlion).init();
 antlion.start();

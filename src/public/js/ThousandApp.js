@@ -1,11 +1,11 @@
 'use strict';
-/* global $, Toast, LobbySocket, LobbyRenderer, GameApi, ModalController */
+/* global $, Toast, ThousandSocket, ThousandRenderer, GameApi, ModalController */
 
 // ============================================================
-// LobbyApp — coordinator: player state, UI binding, message handling
+// ThousandApp — coordinator: player state, UI binding, message handling
 // ============================================================
 
-class LobbyApp {
+class ThousandApp {
   constructor(antlion) {
     this._antlion = antlion;
     this._playerId = null;
@@ -20,7 +20,7 @@ class LobbyApp {
       (type) => this._createGame(type),
       (msg) => this._toast.show(msg),
     );
-    this._socket = new LobbySocket(
+    this._socket = new ThousandSocket(
       antlion,
       (msg) => this._handleMessage(msg),
       (err) => this._toast.show(err),
@@ -38,16 +38,16 @@ class LobbyApp {
         this._playerId = msg.playerId;
         break;
       case 'lobby_update':
-        LobbyRenderer.renderGameList(msg.games);
+        ThousandRenderer.renderGameList(msg.games);
         break;
       case 'game_joined':
         this._gameId = msg.gameId;
-        LobbyRenderer.renderWaitingRoom(this._gameId, this._inviteCode, msg.players);
-        LobbyRenderer.showScreen('game-screen');
+        ThousandRenderer.renderWaitingRoom(this._gameId, this._inviteCode, msg.players);
+        ThousandRenderer.showScreen('game-screen');
         break;
       case 'player_joined':
       case 'player_left':
-        LobbyRenderer.renderWaitingRoomPlayers(msg.players);
+        ThousandRenderer.renderWaitingRoomPlayers(msg.players);
         break;
       case 'error':
         this._toast.show(msg.message || 'An error occurred');
@@ -75,7 +75,7 @@ class LobbyApp {
       }
       this._nickname = nick;
       $('player-name-display').textContent = nick;
-      LobbyRenderer.showScreen('lobby-screen');
+      ThousandRenderer.showScreen('lobby-screen');
     });
   }
 

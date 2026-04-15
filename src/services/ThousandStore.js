@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 
-class LobbyStore {
+class ThousandStore {
   constructor() {
     this.games = new Map();       // gameId -> Game
     this.players = new Map();     // playerId -> Player
@@ -109,4 +109,4 @@ class LobbyStore {
   }
 }
 
-module.exports = LobbyStore;
+module.exports = ThousandStore;

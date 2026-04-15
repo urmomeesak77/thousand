@@ -2,10 +2,10 @@
 /* global $ */
 
 // ============================================================
-// LobbyRenderer — stateless DOM rendering  (T021 / T038)
+// ThousandRenderer — stateless DOM rendering  (T021 / T038)
 // ============================================================
 
-class LobbyRenderer {
+class ThousandRenderer {
   static showScreen(id) {
     ['nickname-screen', 'lobby-screen', 'game-screen'].forEach((s) => {
       const el = $(s);
@@ -51,7 +51,7 @@ class LobbyRenderer {
     $('game-id-display').textContent = `Game #${gameId}`;
     if (inviteCode) $('invite-code-value').textContent = inviteCode;
     $('invite-display').classList.toggle('hidden', !inviteCode);
-    LobbyRenderer.renderWaitingRoomPlayers(players);
+    ThousandRenderer.renderWaitingRoomPlayers(players);
   }
 
   static renderWaitingRoomPlayers(players) {
