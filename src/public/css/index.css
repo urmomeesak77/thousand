@@ -433,6 +433,13 @@ input[type="text"]::placeholder {
   text-align: center;
 }
 
+.waiting-elapsed {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  font-family: monospace;
+}
+
 #leave-game-btn {
   display: block;
   margin: 1.25rem auto 0;

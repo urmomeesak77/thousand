@@ -56,6 +56,7 @@ class ThousandApp {
         ThousandRenderer.stopElapsedTimer();
         ThousandRenderer.renderWaitingRoom(this._gameId, this._inviteCode, msg.players);
         ThousandRenderer.showScreen('game-screen');
+        ThousandRenderer.startWaitingTimer(msg.createdAt);
         break;
       case 'player_joined':
       case 'player_left':
@@ -182,6 +183,17 @@ class ThousandApp {
       if (e.target === $('leave-confirm-modal')) closeLeaveModal();
     });
 
+    this._antlion.onInput('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const modal = $('leave-confirm-modal');
+      if (!modal.classList.contains('hidden')) {
+        closeLeaveModal();
+      } else if (!$('game-screen').classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+    });
+
     this._antlion.bindInput($('leave-confirm-btn'), 'click', 'leave-confirm-click');
     this._antlion.onInput('leave-confirm-click', async () => {
       closeLeaveModal();
@@ -189,6 +201,7 @@ class ThousandApp {
       if (!ok) return;
       this._gameId = null;
       this._inviteCode = null;
+      ThousandRenderer.stopWaitingTimer();
       ThousandRenderer.showScreen('lobby-screen');
       ThousandRenderer.startElapsedTimer();
     });

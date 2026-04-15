@@ -50,6 +50,7 @@ class RequestHandler {
       type: 'game_joined',
       gameId,
       players: this.store.serializePlayers(game),
+      createdAt: game.createdAt,
     });
 
     // T042 – player_joined to existing players

@@ -110,6 +110,24 @@ class ThousandRenderer {
     tip.style.left = `${left}px`;
   }
 
+  static startWaitingTimer(createdAt) {
+    ThousandRenderer.stopWaitingTimer();
+    const start = createdAt || Date.now();
+    const el = document.getElementById('waiting-elapsed');
+    ThousandRenderer._waitingTimerId = setInterval(() => {
+      if (el) el.textContent = ThousandRenderer._formatElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+  }
+
+  static stopWaitingTimer() {
+    if (ThousandRenderer._waitingTimerId) {
+      clearInterval(ThousandRenderer._waitingTimerId);
+      ThousandRenderer._waitingTimerId = null;
+    }
+    const el = document.getElementById('waiting-elapsed');
+    if (el) el.textContent = '0s';
+  }
+
   static startElapsedTimer() {
     ThousandRenderer.stopElapsedTimer();
     ThousandRenderer._elapsedTimerId = setInterval(ThousandRenderer._updateElapsedTimes, 1000);
