@@ -285,6 +285,7 @@ input[type="text"]::placeholder {
   gap: 0.5rem;
   overflow-y: auto;
   max-height: calc(100vh - 21rem);
+  min-height: 7rem;
 }
 
 #game-list li {
