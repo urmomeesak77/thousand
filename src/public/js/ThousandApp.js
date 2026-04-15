@@ -70,7 +70,7 @@ class ThousandApp {
 
   _bindNicknameForm() {
     this._antlion.bindInput($('nickname-form'), 'submit', 'nickname-submit');
-    this._antlion.onInput('nickname-submit', (e) => {
+    this._antlion.onInput('nickname-submit', async (e) => {
       e.preventDefault();
       const nick = $('nickname-input').value.trim();
       if (!nick) return;
@@ -78,6 +78,8 @@ class ThousandApp {
         this._toast.show('Nickname must be 3–20 characters.');
         return;
       }
+      const ok = await this._api.claimNickname(nick, this._playerId);
+      if (!ok) return;
       this._nickname = nick;
       $('player-name-display').textContent = nick;
       ThousandRenderer.showScreen('lobby-screen');

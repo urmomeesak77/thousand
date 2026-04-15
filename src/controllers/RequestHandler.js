@@ -16,6 +16,16 @@ class RequestHandler {
     return trimmed.length >= 3 && trimmed.length <= 20;
   }
 
+  // Returns true if another connected player already holds this nickname
+  _isNicknameTaken(nick, excludePlayerId) {
+    const lower = nick.toLowerCase();
+    for (const [pid, player] of this.store.players) {
+      if (pid === excludePlayerId) continue;
+      if (player.nickname && player.nickname.toLowerCase() === lower) return true;
+    }
+    return false;
+  }
+
   // Resolves an existing player or creates a new one; returns playerId
   _resolveOrCreatePlayer(clientPlayerId, nick) {
     const playerId = clientPlayerId && this.store.players.has(clientPlayerId)
@@ -54,6 +64,37 @@ class RequestHandler {
         });
       }
     }
+  }
+
+  // POST /api/nickname — claim a unique nickname before entering the lobby
+  async handleClaimNickname(req, res) {
+    let body;
+    try { body = await HttpUtil.parseBody(req); } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+      return;
+    }
+
+    const { nickname, playerId } = body;
+
+    if (!RequestHandler._validateNickname(nickname)) {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Nickname must be 3–20 characters');
+      return;
+    }
+
+    const nick = nickname.trim();
+
+    if (this._isNicknameTaken(nick, playerId)) {
+      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
+      return;
+    }
+
+    if (!playerId || !this.store.players.has(playerId)) {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Player session not found — please refresh and try again');
+      return;
+    }
+
+    this.store.players.get(playerId).nickname = nick;
+    HttpUtil.sendJSON(res, 200, { nickname: nick });
   }
 
   // T017 – GET /api/games
@@ -130,6 +171,7 @@ class RequestHandler {
 
     const nick = nickname.trim();
     const playerId = this._resolveOrCreatePlayer(clientPlayerId, nick);
+
     this._admitPlayerToGame(game, gameId, playerId);
 
     HttpUtil.sendJSON(res, 200, { gameId });
@@ -170,6 +212,7 @@ class RequestHandler {
 
     const nick = nickname.trim();
     const playerId = this._resolveOrCreatePlayer(clientPlayerId, nick);
+
     this._admitPlayerToGame(game, gameId, playerId);
 
     HttpUtil.sendJSON(res, 200, { gameId });
@@ -179,6 +222,7 @@ class RequestHandler {
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
 
+    if (req.method === 'POST' && pathname === '/api/nickname') return this.handleClaimNickname(req, res);
     if (req.method === 'GET' && pathname === '/api/games') return this.handleGetGames(req, res);
     if (req.method === 'POST' && pathname === '/api/games') return this.handleCreateGame(req, res);
     // Must match before /:id/join
