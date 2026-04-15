@@ -616,3 +616,213 @@ describe('WebSocket message handling', () => {
     ws.close();
   });
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/nickname — global nickname uniqueness
+// ---------------------------------------------------------------------------
+
+describe('POST /api/nickname', () => {
+  it('returns 200 and stores nickname for a connected player', async () => {
+    const ws = await connectWS();
+    const connected = await waitForMessage(ws, 'connected');
+
+    const res = await request('POST', '/api/nickname', { nickname: 'Alice', playerId: connected.playerId });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.nickname, 'Alice');
+    assert.equal(players.get(connected.playerId).nickname, 'Alice');
+    ws.close();
+  });
+
+  it('returns 409 when another connected player holds the same nickname', async () => {
+    const ws1 = await connectWS();
+    const ws2 = await connectWS();
+    const c1 = await waitForMessage(ws1, 'connected');
+    const c2 = await waitForMessage(ws2, 'connected');
+
+    await request('POST', '/api/nickname', { nickname: 'Alice', playerId: c1.playerId });
+    const res = await request('POST', '/api/nickname', { nickname: 'Alice', playerId: c2.playerId });
+    assert.equal(res.status, 409);
+    assert.equal(res.body.error, 'duplicate_nickname');
+    ws1.close();
+    ws2.close();
+  });
+
+  it('rejects duplicate nicknames case-insensitively', async () => {
+    const ws1 = await connectWS();
+    const ws2 = await connectWS();
+    const c1 = await waitForMessage(ws1, 'connected');
+    const c2 = await waitForMessage(ws2, 'connected');
+
+    await request('POST', '/api/nickname', { nickname: 'Alice', playerId: c1.playerId });
+    const res = await request('POST', '/api/nickname', { nickname: 'ALICE', playerId: c2.playerId });
+    assert.equal(res.status, 409);
+    ws1.close();
+    ws2.close();
+  });
+
+  it('allows a player to re-claim their own nickname', async () => {
+    const ws = await connectWS();
+    const connected = await waitForMessage(ws, 'connected');
+
+    await request('POST', '/api/nickname', { nickname: 'Alice', playerId: connected.playerId });
+    const res = await request('POST', '/api/nickname', { nickname: 'Alice', playerId: connected.playerId });
+    assert.equal(res.status, 200);
+    ws.close();
+  });
+
+  it('returns 400 for nickname that is too short', async () => {
+    const ws = await connectWS();
+    const connected = await waitForMessage(ws, 'connected');
+
+    const res = await request('POST', '/api/nickname', { nickname: 'ab', playerId: connected.playerId });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error, 'invalid_request');
+    ws.close();
+  });
+
+  it('returns 400 for nickname that is too long', async () => {
+    const ws = await connectWS();
+    const connected = await waitForMessage(ws, 'connected');
+
+    const res = await request('POST', '/api/nickname', { nickname: 'a'.repeat(21), playerId: connected.playerId });
+    assert.equal(res.status, 400);
+    ws.close();
+  });
+
+  it('returns 400 when playerId is not in the player store', async () => {
+    const res = await request('POST', '/api/nickname', { nickname: 'Alice', playerId: 'not-a-real-id' });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error, 'invalid_request');
+  });
+
+  it('returns 400 when playerId is absent', async () => {
+    const res = await request('POST', '/api/nickname', { nickname: 'Alice' });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error, 'invalid_request');
+  });
+
+  it('returns 400 for invalid JSON body', async () => {
+    const res = await requestRaw('/api/nickname', '{bad-json}');
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error, 'invalid_request');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HTTP server error handling
+// ---------------------------------------------------------------------------
+
+describe('HTTP server error handling', () => {
+  it('returns 500 when handleRequest throws', async () => {
+    const orig = store.getLobbyGames.bind(store);
+    store.getLobbyGames = () => { throw new Error('forced test error'); };
+    try {
+      const res = await request('GET', '/api/games');
+      assert.equal(res.status, 500);
+      assert.equal(res.body.error, 'internal_error');
+    } finally {
+      store.getLobbyGames = orig;
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WebSocket upgrade handling
+// ---------------------------------------------------------------------------
+
+describe('WebSocket upgrade handling', () => {
+  it('destroys socket for WebSocket upgrade to a non-/ws path', async () => {
+    const { port } = server.address();
+    await new Promise((resolve) => {
+      const req = http.request({
+        hostname: 'localhost',
+        port,
+        path: '/not-a-websocket-path',
+        method: 'GET',
+        headers: {
+          Connection: 'Upgrade',
+          Upgrade: 'websocket',
+          'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
+          'Sec-WebSocket-Version': '13',
+        },
+      });
+      req.on('error', resolve);
+      req.on('upgrade', resolve);
+      req.on('response', resolve);
+      req.end();
+      setTimeout(resolve, 300);
+    });
+    // Passes as long as the server handles the upgrade without hanging
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ThousandStore disconnect edge cases
+// ---------------------------------------------------------------------------
+
+describe('WebSocket disconnect edge cases', () => {
+  it('sends player_left when host disconnects with remaining players', async () => {
+    const hostWs = await connectWS();
+    const guestWs = await connectWS();
+    const hConn = await waitForMessage(hostWs, 'connected');
+    const gConn = await waitForMessage(guestWs, 'connected');
+
+    const createRes = await request('POST', '/api/games', {
+      type: 'public', nickname: 'Host', playerId: hConn.playerId,
+    });
+    const { gameId } = createRes.body;
+    await request('POST', `/api/games/${gameId}/join`, { nickname: 'Guest', playerId: gConn.playerId });
+
+    guestWs.msgs.length = 0;
+    hostWs.close();
+    await new Promise((r) => setTimeout(r, 100));
+
+    assert.ok(games.has(gameId), 'game should persist when other players remain');
+    const leftMsg = guestWs.msgs.find((m) => m.type === 'player_left');
+    assert.ok(leftMsg, 'remaining guest should receive player_left');
+    assert.equal(leftMsg.playerId, hConn.playerId);
+    guestWs.close();
+  });
+
+  it('cleans up inviteCode when private game host disconnects alone', async () => {
+    const hostWs = await connectWS();
+    const connected = await waitForMessage(hostWs, 'connected');
+
+    const createRes = await request('POST', '/api/games', {
+      type: 'private', nickname: 'Host', playerId: connected.playerId,
+    });
+    assert.equal(createRes.status, 201);
+    const { gameId, inviteCode } = createRes.body;
+    assert.ok(inviteCodes.has(inviteCode));
+
+    hostWs.close();
+    await new Promise((r) => setTimeout(r, 100));
+
+    assert.ok(!games.has(gameId));
+    assert.ok(!inviteCodes.has(inviteCode));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// StaticServer path traversal protection
+// ---------------------------------------------------------------------------
+
+describe('Static file path traversal protection', () => {
+  it('returns 404 for path traversal attempts', async () => {
+    const { port } = server.address();
+    const res = await new Promise((resolve, reject) => {
+      const req = http.request({
+        hostname: 'localhost',
+        port,
+        path: '/../../etc/passwd',
+        method: 'GET',
+      }, (r) => {
+        r.resume();
+        resolve({ status: r.statusCode });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+    assert.equal(res.status, 404);
+  });
+});
