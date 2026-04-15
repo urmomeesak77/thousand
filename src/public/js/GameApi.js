@@ -60,6 +60,17 @@ class GameApi {
     }
   }
 
+  async leave(gameId, playerId) {
+    try {
+      const { res, data } = await this._post(`/api/games/${gameId}/leave`, { playerId });
+      if (!res.ok) { this._onError(data.message || 'Failed to leave game'); return false; }
+      return true;
+    } catch {
+      this._onError('Network error. Please try again.');
+      return false;
+    }
+  }
+
   async _post(url, body) {
     const res = await fetch(url, {
       method: 'POST',

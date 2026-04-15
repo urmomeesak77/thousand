@@ -74,6 +74,7 @@ class ThousandApp {
     this._bindCopyInvite();
     this._bindGameListSelect();
     this._bindJoinSelectedBtn();
+    this._bindLeaveGame();
   }
 
   _bindNicknameForm() {
@@ -157,6 +158,40 @@ class ThousandApp {
     if (selected) selected.classList.remove('selected');
     this._selectedGameId = null;
     $('join-selected-btn').disabled = true;
+  }
+
+  _bindLeaveGame() {
+    this._antlion.bindInput($('leave-game-btn'), 'click', 'leave-game-click');
+    this._antlion.onInput('leave-game-click', () => {
+      const modal = $('leave-confirm-modal');
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    });
+
+    const closeLeaveModal = () => {
+      const modal = $('leave-confirm-modal');
+      modal.classList.add('hidden');
+      modal.style.display = '';
+    };
+
+    this._antlion.bindInput($('leave-cancel-btn'), 'click', 'leave-cancel-click');
+    this._antlion.onInput('leave-cancel-click', closeLeaveModal);
+
+    this._antlion.bindInput($('leave-confirm-modal'), 'click', 'leave-overlay-click');
+    this._antlion.onInput('leave-overlay-click', (e) => {
+      if (e.target === $('leave-confirm-modal')) closeLeaveModal();
+    });
+
+    this._antlion.bindInput($('leave-confirm-btn'), 'click', 'leave-confirm-click');
+    this._antlion.onInput('leave-confirm-click', async () => {
+      closeLeaveModal();
+      const ok = await this._api.leave(this._gameId, this._playerId);
+      if (!ok) return;
+      this._gameId = null;
+      this._inviteCode = null;
+      ThousandRenderer.showScreen('lobby-screen');
+      ThousandRenderer.startElapsedTimer();
+    });
   }
 
   async _joinGame(gameId) {

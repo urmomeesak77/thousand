@@ -78,6 +78,7 @@
       </div>
       <ul id="player-list" class="player-list" aria-label="Players in game"></ul>
       <p class="waiting-hint">Waiting for players… (2–4 needed to start)</p>
+      <button id="leave-game-btn" class="btn btn-ghost btn-sm">Leave Game</button>
     </div>
   </section>
 
@@ -104,6 +105,20 @@
           <button type="button" id="modal-cancel-btn" class="btn btn-ghost">Cancel</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       Leave game confirmation modal
+  ======================================================= -->
+  <div id="leave-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="leave-modal-title">
+    <div class="modal-card">
+      <h2 id="leave-modal-title">Leave this game?</h2>
+      <p class="modal-body-text">You'll be taken back to the lobby.</p>
+      <div class="modal-actions">
+        <button id="leave-confirm-btn" class="btn btn-accent">Leave</button>
+        <button id="leave-cancel-btn" class="btn btn-ghost">Stay</button>
+      </div>
     </div>
   </div>
 

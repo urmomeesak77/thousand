@@ -219,6 +219,26 @@ class RequestHandler {
     HttpUtil.sendJSON(res, 200, { gameId });
   }
 
+  // POST /api/games/:id/leave
+  async handleLeaveGame(req, res, gameId) {
+    let body;
+    try { body = await HttpUtil.parseBody(req); } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+      return;
+    }
+    const { playerId } = body;
+    if (!playerId) {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'playerId required');
+      return;
+    }
+    const ok = this.store.leaveGame(playerId, gameId);
+    if (!ok) {
+      HttpUtil.sendError(res, 404, 'not_found', 'Game or player not found');
+      return;
+    }
+    HttpUtil.sendJSON(res, 200, {});
+  }
+
   async handleRequest(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
@@ -228,6 +248,9 @@ class RequestHandler {
     if (req.method === 'POST' && pathname === '/api/games') return this.handleCreateGame(req, res);
     // Must match before /:id/join
     if (req.method === 'POST' && pathname === '/api/games/join-invite') return this.handleJoinInvite(req, res);
+
+    const leaveMatch = pathname.match(/^\/api\/games\/([^/]+)\/leave$/);
+    if (req.method === 'POST' && leaveMatch) return this.handleLeaveGame(req, res, leaveMatch[1]);
 
     const joinMatch = pathname.match(/^\/api\/games\/([^/]+)\/join$/);
     if (req.method === 'POST' && joinMatch) return this.handleJoinGame(req, res, joinMatch[1]);

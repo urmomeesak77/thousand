@@ -39,6 +39,36 @@ class ThousandStore {
     return result;
   }
 
+  leaveGame(playerId, gameId) {
+    const player = this.players.get(playerId);
+    if (!player || player.gameId !== gameId) return false;
+
+    const game = this.games.get(gameId);
+    if (!game) return false;
+
+    game.players.delete(playerId);
+    player.gameId = null;
+
+    if (game.players.size === 0) {
+      if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
+      this.games.delete(gameId);
+      this.broadcastLobbyUpdate();
+      return true;
+    }
+
+    if (game.hostId === playerId) {
+      game.hostId = [...game.players][0];
+    }
+
+    const remaining = this.serializePlayers(game);
+    const leftMsg = { type: 'player_left', playerId, players: remaining };
+    for (const pid of game.players) {
+      this.sendToPlayer(pid, leftMsg);
+    }
+    this.broadcastLobbyUpdate();
+    return true;
+  }
+
   // T034 – broadcast lobby state to every client whose gameId is null
   broadcastLobbyUpdate() {
     const msg = JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() });
