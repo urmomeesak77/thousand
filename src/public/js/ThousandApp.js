@@ -157,6 +157,13 @@ class ThousandApp {
         $('join-selected-btn').disabled = false;
       }
     });
+
+    this._antlion.bindInput($('game-list'), 'dblclick', 'game-list-dblclick');
+    this._antlion.onInput('game-list-dblclick', (e) => {
+      const li = e.target.closest('li[data-id]');
+      if (!li) return;
+      this._joinGame(li.dataset.id);
+    });
   }
 
   _bindJoinSelectedBtn() {

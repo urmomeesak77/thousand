@@ -761,7 +761,7 @@ describe('WebSocket upgrade handling', () => {
 // ---------------------------------------------------------------------------
 
 describe('WebSocket disconnect edge cases', () => {
-  it('sends player_left when host disconnects with remaining players', async () => {
+  it('disbands game and notifies guest when host disconnects with remaining players', async () => {
     const hostWs = await connectWS();
     const guestWs = await connectWS();
     const hConn = await waitForMessage(hostWs, 'connected');
@@ -777,10 +777,10 @@ describe('WebSocket disconnect edge cases', () => {
     hostWs.close();
     await new Promise((r) => setTimeout(r, 100));
 
-    assert.ok(games.has(gameId), 'game should persist when other players remain');
-    const leftMsg = guestWs.msgs.find((m) => m.type === 'player_left');
-    assert.ok(leftMsg, 'remaining guest should receive player_left');
-    assert.equal(leftMsg.playerId, hConn.playerId);
+    assert.ok(!games.has(gameId), 'game should be disbanded when host disconnects');
+    const disbandMsg = guestWs.msgs.find((m) => m.type === 'game_disbanded');
+    assert.ok(disbandMsg, 'remaining guest should receive game_disbanded');
+    assert.equal(disbandMsg.reason, 'host_left');
     guestWs.close();
   });
 

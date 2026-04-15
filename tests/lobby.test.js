@@ -50,7 +50,8 @@ before(() => {
 
 /**
  * Creates a fresh JSDOM instance with inlined lobby HTML.
- * Returns { window, document }.
+ * Returns { window, document, close } — call close() at the end of each test
+ * to release JSDOM-managed timers and prevent the event loop from hanging.
  */
 function createLobbyDOM() {
   const dom = new JSDOM(inlinedHTML, {
@@ -80,7 +81,7 @@ function createLobbyDOM() {
     },
   });
 
-  return { window: dom.window, document: dom.window.document };
+  return { window: dom.window, document: dom.window.document, close: () => dom.window.close() };
 }
 
 // Deliver a WS message to the mock socket
@@ -97,7 +98,7 @@ function deliverWS(window, msg) {
 
 describe('Lobby game-list rendering', () => {
   it('renders game rows when lobby_update arrives with games', async () => {
-    const { window, document } = createLobbyDOM();
+    const { window, document, close } = createLobbyDOM();
     await new Promise((r) => setTimeout(r, 50));
 
     deliverWS(window, {
@@ -113,10 +114,11 @@ describe('Lobby game-list rendering', () => {
     assert.ok(gameList, '#game-list element must exist');
     const items = gameList.querySelectorAll('li');
     assert.equal(items.length, 2, 'should render 2 game rows');
+    close();
   });
 
   it('shows empty state when lobby_update arrives with empty array', async () => {
-    const { window, document } = createLobbyDOM();
+    const { window, document, close } = createLobbyDOM();
     await new Promise((r) => setTimeout(r, 50));
 
     deliverWS(window, { type: 'lobby_update', games: [] });
@@ -127,10 +129,11 @@ describe('Lobby game-list rendering', () => {
     const hasEmptyMsg = (emptyState && !emptyState.classList.contains('hidden')) ||
       (gameList && gameList.children.length === 0);
     assert.ok(hasEmptyMsg, 'should show empty state when no games');
+    close();
   });
 
   it('clears old rows and re-renders on second lobby_update', async () => {
-    const { window, document } = createLobbyDOM();
+    const { window, document, close } = createLobbyDOM();
     await new Promise((r) => setTimeout(r, 50));
 
     deliverWS(window, { type: 'lobby_update', games: [
@@ -146,6 +149,7 @@ describe('Lobby game-list rendering', () => {
 
     const gameList = document.getElementById('game-list');
     assert.equal(gameList.querySelectorAll('li').length, 1);
+    close();
   });
 });
 
@@ -155,14 +159,15 @@ describe('Lobby game-list rendering', () => {
 
 describe('Create game modal', () => {
   it('"New Game" button exists in the DOM', async () => {
-    const { document } = createLobbyDOM();
+    const { document, close } = createLobbyDOM();
     await new Promise((r) => setTimeout(r, 50));
     const btn = document.getElementById('new-game-btn');
     assert.ok(btn, '#new-game-btn must exist');
+    close();
   });
 
   it('modal appears when New Game button is clicked', async () => {
-    const { document } = createLobbyDOM();
+    const { document, close } = createLobbyDOM();
     await new Promise((r) => setTimeout(r, 50));
 
     const btn = document.getElementById('new-game-btn');
@@ -174,16 +179,18 @@ describe('Create game modal', () => {
     assert.ok(modal, '#new-game-modal must exist');
     const isVisible = !modal.classList.contains('hidden') && modal.style.display !== 'none' && !modal.hidden;
     assert.ok(isVisible, 'modal should be visible after clicking New Game');
+    close();
   });
 
   it('modal has Public/Private radio buttons', async () => {
-    const { document } = createLobbyDOM();
+    const { document, close } = createLobbyDOM();
     await new Promise((r) => setTimeout(r, 50));
 
     const publicRadio = document.querySelector('input[name="game-type"][value="public"]');
     const privateRadio = document.querySelector('input[name="game-type"][value="private"]');
     assert.ok(publicRadio, 'Public radio must exist');
     assert.ok(privateRadio, 'Private radio must exist');
+    close();
   });
 });
 
@@ -193,7 +200,7 @@ describe('Create game modal', () => {
 
 describe('Empty state', () => {
   it('displays empty-state message when game list is empty', async () => {
-    const { window, document } = createLobbyDOM();
+    const { window, document, close } = createLobbyDOM();
     await new Promise((r) => setTimeout(r, 50));
 
     deliverWS(window, { type: 'lobby_update', games: [] });
@@ -204,5 +211,6 @@ describe('Empty state', () => {
     const hasEmpty = (emptyState && !emptyState.classList.contains('hidden')) ||
       (gameList && gameList.children.length === 0);
     assert.ok(hasEmpty, 'empty state should be shown with no games');
+    close();
   });
 });
