@@ -36,12 +36,89 @@ class ThousandRenderer {
         li.dataset.id = game.id;
         list.appendChild(li);
       }
+      li.dataset.createdAt = game.createdAt || '';
+      const playerList = (game.players || []).join('\n');
       li.innerHTML = `
-        <div class="game-info">
-          <span class="game-id-label">Game #${game.id}</span>
-          <span class="game-player-count">${game.playerCount} / ${game.maxPlayers} players</span>
-        </div>
+        <span class="game-id-label">Game #${game.id}</span>
+        <span class="game-owner">Created by: ${game.owner || 'Unknown'}</span>
+        <span class="game-player-count">${game.playerCount} / ${game.maxPlayers} players</span>
+        <span class="game-waiting-time"></span>
       `;
+      li.querySelector('.game-player-count').dataset.players = playerList;
+    }
+
+    ThousandRenderer._updateElapsedTimes();
+  }
+
+  static _formatElapsed(secs) {
+    if (secs < 60) return `${secs}s`;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}m ${s}s`;
+  }
+
+  static _updateElapsedTimes() {
+    const items = document.querySelectorAll('#game-list li[data-created-at]');
+    const now = Date.now();
+    for (const li of items) {
+      const createdAt = parseInt(li.dataset.createdAt, 10);
+      if (!createdAt) continue;
+      const elapsed = Math.floor((now - createdAt) / 1000);
+      const span = li.querySelector('.game-waiting-time');
+      if (span) span.textContent = ThousandRenderer._formatElapsed(elapsed);
+    }
+  }
+
+  static bindTooltip() {
+    const tip = document.createElement('div');
+    tip.id = 'player-tooltip';
+    tip.className = 'player-tooltip hidden';
+    document.body.appendChild(tip);
+
+    const list = $('game-list');
+
+    list.addEventListener('mouseover', (e) => {
+      const span = e.target.closest('.game-player-count[data-players]');
+      if (!span) return;
+      const names = span.dataset.players;
+      if (!names) return;
+      tip.textContent = names;
+      tip.classList.remove('hidden');
+      ThousandRenderer._positionTooltip(tip, span);
+    });
+
+    list.addEventListener('mousemove', (e) => {
+      const span = e.target.closest('.game-player-count[data-players]');
+      if (!span || tip.classList.contains('hidden')) return;
+      ThousandRenderer._positionTooltip(tip, span);
+    });
+
+    list.addEventListener('mouseout', (e) => {
+      const span = e.target.closest('.game-player-count[data-players]');
+      if (span) tip.classList.add('hidden');
+    });
+  }
+
+  static _positionTooltip(tip, anchor) {
+    const rect = anchor.getBoundingClientRect();
+    const tipRect = tip.getBoundingClientRect();
+    let top = rect.top - tipRect.height - 8;
+    if (top < 4) top = rect.bottom + 8;
+    let left = rect.left + rect.width / 2 - tipRect.width / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
+    tip.style.top = `${top}px`;
+    tip.style.left = `${left}px`;
+  }
+
+  static startElapsedTimer() {
+    ThousandRenderer.stopElapsedTimer();
+    ThousandRenderer._elapsedTimerId = setInterval(ThousandRenderer._updateElapsedTimes, 1000);
+  }
+
+  static stopElapsedTimer() {
+    if (ThousandRenderer._elapsedTimerId) {
+      clearInterval(ThousandRenderer._elapsedTimerId);
+      ThousandRenderer._elapsedTimerId = null;
     }
   }
 

@@ -289,14 +289,14 @@ input[type="text"]::placeholder {
 }
 
 #game-list li {
-  display: flex;
+  display: grid;
+  grid-template-columns: 6.5rem 1fr auto auto;
   align-items: center;
-  justify-content: space-between;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 0.75rem 1rem;
-  gap: 1rem;
+  gap: 0.75rem 1.25rem;
   transition: border-color var(--transition);
 }
 
@@ -313,12 +313,6 @@ input[type="text"]::placeholder {
   background: var(--color-surface-alt);
 }
 
-.game-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
 
 .game-id-label {
   font-size: 0.8rem;
@@ -326,9 +320,38 @@ input[type="text"]::placeholder {
   font-family: monospace;
 }
 
-.game-player-count {
-  font-size: 0.9rem;
+.game-owner {
+  font-size: 0.85rem;
   color: var(--color-text);
+  font-weight: 500;
+}
+
+.game-player-count {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.player-tooltip {
+  position: fixed;
+  z-index: 100;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  white-space: pre;
+  pointer-events: none;
+  box-shadow: var(--shadow);
+}
+
+.game-waiting-time {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-family: monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .empty-state {

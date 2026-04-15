@@ -35,6 +35,7 @@ class ThousandApp {
 
   init() {
     this._bindUI();
+    ThousandRenderer.bindTooltip();
     this._socket.connect();
   }
 
@@ -52,6 +53,7 @@ class ThousandApp {
       case 'game_joined':
         this._gameId = msg.gameId;
         this._clearGameSelection();
+        ThousandRenderer.stopElapsedTimer();
         ThousandRenderer.renderWaitingRoom(this._gameId, this._inviteCode, msg.players);
         ThousandRenderer.showScreen('game-screen');
         break;
@@ -89,6 +91,7 @@ class ThousandApp {
       this._nickname = nick;
       $('player-name-display').textContent = nick;
       ThousandRenderer.showScreen('lobby-screen');
+      ThousandRenderer.startElapsedTimer();
     });
   }
 

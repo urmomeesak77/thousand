@@ -22,7 +22,18 @@ class ThousandStore {
     const result = [];
     for (const [id, game] of this.games) {
       if (game.type === 'public' && game.status === 'waiting') {
-        result.push({ id, playerCount: game.players.size, maxPlayers: game.maxPlayers });
+        const host = this.players.get(game.hostId);
+        const playerNames = [...game.players]
+          .map((pid) => this.players.get(pid)?.nickname)
+          .filter(Boolean);
+        result.push({
+          id,
+          playerCount: game.players.size,
+          maxPlayers: game.maxPlayers,
+          owner: host ? host.nickname : null,
+          createdAt: game.createdAt,
+          players: playerNames,
+        });
       }
     }
     return result;

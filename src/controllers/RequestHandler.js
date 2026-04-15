@@ -131,6 +131,7 @@ class RequestHandler {
       id: gameId, type, hostId: playerId,
       players: new Set([playerId]), maxPlayers: 4,
       status: 'waiting', inviteCode,
+      createdAt: Date.now(),
     };
 
     this.store.games.set(gameId, game);
