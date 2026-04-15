@@ -27,7 +27,7 @@ before(() => {
     { src: '/js/GameApi.js',           path: path.join(publicDir, 'js', 'GameApi.js') },
     { src: '/js/ModalController.js',   path: path.join(publicDir, 'js', 'ModalController.js') },
     { src: '/js/ThousandApp.js',       path: path.join(publicDir, 'js', 'ThousandApp.js') },
-    { src: '/index.js',                path: path.join(publicDir, 'index.js') },
+    { src: '/js/index.js',              path: path.join(publicDir, 'js', 'index.js') },
   ];
 
   // Replace <link> with inline <style>
