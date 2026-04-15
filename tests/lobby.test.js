@@ -16,7 +16,7 @@ let inlinedHTML;
 before(() => {
   // Read source files
   const html = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8');
-  const css = fs.readFileSync(path.join(publicDir, 'index.css'), 'utf8');
+  const css = fs.readFileSync(path.join(publicDir, 'css', 'index.css'), 'utf8');
 
   const jsFiles = [
     { src: '/js/antlion/EventBus.js',  path: path.join(publicDir, 'js', 'antlion', 'EventBus.js') },
