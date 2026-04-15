@@ -44,9 +44,13 @@ class Antlion {
   }
 
   start() {
-    if (this._running) return;
+    if (this._running) {
+      return;
+    }
     this._running = true;
-    if (this._tickHandlers.length > 0) this._tick();
+    if (this._tickHandlers.length > 0) {
+      this._tick();
+    }
   }
 
   stop() {

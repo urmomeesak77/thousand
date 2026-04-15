@@ -22,7 +22,12 @@ class ThousandSocket {
     ws.onopen = () => {};
     ws.onmessage = (event) => {
       let msg;
-      try { msg = JSON.parse(event.data); } catch { return; }
+      try { 
+        msg = JSON.parse(event.data);
+      }
+      catch { 
+        return; 
+      }
       this._onMessage(msg);
     };
     ws.onerror = () => this._onError('Connection error. Please refresh.');
