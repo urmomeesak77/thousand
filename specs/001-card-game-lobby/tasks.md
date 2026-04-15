@@ -11,7 +11,27 @@
 
 ## Path Conventions
 
-Web app layout: `src/server.js`, `src/public/`, `tests/` under `src/`. Backend split into `src/services/`, `src/controllers/`, `src/utils/`. Frontend files at `src/public/index.html`, `src/public/css/index.css`, `src/public/js/` (ES modules). Note: task descriptions below use the original planned paths (`server.js`, `public/lobby.*`) — the actual paths diverged during implementation.
+Task descriptions below use the original planned paths (`server.js`, `public/lobby.*`). The actual implementation diverged significantly:
+
+**Backend** — split from a monolithic `server.js` into:
+- `src/server.js` — HTTP + WebSocket server entry point (T006, T011)
+- `src/services/ThousandStore.js` — in-memory state maps + WebSocket connection handling (T010–T011, T034–T037)
+- `src/controllers/RequestHandler.js` — all HTTP route handlers (T017–T018, T027–T028, T039–T042)
+- `src/utils/HttpUtil.js` — `parseBody`, `sendJSON`, `sendError` helpers (T012–T013)
+- `src/utils/StaticServer.js` — static file serving (T009)
+
+**Frontend** — split from a monolithic `public/lobby.{html,css,js}` into ES modules under `src/public/`:
+- `index.html` / `css/index.css` — HTML structure and styles (T003, T004, T019–T020, T029–T030, T044–T045)
+- `js/index.js` — entry point: wires Antlion + ThousandApp (T005)
+- `js/antlion/Antlion.js` + `js/antlion/EventBus.js` — engine layer (adopted in place of raw DOM listeners)
+- `js/ThousandApp.js` — coordinator: player state, UI binding, WS message dispatch (T021, T031, T038, T043)
+- `js/ThousandRenderer.js` — stateless DOM rendering (T021, T038, T044)
+- `js/ThousandSocket.js` — WebSocket connection + reconnect (T021, T038)
+- `js/GameApi.js` — all HTTP fetch calls (T021, T031)
+- `js/ModalController.js` — new-game modal open/close/submit (T031)
+- `js/Toast.js` — shared notification utility (T043)
+
+**Tests** — at `tests/server.test.js` and `tests/lobby.test.js` (not under `src/`).
 
 ---
 
