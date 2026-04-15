@@ -214,8 +214,11 @@ input[type="text"]::placeholder {
    Lobby layout
    ============================================================ */
 #lobby-screen {
+  height: 100vh;
+  min-height: unset;
   justify-content: flex-start;
   padding-top: 2rem;
+  overflow: hidden;
 }
 
 .lobby-header {
@@ -225,6 +228,7 @@ input[type="text"]::placeholder {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.25rem;
+  flex-shrink: 0;
 }
 
 .player-badge {
@@ -243,6 +247,8 @@ input[type="text"]::placeholder {
   flex-direction: column;
   gap: 0.75rem;
   margin-top: 1rem;
+  flex-shrink: 0;
+  padding-bottom: 1.5rem;
 }
 
 #join-selected-btn,
@@ -270,6 +276,11 @@ input[type="text"]::placeholder {
 .game-list-section {
   width: 100%;
   max-width: 42rem;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 #game-list {
@@ -277,6 +288,7 @@ input[type="text"]::placeholder {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  overflow-y: auto;
 }
 
 #game-list li {
