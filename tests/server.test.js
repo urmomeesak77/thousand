@@ -9,7 +9,7 @@ const { WebSocket } = require('ws');
 // Test helpers
 // ---------------------------------------------------------------------------
 
-let server, store, handler, games, players, inviteCodes;
+let server, store, handler, connectionManager, games, players, inviteCodes;
 let baseUrl, wsUrl;
 
 function request(method, path, body, sessionToken) {
@@ -153,6 +153,7 @@ before(async () => {
   server = mod.server;
   store = mod.store;
   handler = mod.handler;
+  connectionManager = mod.connectionManager;
   games = store.games;
   players = store.players;
   inviteCodes = store.inviteCodes;
@@ -171,8 +172,8 @@ beforeEach(async () => {
   games.clear();
   players.clear();
   inviteCodes.clear();
-  store._wsConnectionsByIp.clear();
-  store._wsMessageCounts.clear();
+  connectionManager._wsConnectionsByIp.clear();
+  connectionManager._wsMessageCounts.clear();
 
   // Reset rate limiters so tests don't hit limits (all tests come from same IP)
   handler._httpLimiter._counts.clear();

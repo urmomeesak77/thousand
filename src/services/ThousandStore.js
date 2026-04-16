@@ -4,11 +4,27 @@ const crypto = require('crypto');
 
 class ThousandStore {
   constructor() {
-    this.games = new Map();           // gameId -> Game
-    this.players = new Map();         // playerId -> Player
-    this.inviteCodes = new Map();     // inviteCode -> gameId
-    this._wsConnectionsByIp = new Map(); // ip -> count
-    this._wsMessageCounts = new Map(); // ws -> { count, resetAt }
+    this.games = new Map();       // gameId -> Game
+    this.players = new Map();     // playerId -> Player
+    this.inviteCodes = new Map(); // inviteCode -> gameId
+  }
+
+  createPlayer(ws, clientIp) {
+    const playerId = crypto.randomUUID();
+    const sessionToken = crypto.randomUUID();
+    this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws, sessionToken });
+    ws._clientIp = clientIp;
+    ws._playerId = playerId;
+    return { playerId, sessionToken };
+  }
+
+  findBySessionToken(token) {
+    for (const [, player] of this.players) {
+      if (player.sessionToken === token) {
+        return player;
+      }
+    }
+    return null;
   }
 
   // T026 – invite code generator
@@ -59,9 +75,29 @@ class ThousandStore {
     const { nickname } = player;
     game.players.delete(playerId);
     player.gameId = null;
-
     this._resolveGameAfterExit(gameId, game, playerId, nickname);
     return true;
+  }
+
+  handlePlayerDisconnect(playerId) {
+    const player = this.players.get(playerId);
+    if (!player) {
+      return;
+    }
+
+    const { gameId, nickname } = player;
+    this.players.delete(playerId);
+    if (!gameId) {
+      return;
+    }
+
+    const game = this.games.get(gameId);
+    if (!game) {
+      return;
+    }
+
+    game.players.delete(playerId);
+    this._resolveGameAfterExit(gameId, game, playerId, nickname);
   }
 
   // T034 – broadcast lobby state to every client whose gameId is null
@@ -88,79 +124,6 @@ class ThousandStore {
     }).filter(Boolean);
   }
 
-  // T011 – WebSocket connection handler
-  handleConnection(ws) {
-    const clientIp = ws._socket?.remoteAddress || 'unknown';
-    const currentCount = this._wsConnectionsByIp.get(clientIp) || 0;
-    if (currentCount >= 10) {
-      ws.close(1008, 'Too many connections from this IP');
-      return;
-    }
-
-    const playerId = crypto.randomUUID();
-    const sessionToken = crypto.randomUUID();
-    this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws, sessionToken });
-    this._wsConnectionsByIp.set(clientIp, currentCount + 1);
-    ws._clientIp = clientIp;
-    ws._playerId = playerId;
-
-    ws.send(JSON.stringify({ type: 'connected', playerId, sessionToken }));
-    ws.send(JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() }));
-    ws.on('message', (data) => this._handleMessage(ws, data));
-    // Capture clientIp in closure to ensure cleanup even if player is deleted before disconnect
-    ws.on('close', () => {
-      const playerExists = this.players.has(playerId);
-      this._handleDisconnect(playerId);
-      // If player was already deleted, _handleDisconnect won't decrement the IP count
-      // So we need to do it here
-      if (!playerExists && clientIp) {
-        const count = this._wsConnectionsByIp.get(clientIp) || 1;
-        if (count <= 1) {
-          this._wsConnectionsByIp.delete(clientIp);
-        } else {
-          this._wsConnectionsByIp.set(clientIp, count - 1);
-        }
-      }
-    });
-  }
-
-  findBySessionToken(token) {
-    for (const [, player] of this.players) {
-      if (player.sessionToken === token) {
-        return player;
-      }
-    }
-    return null;
-  }
-
-  _handleMessage(ws, data) {
-    // Rate limit: 30 messages per 10 seconds per WebSocket
-    const now = Date.now();
-    const entry = this._wsMessageCounts.get(ws);
-    if (!entry || now > entry.resetAt) {
-      this._wsMessageCounts.set(ws, { count: 1, resetAt: now + 10000 });
-    } else {
-      if (entry.count >= 30) {
-        ws.close(1008, 'Message rate limit exceeded');
-        return;
-      }
-      entry.count++;
-    }
-
-    let msg;
-    try {
-      msg = JSON.parse(data.toString());
-    } catch {
-      ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid JSON' }));
-      return;
-    }
-    if (msg.type === 'ping') {
-      return;
-    }
-    ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
-  }
-
-  // Shared exit logic: called after a player has been removed from game.players
   _resolveGameAfterExit(gameId, game, playerId, nickname) {
     if (game.players.size === 0) {
       this._deleteGame(gameId, game);
@@ -196,39 +159,6 @@ class ThousandStore {
       this.sendToPlayer(pid, disbandMsg);
     }
     this._deleteGame(gameId, game);
-  }
-
-  _handleDisconnect(playerId) {
-    const player = this.players.get(playerId);
-    if (!player) {
-      return;
-    }
-
-    const clientIp = player.ws?._clientIp;
-    if (clientIp) {
-      const count = this._wsConnectionsByIp.get(clientIp) || 1;
-      if (count <= 1) {
-        this._wsConnectionsByIp.delete(clientIp);
-      } else {
-        this._wsConnectionsByIp.set(clientIp, count - 1);
-      }
-    }
-
-    this._wsMessageCounts.delete(player.ws);
-
-    const { gameId, nickname } = player;
-    this.players.delete(playerId);
-    if (!gameId) {
-      return;
-    }
-
-    const game = this.games.get(gameId);
-    if (!game) {
-      return;
-    }
-
-    game.players.delete(playerId);
-    this._resolveGameAfterExit(gameId, game, playerId, nickname);
   }
 }
 

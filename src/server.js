@@ -4,11 +4,13 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 
 const ThousandStore = require('./services/ThousandStore');
+const ConnectionManager = require('./services/ConnectionManager');
 const RequestHandler = require('./controllers/RequestHandler');
 
 const PORT = process.env.PORT || 3000;
 
 const store = new ThousandStore();
+const connectionManager = new ConnectionManager(store);
 const handler = new RequestHandler(store);
 
 // T009 – HTTP server
@@ -33,7 +35,7 @@ server.on('upgrade', (req, socket, head) => {
   }
 });
 
-wss.on('connection', (ws) => store.handleConnection(ws));
+wss.on('connection', (ws) => connectionManager.handleConnection(ws));
 
 if (require.main === module) {
   server.listen(PORT, () => {
@@ -41,4 +43,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, store, handler };
+module.exports = { server, store, handler, connectionManager };
