@@ -114,7 +114,7 @@ The existing lobby screens (nickname entry, game list, waiting room) are represe
 - **FR-008**: An object MUST have at most one parent container at any time. Adding an object that already has a parent to a different container MUST either move it or reject the operation.
 - **FR-009**: The lobby MUST be represented as engine objects within the scene tree, covering all existing screens: nickname entry, game list/lobby, and waiting room.
 - **FR-010**: The migrated lobby MUST preserve all existing user-facing functionality: nickname entry and validation, game creation (with game-type selection modal), game joining (by selection and by invite code), invite code copying, game list real-time updates, waiting room player list updates, leave-game confirmation, and game-disbanded handling.
-- **FR-011**: The existing engine core (tick loop, event bus, input binding, scheduling) MUST remain unchanged — the object system integrates through the existing public interface.
+- **FR-011**: The existing engine core (tick loop, event bus, input binding, scheduling) can remain unchanged — the object system integrates through the existing public interface.
 
 ### Key Entities
 
@@ -137,7 +137,6 @@ The existing lobby screens (nickname entry, game list, waiting room) are represe
 
 ## Assumptions
 
-- The existing engine core (Antlion.js, EventBus.js) is stable and will not be modified as part of this feature.
 - The lobby migration is a refactor — the visual design (HTML structure, CSS styling) remains the same. Only the code organization changes.
 - Canvas rendering support is out of scope. Only HTML-based rendering is included.
 - Concrete behaviours (animation, drag, timer) are out of scope. Only the behaviour base class is included.

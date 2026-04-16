@@ -1,10 +1,12 @@
 ﻿# thousand Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-14
+Auto-generated from all feature plans. Last updated: 2026-04-16
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
 
 ## Active Technologies
+- Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules) + `ws` npm package (backend WebSocket); no frontend dependencies (001-card-game-lobby)
+- N/A (in-memory backend state) (001-card-game-lobby)
 
 - Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages) (001-card-game-lobby)
 
@@ -50,6 +52,7 @@ Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 - Game-specific logic lives under `src/public/js/thousand/`.
 
 ## Recent Changes
+- 001-card-game-lobby: Added Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules) + `ws` npm package (backend WebSocket); no frontend dependencies
 
 - 001-card-game-lobby: Added Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages)
 
