@@ -46,25 +46,11 @@ class ThousandStore {
     const game = this.games.get(gameId);
     if (!game) return false;
 
+    const { nickname } = player;
     game.players.delete(playerId);
     player.gameId = null;
 
-    if (game.players.size === 0) {
-      this._deleteGame(gameId, game);
-      return true;
-    }
-
-    if (game.hostId === playerId && game.status === 'waiting') {
-      this._disbandGame(gameId, game);
-      return true;
-    }
-
-    const remaining = this.serializePlayers(game);
-    const leftMsg = { type: 'player_left', playerId, nickname: player.nickname, players: remaining };
-    for (const pid of game.players) {
-      this.sendToPlayer(pid, leftMsg);
-    }
-    this.broadcastLobbyUpdate();
+    this._resolveGameAfterExit(gameId, game, playerId, nickname);
     return true;
   }
 
@@ -114,6 +100,24 @@ class ThousandStore {
     ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
   }
 
+  // Shared exit logic: called after a player has been removed from game.players
+  _resolveGameAfterExit(gameId, game, playerId, nickname) {
+    if (game.players.size === 0) {
+      this._deleteGame(gameId, game);
+      return;
+    }
+    if (game.hostId === playerId && game.status === 'waiting') {
+      this._disbandGame(gameId, game);
+      return;
+    }
+    const remaining = this.serializePlayers(game);
+    const leftMsg = { type: 'player_left', playerId, nickname, players: remaining };
+    for (const pid of game.players) {
+      this.sendToPlayer(pid, leftMsg);
+    }
+    this.broadcastLobbyUpdate();
+  }
+
   _deleteGame(gameId, game) {
     if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
     this.games.delete(gameId);
@@ -142,23 +146,7 @@ class ThousandStore {
     if (!game) return;
 
     game.players.delete(playerId);
-
-    if (game.players.size === 0) {
-      this._deleteGame(gameId, game);
-      return;
-    }
-
-    if (game.hostId === playerId && game.status === 'waiting') {
-      this._disbandGame(gameId, game);
-      return;
-    }
-
-    const remaining = this.serializePlayers(game);
-    const leftMsg = { type: 'player_left', playerId, nickname, players: remaining };
-    for (const pid of game.players) {
-      this.sendToPlayer(pid, leftMsg);
-    }
-    this.broadcastLobbyUpdate();
+    this._resolveGameAfterExit(gameId, game, playerId, nickname);
   }
 }
 

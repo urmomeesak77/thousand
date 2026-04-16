@@ -12,6 +12,14 @@ class ThousandRenderer {
     });
   }
 
+  static _escape(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   static renderGameList(games) {
     const list = $('game-list');
     const emptyState = $('empty-state');
@@ -30,7 +38,7 @@ class ThousandRenderer {
     }
 
     for (const game of games) {
-      let li = list.querySelector(`li[data-id="${game.id}"]`);
+      let li = list.querySelector(`li[data-id="${ThousandRenderer._escape(game.id)}"]`);
       if (!li) {
         li = document.createElement('li');
         li.dataset.id = game.id;
@@ -39,8 +47,8 @@ class ThousandRenderer {
       li.dataset.createdAt = game.createdAt || '';
       const playerList = (game.players || []).join('\n');
       li.innerHTML = `
-        <span class="game-id-label">Game #${game.id}</span>
-        <span class="game-owner">Created by: ${game.owner || 'Unknown'}</span>
+        <span class="game-id-label">Game #${ThousandRenderer._escape(game.id)}</span>
+        <span class="game-owner">Created by: ${ThousandRenderer._escape(game.owner || 'Unknown')}</span>
         <span class="game-player-count">${game.playerCount} / ${game.maxPlayers} players</span>
         <span class="game-waiting-time"></span>
       `;

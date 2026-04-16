@@ -54,4 +54,7 @@ Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 - 001-card-game-lobby: Added Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages)
 
 <!-- MANUAL ADDITIONS START -->
+
+## Coding conventions
+- check file docs/CODING_CONVENTIONS.md
 <!-- MANUAL ADDITIONS END -->
