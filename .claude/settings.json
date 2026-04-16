@@ -1,18 +1,3 @@
 {
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "agent",
-            "prompt": "Analyze this user prompt and determine what model capability is needed:\n\n$ARGUMENTS\n\nCategorize as:\n- HAIKU: simple searches, reads, explanations, lookups, basic questions\n- OPUS: complex analysis, architecture, security review, design, optimization, refactoring\n- SONNET: implementation, bug fixes, feature work, code changes, testing\n\nRespond ONLY with the model tier: HAIKU, OPUS, or SONNET\n\nFor HAIKU tasks, respond: HAIKU\nFor OPUS tasks (architecture/design/analysis), respond: OPUS_SUBAGENT\nFor SONNET tasks (implementation/fixes), respond: SONNET_SUBAGENT",
-            "model": "haiku",
-            "statusMessage": "Evaluating task complexity...",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  }
+  "hooks": {}
 }
