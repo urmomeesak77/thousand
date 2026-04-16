@@ -75,7 +75,9 @@ class Antlion {
 
   stop() {
     this._running = false;
-    if (this._rafId !== null) cancelAnimationFrame(this._rafId);
+    if (this._rafId !== null) {
+      cancelAnimationFrame(this._rafId);
+    }
     this._rafId = null;
     this._timers.forEach((id) => clearTimeout(id));
     this._timers = [];
@@ -89,7 +91,9 @@ class Antlion {
   }
 
   _tick() {
-    if (!this._running) return;
+    if (!this._running) {
+      return;
+    }
     this._tickHandlers.forEach(h => h());
     this._rafId = requestAnimationFrame(() => this._tick());
   }

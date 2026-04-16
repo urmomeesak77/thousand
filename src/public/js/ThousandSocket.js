@@ -30,7 +30,9 @@ class ThousandSocket {
     };
     ws.onerror = () => this._onError('Connection error. Please refresh.');
     ws.onclose = () => {
-      if (this._reconnectId !== null) this._antlion.cancelScheduled(this._reconnectId);
+      if (this._reconnectId !== null) {
+        this._antlion.cancelScheduled(this._reconnectId);
+      }
       this._reconnectId = this._antlion.schedule(3000, () => {
         this._reconnectId = null;
         this.connect();

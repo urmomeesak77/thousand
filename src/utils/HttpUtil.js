@@ -20,7 +20,9 @@ class HttpUtil {
       let size = 0;
       req.on('data', (chunk) => {
         size += chunk.length;
-        if (size <= maxBytes) data += chunk;
+        if (size <= maxBytes) {
+          data += chunk;
+        }
       });
       req.on('end', () => {
         if (size > maxBytes) { reject(new Error('Request body too large')); return; }

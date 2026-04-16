@@ -21,18 +21,25 @@ class ModalController {
 
     this._antlion.bindInput($('new-game-modal'), 'click', 'modal-overlay-click');
     this._antlion.onInput('modal-overlay-click', (e) => {
-      if (e.target === $('new-game-modal')) this._close();
+      if (e.target === $('new-game-modal')) {
+        this._close();
+      }
     });
 
     this._antlion.bindInput(document, 'keydown', 'keydown');
     this._antlion.onInput('keydown', (e) => {
-      if (e.key === 'Escape') this._close();
+      if (e.key === 'Escape') {
+        this._close();
+      }
     });
 
     this._antlion.bindInput($('new-game-form'), 'submit', 'new-game-submit');
     this._antlion.onInput('new-game-submit', (e) => {
       e.preventDefault();
-      if (!this._getNickname()) { this._onError('Enter a nickname first.'); return; }
+      if (!this._getNickname()) {
+        this._onError('Enter a nickname first.');
+        return;
+      }
       const type = document.querySelector('input[name="game-type"]:checked').value;
       this._close();
       this._onCreateGame(type);

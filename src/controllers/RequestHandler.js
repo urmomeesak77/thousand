@@ -11,7 +11,9 @@ class RequestHandler {
 
   // T039 – nickname validation
   static _validateNickname(nickname) {
-    if (!nickname || typeof nickname !== 'string') return false;
+    if (!nickname || typeof nickname !== 'string') {
+      return false;
+    }
     const trimmed = nickname.trim();
     return trimmed.length >= 3 && trimmed.length <= 20;
   }
@@ -20,8 +22,12 @@ class RequestHandler {
   _isNicknameTaken(nick, excludePlayerId) {
     const lower = nick.toLowerCase();
     for (const [pid, player] of this.store.players) {
-      if (pid === excludePlayerId) continue;
-      if (player.nickname && player.nickname.toLowerCase() === lower) return true;
+      if (pid === excludePlayerId) {
+        continue;
+      }
+      if (player.nickname && player.nickname.toLowerCase() === lower) {
+        return true;
+      }
     }
     return false;
   }
@@ -136,7 +142,9 @@ class RequestHandler {
     };
 
     this.store.games.set(gameId, game);
-    if (inviteCode) this.store.inviteCodes.set(inviteCode, gameId);
+    if (inviteCode) {
+      this.store.inviteCodes.set(inviteCode, gameId);
+    }
 
     // T035, T041 – broadcast and notify host
     this._admitPlayerToGame(game, gameId, playerId);
@@ -244,17 +252,29 @@ class RequestHandler {
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
 
-    if (req.method === 'POST' && pathname === '/api/nickname') return this.handleClaimNickname(req, res);
-    if (req.method === 'GET' && pathname === '/api/games') return this.handleGetGames(req, res);
-    if (req.method === 'POST' && pathname === '/api/games') return this.handleCreateGame(req, res);
+    if (req.method === 'POST' && pathname === '/api/nickname') {
+      return this.handleClaimNickname(req, res);
+    }
+    if (req.method === 'GET' && pathname === '/api/games') {
+      return this.handleGetGames(req, res);
+    }
+    if (req.method === 'POST' && pathname === '/api/games') {
+      return this.handleCreateGame(req, res);
+    }
     // Must match before /:id/join
-    if (req.method === 'POST' && pathname === '/api/games/join-invite') return this.handleJoinInvite(req, res);
+    if (req.method === 'POST' && pathname === '/api/games/join-invite') {
+      return this.handleJoinInvite(req, res);
+    }
 
     const leaveMatch = pathname.match(/^\/api\/games\/([^/]+)\/leave$/);
-    if (req.method === 'POST' && leaveMatch) return this.handleLeaveGame(req, res, leaveMatch[1]);
+    if (req.method === 'POST' && leaveMatch) {
+      return this.handleLeaveGame(req, res, leaveMatch[1]);
+    }
 
     const joinMatch = pathname.match(/^\/api\/games\/([^/]+)\/join$/);
-    if (req.method === 'POST' && joinMatch) return this.handleJoinGame(req, res, joinMatch[1]);
+    if (req.method === 'POST' && joinMatch) {
+      return this.handleJoinGame(req, res, joinMatch[1]);
+    }
 
     StaticServer.serve(req, res);
   }

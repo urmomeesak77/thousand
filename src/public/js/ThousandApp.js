@@ -95,13 +95,17 @@ class ThousandApp {
     this._antlion.onInput('nickname-submit', async (e) => {
       e.preventDefault();
       const nick = $('nickname-input').value.trim();
-      if (!nick) return;
+      if (!nick) {
+        return;
+      }
       if (nick.length < 3 || nick.length > 20) {
         this._toast.show('Nickname must be 3–20 characters.');
         return;
       }
       const ok = await this._api.claimNickname(nick, this._playerId);
-      if (!ok) return;
+      if (!ok) {
+        return;
+      }
       this._nickname = nick;
       $('player-name-display').textContent = nick;
       ThousandRenderer.showScreen('lobby-screen');
@@ -117,8 +121,14 @@ class ThousandApp {
     this._antlion.bindInput($('join-invite-btn'), 'click', 'invite-join-click');
     this._antlion.onInput('invite-join-click', () => {
       const code = $('invite-code-input').value.trim().toUpperCase();
-      if (!code) { this._toast.show('Enter an invite code.'); return; }
-      if (!this._nickname) { this._toast.show('Enter a nickname first.'); return; }
+      if (!code) {
+        this._toast.show('Enter an invite code.');
+        return;
+      }
+      if (!this._nickname) {
+        this._toast.show('Enter a nickname first.');
+        return;
+      }
       this._joinWithCode(code);
     });
   }
@@ -145,13 +155,17 @@ class ThousandApp {
     this._antlion.bindInput($('game-list'), 'click', 'game-list-click');
     this._antlion.onInput('game-list-click', (e) => {
       const li = e.target.closest('li[data-id]');
-      if (!li) return;
+      if (!li) {
+        return;
+      }
       const gameId = li.dataset.id;
       if (this._selectedGameId === gameId) {
         this._clearGameSelection();
       } else {
         const prev = $('game-list').querySelector('li.selected');
-        if (prev) prev.classList.remove('selected');
+        if (prev) {
+          prev.classList.remove('selected');
+        }
         li.classList.add('selected');
         this._selectedGameId = gameId;
         $('join-selected-btn').disabled = false;
@@ -161,7 +175,9 @@ class ThousandApp {
     this._antlion.bindInput($('game-list'), 'dblclick', 'game-list-dblclick');
     this._antlion.onInput('game-list-dblclick', (e) => {
       const li = e.target.closest('li[data-id]');
-      if (!li) return;
+      if (!li) {
+        return;
+      }
       this._joinGame(li.dataset.id);
     });
   }
@@ -169,13 +185,17 @@ class ThousandApp {
   _bindJoinSelectedBtn() {
     this._antlion.bindInput($('join-selected-btn'), 'click', 'join-selected-click');
     this._antlion.onInput('join-selected-click', () => {
-      if (this._selectedGameId) this._joinGame(this._selectedGameId);
+      if (this._selectedGameId) {
+        this._joinGame(this._selectedGameId);
+      }
     });
   }
 
   _clearGameSelection() {
     const selected = $('game-list').querySelector('li.selected');
-    if (selected) selected.classList.remove('selected');
+    if (selected) {
+      selected.classList.remove('selected');
+    }
     this._selectedGameId = null;
     $('join-selected-btn').disabled = true;
   }
@@ -199,11 +219,15 @@ class ThousandApp {
 
     this._antlion.bindInput($('leave-confirm-modal'), 'click', 'leave-overlay-click');
     this._antlion.onInput('leave-overlay-click', (e) => {
-      if (e.target === $('leave-confirm-modal')) closeLeaveModal();
+      if (e.target === $('leave-confirm-modal')) {
+        closeLeaveModal();
+      }
     });
 
     this._antlion.onInput('keydown', (e) => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== 'Escape') {
+        return;
+      }
       const modal = $('leave-confirm-modal');
       if (!modal.classList.contains('hidden')) {
         closeLeaveModal();
@@ -217,7 +241,9 @@ class ThousandApp {
     this._antlion.onInput('leave-confirm-click', async () => {
       closeLeaveModal();
       const ok = await this._api.leave(this._gameId, this._playerId);
-      if (!ok) return;
+      if (!ok) {
+        return;
+      }
       this._gameId = null;
       this._inviteCode = null;
       ThousandRenderer.stopWaitingTimer();
@@ -228,12 +254,17 @@ class ThousandApp {
 
   async _joinGame(gameId) {
     const data = await this._api.join(gameId, this._nickname, this._playerId);
-    if (data) this._gameId = data.gameId;
+    if (data) {
+      this._gameId = data.gameId;
+    }
   }
 
   async _createGame(type) {
     const data = await this._api.create(type, this._nickname, this._playerId);
-    if (data) { this._gameId = data.gameId; this._inviteCode = data.inviteCode; }
+    if (data) {
+      this._gameId = data.gameId;
+      this._inviteCode = data.inviteCode;
+    }
   }
 
   async _joinWithCode(code) {

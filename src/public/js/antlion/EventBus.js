@@ -8,12 +8,16 @@ class EventBus {
   }
 
   on(type, handler) {
-    if (!this._handlers.has(type)) this._handlers.set(type, []);
+    if (!this._handlers.has(type)) {
+      this._handlers.set(type, []);
+    }
     this._handlers.get(type).push(handler);
   }
 
   off(type, handler) {
-    if (!this._handlers.has(type)) return;
+    if (!this._handlers.has(type)) {
+      return;
+    }
     this._handlers.set(type, this._handlers.get(type).filter(h => h !== handler));
   }
 

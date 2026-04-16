@@ -41,10 +41,14 @@ class ThousandStore {
 
   leaveGame(playerId, gameId) {
     const player = this.players.get(playerId);
-    if (!player || player.gameId !== gameId) return false;
+    if (!player || player.gameId !== gameId) {
+      return false;
+    }
 
     const game = this.games.get(gameId);
-    if (!game) return false;
+    if (!game) {
+      return false;
+    }
 
     const { nickname } = player;
     game.players.delete(playerId);
@@ -96,7 +100,9 @@ class ThousandStore {
       ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid JSON' }));
       return;
     }
-    if (msg.type === 'ping') return;
+    if (msg.type === 'ping') {
+      return;
+    }
     ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
   }
 
@@ -119,7 +125,9 @@ class ThousandStore {
   }
 
   _deleteGame(gameId, game) {
-    if (game.inviteCode) this.inviteCodes.delete(game.inviteCode);
+    if (game.inviteCode) {
+      this.inviteCodes.delete(game.inviteCode);
+    }
     this.games.delete(gameId);
     this.broadcastLobbyUpdate();
   }
@@ -128,7 +136,9 @@ class ThousandStore {
     const disbandMsg = { type: 'game_disbanded', reason: 'host_left' };
     for (const pid of game.players) {
       const p = this.players.get(pid);
-      if (p) p.gameId = null;
+      if (p) {
+        p.gameId = null;
+      }
       this.sendToPlayer(pid, disbandMsg);
     }
     this._deleteGame(gameId, game);
@@ -136,14 +146,20 @@ class ThousandStore {
 
   _handleDisconnect(playerId) {
     const player = this.players.get(playerId);
-    if (!player) return;
+    if (!player) {
+      return;
+    }
 
     const { gameId, nickname } = player;
     this.players.delete(playerId);
-    if (!gameId) return;
+    if (!gameId) {
+      return;
+    }
 
     const game = this.games.get(gameId);
-    if (!game) return;
+    if (!game) {
+      return;
+    }
 
     game.players.delete(playerId);
     this._resolveGameAfterExit(gameId, game, playerId, nickname);

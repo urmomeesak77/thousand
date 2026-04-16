@@ -10,7 +10,9 @@ class ThousandRenderer {
   static showScreen(id) {
     ['nickname-screen', 'lobby-screen', 'game-screen'].forEach((s) => {
       const el = $(s);
-      if (el) el.classList.toggle('hidden', s !== id);
+      if (el) {
+        el.classList.toggle('hidden', s !== id);
+      }
     });
   }
 
@@ -20,15 +22,21 @@ class ThousandRenderer {
 
     if (!games || games.length === 0) {
       list.innerHTML = '';
-      if (emptyState) emptyState.classList.remove('hidden');
+      if (emptyState) {
+        emptyState.classList.remove('hidden');
+      }
       return;
     }
 
-    if (emptyState) emptyState.classList.add('hidden');
+    if (emptyState) {
+      emptyState.classList.add('hidden');
+    }
 
     const newIds = new Set(games.map((g) => g.id));
     for (const li of [...list.querySelectorAll('li')]) {
-      if (!newIds.has(li.dataset.id)) li.remove();
+      if (!newIds.has(li.dataset.id)) {
+        li.remove();
+      }
     }
 
     for (const game of games) {
@@ -53,7 +61,9 @@ class ThousandRenderer {
   }
 
   static _formatElapsed(secs) {
-    if (secs < 60) return `${secs}s`;
+    if (secs < 60) {
+      return `${secs}s`;
+    }
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}m ${s}s`;
@@ -64,10 +74,14 @@ class ThousandRenderer {
     const now = Date.now();
     for (const li of items) {
       const createdAt = parseInt(li.dataset.createdAt, 10);
-      if (!createdAt) continue;
+      if (!createdAt) {
+        continue;
+      }
       const elapsed = Math.floor((now - createdAt) / 1000);
       const span = li.querySelector('.game-waiting-time');
-      if (span) span.textContent = ThousandRenderer._formatElapsed(elapsed);
+      if (span) {
+        span.textContent = ThousandRenderer._formatElapsed(elapsed);
+      }
     }
   }
 
@@ -84,9 +98,13 @@ class ThousandRenderer {
     antlion.bindInput(list, 'mouseover', 'renderer-mouseover');
     antlion.onInput('renderer-mouseover', (e) => {
       const span = e.target.closest('.game-player-count[data-players]');
-      if (!span) return;
+      if (!span) {
+        return;
+      }
       const names = span.dataset.players;
-      if (!names) return;
+      if (!names) {
+        return;
+      }
       tip.textContent = names;
       tip.classList.remove('hidden');
       ThousandRenderer._positionTooltip(tip, span);
@@ -95,14 +113,18 @@ class ThousandRenderer {
     antlion.bindInput(list, 'mousemove', 'renderer-mousemove');
     antlion.onInput('renderer-mousemove', (e) => {
       const span = e.target.closest('.game-player-count[data-players]');
-      if (!span || tip.classList.contains('hidden')) return;
+      if (!span || tip.classList.contains('hidden')) {
+        return;
+      }
       ThousandRenderer._positionTooltip(tip, span);
     });
 
     antlion.bindInput(list, 'mouseout', 'renderer-mouseout');
     antlion.onInput('renderer-mouseout', (e) => {
       const span = e.target.closest('.game-player-count[data-players]');
-      if (span) tip.classList.add('hidden');
+      if (span) {
+        tip.classList.add('hidden');
+      }
     });
   }
 
@@ -110,7 +132,9 @@ class ThousandRenderer {
     const rect = anchor.getBoundingClientRect();
     const tipRect = tip.getBoundingClientRect();
     let top = rect.top - tipRect.height - 8;
-    if (top < 4) top = rect.bottom + 8;
+    if (top < 4) {
+      top = rect.bottom + 8;
+    }
     let left = rect.left + rect.width / 2 - tipRect.width / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
     tip.style.top = `${top}px`;
@@ -122,7 +146,9 @@ class ThousandRenderer {
     const start = createdAt || Date.now();
     const el = document.getElementById('waiting-elapsed');
     ThousandRenderer._waitingTimerId = ThousandRenderer._antlion.scheduleInterval(1000, () => {
-      if (el) el.textContent = ThousandRenderer._formatElapsed(Math.floor((Date.now() - start) / 1000));
+      if (el) {
+        el.textContent = ThousandRenderer._formatElapsed(Math.floor((Date.now() - start) / 1000));
+      }
     });
   }
 
@@ -132,7 +158,9 @@ class ThousandRenderer {
       ThousandRenderer._waitingTimerId = null;
     }
     const el = document.getElementById('waiting-elapsed');
-    if (el) el.textContent = '0s';
+    if (el) {
+      el.textContent = '0s';
+    }
   }
 
   static startElapsedTimer() {
@@ -149,7 +177,9 @@ class ThousandRenderer {
 
   static renderWaitingRoom(gameId, inviteCode, players) {
     $('game-id-display').textContent = `Game #${gameId}`;
-    if (inviteCode) $('invite-code-value').textContent = inviteCode;
+    if (inviteCode) {
+      $('invite-code-value').textContent = inviteCode;
+    }
     $('invite-display').classList.toggle('hidden', !inviteCode);
     ThousandRenderer.renderWaitingRoomPlayers(players);
   }
