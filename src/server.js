@@ -41,4 +41,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, store };
+module.exports = { server, store, handler };

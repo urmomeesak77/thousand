@@ -9,7 +9,7 @@ const { WebSocket } = require('ws');
 // Test helpers
 // ---------------------------------------------------------------------------
 
-let server, store, games, players, inviteCodes;
+let server, store, handler, games, players, inviteCodes;
 let baseUrl, wsUrl;
 
 function request(method, path, body, sessionToken) {
@@ -57,7 +57,7 @@ function getSessionToken() {
 }
 
 // Send a raw (potentially invalid) body to a POST endpoint
-function requestRaw(path, rawBody) {
+function requestRaw(path, rawBody, sessionToken) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, baseUrl);
     const opts = {
@@ -67,6 +67,9 @@ function requestRaw(path, rawBody) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(rawBody) },
     };
+    if (sessionToken) {
+      opts.headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
     const req = http.request(opts, (res) => {
       let data = '';
       res.on('data', (c) => { data += c; });
@@ -145,6 +148,7 @@ before(async () => {
   const mod = require('../src/server');
   server = mod.server;
   store = mod.store;
+  handler = mod.handler;
   games = store.games;
   players = store.players;
   inviteCodes = store.inviteCodes;
@@ -164,9 +168,14 @@ beforeEach(async () => {
   players.clear();
   inviteCodes.clear();
 
-  // Wait to allow WebSocket connections to fully clean up from previous tests
-  // (default 10 connections per IP limit in RateLimiter)
-  await new Promise((r) => setTimeout(r, 200));
+  // Reset rate limiters so tests don't hit limits (all tests come from same IP)
+  handler._httpLimiter._counts.clear();
+  handler._createLimiter._counts.clear();
+
+  // Wait to allow WebSocket connections to fully close and clean up from previous tests
+  // The server limits to 10 WebSocket connections per IP, and async close events
+  // may not have been processed yet by the time beforeEach runs
+  await new Promise((r) => setTimeout(r, 500));
 });
 
 // ---------------------------------------------------------------------------
@@ -413,12 +422,12 @@ describe('POST /api/games/join-invite', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000005', {
       id: '000005', type: 'private', hostId: 'h1',
-      players: new Set(['h1', 'h2', 'h3', 'h4']), maxPlayers: 4, status: 'waiting', inviteCode: 'FULL01',
+      players: new Set(['h1', 'h2', 'h3', 'h4']), maxPlayers: 4, status: 'waiting', inviteCode: 'F00001',
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
-    inviteCodes.set('FULL01', '000005');
+    inviteCodes.set('F00001', '000005');
 
-    const res = await request('POST', '/api/games/join-invite', { code: 'FULL01', nickname: 'Extra' }, token);
+    const res = await request('POST', '/api/games/join-invite', { code: 'F00001', nickname: 'Extra' }, token);
     assert.equal(res.status, 409);
     assert.equal(res.body.error, 'game_full');
   });
@@ -600,23 +609,26 @@ describe('WebSocket player disconnect cleanup', () => {
 
 describe('Invalid JSON body handling', () => {
   it('returns 400 for invalid JSON body on POST /api/games', async () => {
-    const res = await requestRaw('/api/games', '{not-valid-json}');
+    const { token } = await getSessionToken();
+    const res = await requestRaw('/api/games', '{not-valid-json}', token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
   });
 
   it('returns 400 for invalid JSON body on POST /api/games/:id/join', async () => {
+    const { token } = await getSessionToken();
     games.set('000001', {
       id: '000001', type: 'public', hostId: 'h1',
       players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
     });
-    const res = await requestRaw('/api/games/000001/join', '{bad json}');
+    const res = await requestRaw('/api/games/000001/join', '{bad json}', token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
   });
 
   it('returns 400 for invalid JSON body on POST /api/games/join-invite', async () => {
-    const res = await requestRaw('/api/games/join-invite', 'not-json');
+    const { token } = await getSessionToken();
+    const res = await requestRaw('/api/games/join-invite', 'not-json', token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
   });
@@ -809,7 +821,8 @@ describe('POST /api/nickname', () => {
   });
 
   it('returns 400 for invalid JSON body', async () => {
-    const res = await requestRaw('/api/nickname', '{bad-json}');
+    const { token } = await getSessionToken();
+    const res = await requestRaw('/api/nickname', '{bad-json}', token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
   });
@@ -875,10 +888,10 @@ describe('WebSocket disconnect edge cases', () => {
     const gConn = await waitForMessage(guestWs, 'connected');
 
     const createRes = await request('POST', '/api/games', {
-      type: 'public', nickname: 'Host', playerId: hConn.playerId,
-    });
+      type: 'public', nickname: 'Host',
+    }, hConn.sessionToken);
     const { gameId } = createRes.body;
-    await request('POST', `/api/games/${gameId}/join`, { nickname: 'Guest', playerId: gConn.playerId });
+    await request('POST', `/api/games/${gameId}/join`, { nickname: 'Guest' }, gConn.sessionToken);
 
     guestWs.msgs.length = 0;
     hostWs.close();
@@ -896,8 +909,8 @@ describe('WebSocket disconnect edge cases', () => {
     const connected = await waitForMessage(hostWs, 'connected');
 
     const createRes = await request('POST', '/api/games', {
-      type: 'private', nickname: 'Host', playerId: connected.playerId,
-    });
+      type: 'private', nickname: 'Host',
+    }, connected.sessionToken);
     assert.equal(createRes.status, 201);
     const { gameId, inviteCode } = createRes.body;
     assert.ok(inviteCodes.has(inviteCode));

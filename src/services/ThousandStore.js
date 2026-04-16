@@ -107,7 +107,21 @@ class ThousandStore {
     ws.send(JSON.stringify({ type: 'connected', playerId, sessionToken }));
     ws.send(JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() }));
     ws.on('message', (data) => this._handleMessage(ws, data));
-    ws.on('close', () => this._handleDisconnect(playerId));
+    // Capture clientIp in closure to ensure cleanup even if player is deleted before disconnect
+    ws.on('close', () => {
+      const playerExists = this.players.has(playerId);
+      this._handleDisconnect(playerId);
+      // If player was already deleted, _handleDisconnect won't decrement the IP count
+      // So we need to do it here
+      if (!playerExists && clientIp) {
+        const count = this._wsConnectionsByIp.get(clientIp) || 1;
+        if (count <= 1) {
+          this._wsConnectionsByIp.delete(clientIp);
+        } else {
+          this._wsConnectionsByIp.set(clientIp, count - 1);
+        }
+      }
+    });
   }
 
   findBySessionToken(token) {
