@@ -23,7 +23,7 @@ before(() => {
     path.join(publicDir, 'js', 'antlion', 'EventBus.js'),
     path.join(publicDir, 'js', 'antlion', 'Antlion.js'),
     path.join(publicDir, 'js', 'Toast.js'),
-    path.join(publicDir, 'js', 'HtmlUtil.js'),
+    path.join(publicDir, 'js', 'utils', 'HtmlUtil.js'),
     path.join(publicDir, 'js', 'ThousandRenderer.js'),
     path.join(publicDir, 'js', 'ThousandSocket.js'),
     path.join(publicDir, 'js', 'GameApi.js'),

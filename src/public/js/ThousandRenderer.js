@@ -1,4 +1,4 @@
-import HtmlUtil from './HtmlUtil.js';
+import HtmlUtil from './utils/HtmlUtil.js';
 
 const $ = (id) => document.getElementById(id);
 
