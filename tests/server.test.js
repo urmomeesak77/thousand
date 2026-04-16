@@ -45,9 +45,13 @@ function getSessionToken() {
     connectWS().then((ws) => {
       const connectedMsg = ws.msgs.find((m) => m.type === 'connected');
       if (connectedMsg && connectedMsg.sessionToken && connectedMsg.playerId) {
+        ws.on('close', () => {
+          // Give the server event loop one tick to process the close handler
+          setTimeout(() => {
+            resolve({ token: connectedMsg.sessionToken, playerId: connectedMsg.playerId });
+          }, 50);
+        });
         ws.close();
-        // Return both token and playerId so tests can properly set up the player
-        resolve({ token: connectedMsg.sessionToken, playerId: connectedMsg.playerId });
       } else {
         ws.close();
         reject(new Error('No sessionToken or playerId in connected message'));
@@ -167,6 +171,8 @@ beforeEach(async () => {
   games.clear();
   players.clear();
   inviteCodes.clear();
+  store._wsConnectionsByIp.clear();
+  store._wsMessageCounts.clear();
 
   // Reset rate limiters so tests don't hit limits (all tests come from same IP)
   handler._httpLimiter._counts.clear();
@@ -609,14 +615,16 @@ describe('WebSocket player disconnect cleanup', () => {
 
 describe('Invalid JSON body handling', () => {
   it('returns 400 for invalid JSON body on POST /api/games', async () => {
-    const { token } = await getSessionToken();
+    const { token, playerId } = await getSessionToken();
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     const res = await requestRaw('/api/games', '{not-valid-json}', token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
   });
 
   it('returns 400 for invalid JSON body on POST /api/games/:id/join', async () => {
-    const { token } = await getSessionToken();
+    const { token, playerId } = await getSessionToken();
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     games.set('000001', {
       id: '000001', type: 'public', hostId: 'h1',
       players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
@@ -627,7 +635,8 @@ describe('Invalid JSON body handling', () => {
   });
 
   it('returns 400 for invalid JSON body on POST /api/games/join-invite', async () => {
-    const { token } = await getSessionToken();
+    const { token, playerId } = await getSessionToken();
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     const res = await requestRaw('/api/games/join-invite', 'not-json', token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
@@ -821,7 +830,8 @@ describe('POST /api/nickname', () => {
   });
 
   it('returns 400 for invalid JSON body', async () => {
-    const { token } = await getSessionToken();
+    const { token, playerId } = await getSessionToken();
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     const res = await requestRaw('/api/nickname', '{bad-json}', token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
