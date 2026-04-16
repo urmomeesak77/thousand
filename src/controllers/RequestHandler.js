@@ -3,10 +3,13 @@
 const crypto = require('crypto');
 const HttpUtil = require('../utils/HttpUtil');
 const StaticServer = require('../utils/StaticServer');
+const RateLimiter = require('../utils/RateLimiter');
 
 class RequestHandler {
   constructor(store) {
     this.store = store;
+    this._httpLimiter = new RateLimiter(60000, 60); // 60 requests per minute per IP
+    this._createLimiter = new RateLimiter(60000, 5); // 5 creates per minute per IP
   }
 
   // T039 – nickname validation
@@ -15,7 +18,22 @@ class RequestHandler {
       return false;
     }
     const trimmed = nickname.trim();
-    return trimmed.length >= 3 && trimmed.length <= 20;
+    if (trimmed.length < 3 || trimmed.length > 20) {
+      return false;
+    }
+    // Reject control characters, zero-width chars, bidirectional overrides
+    // eslint-disable-next-line no-control-regex
+    const BAD_CHARS = /[\u0000-\u001F\u007F\u200B-\u200D\uFEFF\u202A-\u202E\u2028\u2029]/;
+    return !BAD_CHARS.test(trimmed);
+  }
+
+  // Authenticate via Authorization header
+  _authenticateRequest(req) {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) {
+      return null;
+    }
+    return this.store.findBySessionToken(auth.slice(7));
   }
 
   // Returns true if another connected player already holds this nickname
@@ -32,20 +50,7 @@ class RequestHandler {
     return false;
   }
 
-  // Resolves an existing player or creates a new one; returns playerId
-  _resolveOrCreatePlayer(clientPlayerId, nick) {
-    const playerId = clientPlayerId && this.store.players.has(clientPlayerId)
-      ? clientPlayerId
-      : crypto.randomUUID();
-    if (!this.store.players.has(playerId)) {
-      this.store.players.set(playerId, { id: playerId, nickname: nick, gameId: null, ws: null });
-    } else {
-      this.store.players.get(playerId).nickname = nick;
-    }
-    return playerId;
-  }
-
-  // Adds player to game, updates player record, and fires WS notifications
+// Adds player to game, updates player record, and fires WS notifications
   _admitPlayerToGame(game, gameId, playerId) {
     game.players.add(playerId);
     this.store.players.get(playerId).gameId = gameId;
@@ -66,7 +71,7 @@ class RequestHandler {
       if (pid !== playerId) {
         this.store.sendToPlayer(pid, {
           type: 'player_joined',
-          player: { id: playerId, nickname: newPlayer.nickname },
+          player: { nickname: newPlayer.nickname },
           players: allPlayers,
         });
       }
@@ -75,32 +80,33 @@ class RequestHandler {
 
   // POST /api/nickname — claim a unique nickname before entering the lobby
   async handleClaimNickname(req, res) {
+    const player = this._authenticateRequest(req);
+    if (!player) {
+      HttpUtil.sendError(res, 401, 'unauthorized', 'Session required');
+      return;
+    }
+
     let body;
     try { body = await HttpUtil.parseBody(req); } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
 
-    const { nickname, playerId } = body;
+    const { nickname } = body;
 
     if (!RequestHandler._validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'Nickname must be 3–20 characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Nickname must be 3–20 characters and contain no control characters');
       return;
     }
 
     const nick = nickname.trim();
 
-    if (this._isNicknameTaken(nick, playerId)) {
+    if (this._isNicknameTaken(nick, player.id)) {
       HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
       return;
     }
 
-    if (!playerId || !this.store.players.has(playerId)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'Player session not found — please refresh and try again');
-      return;
-    }
-
-    this.store.players.get(playerId).nickname = nick;
+    player.nickname = nick;
     HttpUtil.sendJSON(res, 200, { nickname: nick });
   }
 
@@ -111,16 +117,28 @@ class RequestHandler {
 
   // T027 – POST /api/games  (create)
   async handleCreateGame(req, res) {
+    const player = this._authenticateRequest(req);
+    if (!player) {
+      HttpUtil.sendError(res, 401, 'unauthorized', 'Session required');
+      return;
+    }
+
+    const ip = req.socket.remoteAddress;
+    if (!this._createLimiter.isAllowed(ip)) {
+      HttpUtil.sendError(res, 429, 'rate_limited', 'Too many game creations');
+      return;
+    }
+
     let body;
     try { body = await HttpUtil.parseBody(req); } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
 
-    const { type, nickname, playerId: clientPlayerId } = body;
+    const { type, nickname } = body;
 
     if (!RequestHandler._validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
       return;
     }
     if (type !== 'public' && type !== 'private') {
@@ -129,7 +147,14 @@ class RequestHandler {
     }
 
     const nick = nickname.trim();
-    const playerId = this._resolveOrCreatePlayer(clientPlayerId, nick);
+    const playerId = player.id;
+
+    if (this._isNicknameTaken(nick, playerId)) {
+      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
+      return;
+    }
+
+    player.nickname = nick;
 
     const gameId = crypto.randomBytes(3).toString('hex');
     const inviteCode = type === 'private' ? this.store.generateInviteCode() : null;
@@ -149,21 +174,27 @@ class RequestHandler {
     // T035, T041 – broadcast and notify host
     this._admitPlayerToGame(game, gameId, playerId);
 
-    HttpUtil.sendJSON(res, 201, { gameId, inviteCode, playerId });
+    HttpUtil.sendJSON(res, 201, { gameId, inviteCode });
   }
 
   // T018 – POST /api/games/:id/join  (join public game)
   async handleJoinGame(req, res, gameId) {
+    const player = this._authenticateRequest(req);
+    if (!player) {
+      HttpUtil.sendError(res, 401, 'unauthorized', 'Session required');
+      return;
+    }
+
     let body;
     try { body = await HttpUtil.parseBody(req); } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
 
-    const { nickname, playerId: clientPlayerId } = body;
+    const { nickname } = body;
 
     if (!RequestHandler._validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
       return;
     }
 
@@ -179,26 +210,53 @@ class RequestHandler {
       return;
     }
 
-    const nick = nickname.trim();
-    const playerId = this._resolveOrCreatePlayer(clientPlayerId, nick);
+    if (player.gameId !== null) {
+      HttpUtil.sendError(res, 409, 'already_in_game', 'Leave your current game first');
+      return;
+    }
 
-    this._admitPlayerToGame(game, gameId, playerId);
+    if (game.players.has(player.id)) {
+      HttpUtil.sendError(res, 409, 'already_in_game', 'Already in this game');
+      return;
+    }
+
+    const nick = nickname.trim();
+
+    if (this._isNicknameTaken(nick, player.id)) {
+      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
+      return;
+    }
+
+    player.nickname = nick;
+
+    this._admitPlayerToGame(game, gameId, player.id);
 
     HttpUtil.sendJSON(res, 200, { gameId });
   }
 
   // T028 – POST /api/games/join-invite
   async handleJoinInvite(req, res) {
+    const player = this._authenticateRequest(req);
+    if (!player) {
+      HttpUtil.sendError(res, 401, 'unauthorized', 'Session required');
+      return;
+    }
+
     let body;
     try { body = await HttpUtil.parseBody(req); } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
 
-    const { code, nickname, playerId: clientPlayerId } = body;
+    const { code, nickname } = body;
 
     if (!RequestHandler._validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
+      return;
+    }
+
+    if (!/^[A-F0-9]{6}$/.test(code)) {
+      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
       return;
     }
 
@@ -220,27 +278,46 @@ class RequestHandler {
       return;
     }
 
-    const nick = nickname.trim();
-    const playerId = this._resolveOrCreatePlayer(clientPlayerId, nick);
+    if (player.gameId !== null) {
+      HttpUtil.sendError(res, 409, 'already_in_game', 'Leave your current game first');
+      return;
+    }
 
-    this._admitPlayerToGame(game, gameId, playerId);
+    if (game.players.has(player.id)) {
+      HttpUtil.sendError(res, 409, 'already_in_game', 'Already in this game');
+      return;
+    }
+
+    const nick = nickname.trim();
+
+    if (this._isNicknameTaken(nick, player.id)) {
+      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
+      return;
+    }
+
+    player.nickname = nick;
+
+    this._admitPlayerToGame(game, gameId, player.id);
 
     HttpUtil.sendJSON(res, 200, { gameId });
   }
 
   // POST /api/games/:id/leave
   async handleLeaveGame(req, res, gameId) {
-    let body;
-    try { body = await HttpUtil.parseBody(req); } catch {
+    const player = this._authenticateRequest(req);
+    if (!player) {
+      HttpUtil.sendError(res, 401, 'unauthorized', 'Session required');
+      return;
+    }
+
+    try {
+      await HttpUtil.parseBody(req);
+    } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
-    const { playerId } = body;
-    if (!playerId) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'playerId required');
-      return;
-    }
-    const ok = this.store.leaveGame(playerId, gameId);
+
+    const ok = this.store.leaveGame(player.id, gameId);
     if (!ok) {
       HttpUtil.sendError(res, 404, 'not_found', 'Game or player not found');
       return;
@@ -249,6 +326,12 @@ class RequestHandler {
   }
 
   async handleRequest(req, res) {
+    const ip = req.socket.remoteAddress;
+    if (!this._httpLimiter.isAllowed(ip)) {
+      HttpUtil.sendError(res, 429, 'rate_limited', 'Too many requests');
+      return;
+    }
+
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
 
@@ -266,12 +349,12 @@ class RequestHandler {
       return this.handleJoinInvite(req, res);
     }
 
-    const leaveMatch = pathname.match(/^\/api\/games\/([^/]+)\/leave$/);
+    const leaveMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/leave$/);
     if (req.method === 'POST' && leaveMatch) {
       return this.handleLeaveGame(req, res, leaveMatch[1]);
     }
 
-    const joinMatch = pathname.match(/^\/api\/games\/([^/]+)\/join$/);
+    const joinMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/join$/);
     if (req.method === 'POST' && joinMatch) {
       return this.handleJoinGame(req, res, joinMatch[1]);
     }

@@ -12,7 +12,7 @@ const { WebSocket } = require('ws');
 let server, store, games, players, inviteCodes;
 let baseUrl, wsUrl;
 
-function request(method, path, body) {
+function request(method, path, body, sessionToken) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, baseUrl);
     const opts = {
@@ -22,6 +22,9 @@ function request(method, path, body) {
       method,
       headers: { 'Content-Type': 'application/json' },
     };
+    if (sessionToken) {
+      opts.headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
     const req = http.request(opts, (res) => {
       let data = '';
       res.on('data', (c) => { data += c; });
@@ -34,6 +37,21 @@ function request(method, path, body) {
     req.on('error', reject);
     if (body) req.write(JSON.stringify(body));
     req.end();
+  });
+}
+
+function getSessionToken() {
+  return new Promise((resolve, reject) => {
+    connectWS().then((ws) => {
+      const connectedMsg = ws.msgs.find((m) => m.type === 'connected');
+      if (connectedMsg && connectedMsg.sessionToken) {
+        ws.close();
+        resolve(connectedMsg.sessionToken);
+      } else {
+        ws.close();
+        reject(new Error('No sessionToken in connected message'));
+      }
+    }).catch(reject);
   });
 }
 
@@ -207,58 +225,80 @@ describe('GET /api/games', () => {
 
 describe('POST /api/games/:id/join', () => {
   it('returns 200 and gameId on success', async () => {
+    const token = await getSessionToken();
     games.set('g1', {
       id: 'g1', type: 'public', hostId: 'host1',
       players: new Set(['host1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
     });
-    players.set('host1', { id: 'host1', nickname: 'Host', gameId: 'g1', ws: null });
+    players.set('host1', { id: 'host1', nickname: 'Host', gameId: 'g1', ws: null, sessionToken: 'token1' });
+    players.set(token.split('-')[0], { id: token.split('-')[0], nickname: null, gameId: null, ws: null, sessionToken: token });
 
-    const res = await request('POST', '/api/games/g1/join', { nickname: 'Alice' });
+    const res = await request('POST', '/api/games/g1/join', { nickname: 'Alice' }, token);
     assert.equal(res.status, 200);
     assert.equal(res.body.gameId, 'g1');
   });
 
   it('returns 404 when game does not exist', async () => {
-    const res = await request('POST', '/api/games/missing/join', { nickname: 'Alice' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games/missing/join', { nickname: 'Alice' }, token);
     assert.equal(res.status, 404);
     assert.equal(res.body.error, 'not_found');
   });
 
   it('returns 404 for private game', async () => {
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
     games.set('prv1', {
       id: 'prv1', type: 'private', hostId: 'host1',
-      players: new Set(['host1']), maxPlayers: 4, status: 'waiting', inviteCode: 'XYZ123',
+      players: new Set(['host1']), maxPlayers: 4, status: 'waiting', inviteCode: 'ABCDEF',
     });
-    const res = await request('POST', '/api/games/prv1/join', { nickname: 'Alice' });
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games/prv1/join', { nickname: 'Alice' }, token);
     assert.equal(res.status, 404);
     assert.equal(res.body.error, 'not_found');
   });
 
   it('returns 409 when game is full', async () => {
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
     games.set('full1', {
       id: 'full1', type: 'public', hostId: 'h1',
       players: new Set(['h1', 'h2', 'h3', 'h4']), maxPlayers: 4, status: 'waiting', inviteCode: null,
     });
-    const res = await request('POST', '/api/games/full1/join', { nickname: 'Extra' });
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games/full1/join', { nickname: 'Extra' }, token);
     assert.equal(res.status, 409);
     assert.equal(res.body.error, 'game_full');
   });
 
   it('returns 409 when game is not waiting', async () => {
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
     games.set('playing1', {
       id: 'playing1', type: 'public', hostId: 'h1',
       players: new Set(['h1']), maxPlayers: 4, status: 'playing', inviteCode: null,
     });
-    const res = await request('POST', '/api/games/playing1/join', { nickname: 'Late' });
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games/playing1/join', { nickname: 'Late' }, token);
     assert.equal(res.status, 409);
   });
 
   it('returns 400 for invalid nickname', async () => {
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
     games.set('g1', {
       id: 'g1', type: 'public', hostId: 'h1',
       players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
     });
-    const res = await request('POST', '/api/games/g1/join', { nickname: 'ab' });
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games/g1/join', { nickname: 'ab' }, token);
     assert.equal(res.status, 400);
   });
 });
@@ -269,38 +309,62 @@ describe('POST /api/games/:id/join', () => {
 
 describe('POST /api/games', () => {
   it('creates a public game — no inviteCode in response', async () => {
-    const res = await request('POST', '/api/games', { type: 'public', nickname: 'Alice' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games', { type: 'public', nickname: 'Alice' }, token);
     assert.equal(res.status, 201);
     assert.ok(res.body.gameId);
     assert.equal(res.body.inviteCode, null);
   });
 
   it('creates a private game — inviteCode is 6-char uppercase alphanum', async () => {
-    const res = await request('POST', '/api/games', { type: 'private', nickname: 'Alice' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games', { type: 'private', nickname: 'Alice' }, token);
     assert.equal(res.status, 201);
     assert.ok(res.body.inviteCode);
     assert.match(res.body.inviteCode, /^[A-F0-9]{6}$/);
   });
 
   it('returns 400 when nickname is missing', async () => {
-    const res = await request('POST', '/api/games', { type: 'public' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games', { type: 'public' }, token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
   });
 
   it('returns 400 when type is invalid', async () => {
-    const res = await request('POST', '/api/games', { type: 'solo', nickname: 'Alice' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games', { type: 'solo', nickname: 'Alice' }, token);
     assert.equal(res.status, 400);
     assert.equal(res.body.error, 'invalid_request');
   });
 
   it('returns 400 when nickname is too short', async () => {
-    const res = await request('POST', '/api/games', { type: 'public', nickname: 'ab' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games', { type: 'public', nickname: 'ab' }, token);
     assert.equal(res.status, 400);
   });
 
   it('returns 400 when nickname is too long', async () => {
-    const res = await request('POST', '/api/games', { type: 'public', nickname: 'a'.repeat(21) });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games', { type: 'public', nickname: 'a'.repeat(21) }, token);
     assert.equal(res.status, 400);
   });
 });
@@ -311,44 +375,57 @@ describe('POST /api/games', () => {
 
 describe('POST /api/games/join-invite', () => {
   it('returns 200 and gameId on valid code', async () => {
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
     games.set('prv1', {
       id: 'prv1', type: 'private', hostId: 'h1',
       players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: 'AABBCC',
     });
-    players.set('h1', { id: 'h1', nickname: 'Host', gameId: 'prv1', ws: null });
+    players.set('h1', { id: 'h1', nickname: 'Host', gameId: 'prv1', ws: null, sessionToken: 'token-h1' });
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     inviteCodes.set('AABBCC', 'prv1');
 
-    const res = await request('POST', '/api/games/join-invite', { code: 'AABBCC', nickname: 'Bob' });
+    const res = await request('POST', '/api/games/join-invite', { code: 'AABBCC', nickname: 'Bob' }, token);
     assert.equal(res.status, 200);
     assert.equal(res.body.gameId, 'prv1');
   });
 
   it('returns 404 for unknown invite code', async () => {
-    const res = await request('POST', '/api/games/join-invite', { code: 'ZZZZZZ', nickname: 'Bob' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const res = await request('POST', '/api/games/join-invite', { code: 'ZZZZZZ', nickname: 'Bob' }, token);
     assert.equal(res.status, 404);
     assert.equal(res.body.error, 'not_found');
   });
 
   it('returns 409 when game is full', async () => {
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
     games.set('prv2', {
       id: 'prv2', type: 'private', hostId: 'h1',
       players: new Set(['h1', 'h2', 'h3', 'h4']), maxPlayers: 4, status: 'waiting', inviteCode: 'FULL01',
     });
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     inviteCodes.set('FULL01', 'prv2');
 
-    const res = await request('POST', '/api/games/join-invite', { code: 'FULL01', nickname: 'Extra' });
+    const res = await request('POST', '/api/games/join-invite', { code: 'FULL01', nickname: 'Extra' }, token);
     assert.equal(res.status, 409);
     assert.equal(res.body.error, 'game_full');
   });
 
   it('returns 400 for invalid nickname', async () => {
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
     games.set('prv3', {
       id: 'prv3', type: 'private', hostId: 'h1',
       players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: 'CODE01',
     });
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     inviteCodes.set('CODE01', 'prv3');
 
-    const res = await request('POST', '/api/games/join-invite', { code: 'CODE01', nickname: 'x' });
+    const res = await request('POST', '/api/games/join-invite', { code: 'CODE01', nickname: 'x' }, token);
     assert.equal(res.status, 400);
   });
 });
@@ -359,7 +436,11 @@ describe('POST /api/games/join-invite', () => {
 
 describe('Private game not visible in lobby', () => {
   it('GET /api/games returns empty array after private game created', async () => {
-    const create = await request('POST', '/api/games', { type: 'private', nickname: 'Alice' });
+    const token = await getSessionToken();
+    const playerId = Array.from(store.players.entries()).find((e) => e[1].sessionToken === token)?.[0] || 'testplayer';
+    players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
+
+    const create = await request('POST', '/api/games', { type: 'private', nickname: 'Alice' }, token);
     assert.equal(create.status, 201);
 
     const list = await request('GET', '/api/games');

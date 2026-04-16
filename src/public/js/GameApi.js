@@ -5,11 +5,16 @@
 class GameApi {
   constructor(onError) {
     this._onError = onError;
+    this._sessionToken = null;
   }
 
-  async claimNickname(nickname, playerId) {
+  setSessionToken(token) {
+    this._sessionToken = token;
+  }
+
+  async claimNickname(nickname) {
     try {
-      const { res, data } = await this._post('/api/nickname', { nickname, playerId });
+      const { res, data } = await this._post('/api/nickname', { nickname });
       if (!res.ok) { this._onError(data.message || 'Nickname unavailable'); return false; }
       return true;
     } catch {
@@ -18,10 +23,10 @@ class GameApi {
     }
   }
 
-  async join(gameId, nickname, playerId) {
+  async join(gameId, nickname) {
     if (!nickname) { this._onError('Enter a nickname first.'); return null; }
     try {
-      const { res, data } = await this._post(`/api/games/${gameId}/join`, { nickname, playerId });
+      const { res, data } = await this._post(`/api/games/${gameId}/join`, { nickname });
       if (!res.ok) {
         this._onError(data.message || 'Failed to join game');
         return null;
@@ -33,9 +38,9 @@ class GameApi {
     }
   }
 
-  async create(type, nickname, playerId) {
+  async create(type, nickname) {
     try {
-      const { res, data } = await this._post('/api/games', { type, nickname, playerId });
+      const { res, data } = await this._post('/api/games', { type, nickname });
       if (!res.ok) { this._onError(data.message || 'Failed to create game'); return null; }
       return data;
     } catch {
@@ -44,9 +49,9 @@ class GameApi {
     }
   }
 
-  async joinWithCode(code, nickname, playerId) {
+  async joinWithCode(code, nickname) {
     try {
-      const { res, data } = await this._post('/api/games/join-invite', { code, nickname, playerId });
+      const { res, data } = await this._post('/api/games/join-invite', { code, nickname });
       if (!res.ok) {
         const msg = res.status === 404 ? 'Invalid or expired invite code'
           : data.message || 'Failed to join game';
@@ -60,9 +65,9 @@ class GameApi {
     }
   }
 
-  async leave(gameId, playerId) {
+  async leave(gameId) {
     try {
-      const { res, data } = await this._post(`/api/games/${gameId}/leave`, { playerId });
+      const { res, data } = await this._post(`/api/games/${gameId}/leave`, {});
       if (!res.ok) { this._onError(data.message || 'Failed to leave game'); return false; }
       return true;
     } catch {
@@ -72,9 +77,13 @@ class GameApi {
   }
 
   async _post(url, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this._sessionToken) {
+      headers['Authorization'] = `Bearer ${this._sessionToken}`;
+    }
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(body),
     });
     return { res, data: await res.json() };

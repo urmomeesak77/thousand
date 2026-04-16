@@ -14,6 +14,7 @@ class ThousandApp {
   constructor(antlion) {
     this._antlion = antlion;
     this._playerId = null;
+    this._sessionToken = null;
     this._nickname = null;
     this._gameId = null;
     this._inviteCode = null;
@@ -43,6 +44,8 @@ class ThousandApp {
     switch (msg.type) {
       case 'connected':
         this._playerId = msg.playerId;
+        this._sessionToken = msg.sessionToken;
+        this._api.setSessionToken(this._sessionToken);
         break;
       case 'lobby_update':
         ThousandRenderer.renderGameList(msg.games);
@@ -102,7 +105,7 @@ class ThousandApp {
         this._toast.show('Nickname must be 3–20 characters.');
         return;
       }
-      const ok = await this._api.claimNickname(nick, this._playerId);
+      const ok = await this._api.claimNickname(nick);
       if (!ok) {
         return;
       }
@@ -240,7 +243,7 @@ class ThousandApp {
     this._antlion.bindInput($('leave-confirm-btn'), 'click', 'leave-confirm-click');
     this._antlion.onInput('leave-confirm-click', async () => {
       closeLeaveModal();
-      const ok = await this._api.leave(this._gameId, this._playerId);
+      const ok = await this._api.leave(this._gameId);
       if (!ok) {
         return;
       }
@@ -253,14 +256,14 @@ class ThousandApp {
   }
 
   async _joinGame(gameId) {
-    const data = await this._api.join(gameId, this._nickname, this._playerId);
+    const data = await this._api.join(gameId, this._nickname);
     if (data) {
       this._gameId = data.gameId;
     }
   }
 
   async _createGame(type) {
-    const data = await this._api.create(type, this._nickname, this._playerId);
+    const data = await this._api.create(type, this._nickname);
     if (data) {
       this._gameId = data.gameId;
       this._inviteCode = data.inviteCode;
@@ -268,7 +271,7 @@ class ThousandApp {
   }
 
   async _joinWithCode(code) {
-    const data = await this._api.joinWithCode(code, this._nickname, this._playerId);
+    const data = await this._api.joinWithCode(code, this._nickname);
     if (data) {
       this._gameId = data.gameId;
       $('invite-code-input').value = '';

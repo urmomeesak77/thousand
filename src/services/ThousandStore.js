@@ -4,15 +4,21 @@ const crypto = require('crypto');
 
 class ThousandStore {
   constructor() {
-    this.games = new Map();       // gameId -> Game
-    this.players = new Map();     // playerId -> Player
-    this.inviteCodes = new Map(); // inviteCode -> gameId
+    this.games = new Map();           // gameId -> Game
+    this.players = new Map();         // playerId -> Player
+    this.inviteCodes = new Map();     // inviteCode -> gameId
+    this._wsConnectionsByIp = new Map(); // ip -> count
+    this._wsMessageCounts = new Map(); // ws -> { count, resetAt }
   }
 
   // T026 – invite code generator
   generateInviteCode() {
     let code;
+    let attempts = 0;
     do {
+      if (++attempts > 1000) {
+        throw new Error('Invite code space exhausted');
+      }
       code = crypto.randomBytes(3).toString('hex').toUpperCase();
     } while (this.inviteCodes.has(code));
     return code;
@@ -78,21 +84,55 @@ class ThousandStore {
   serializePlayers(game) {
     return [...game.players].map((pid) => {
       const p = this.players.get(pid);
-      return p ? { id: pid, nickname: p.nickname } : null;
+      return p ? { nickname: p.nickname } : null;
     }).filter(Boolean);
   }
 
   // T011 – WebSocket connection handler
   handleConnection(ws) {
+    const clientIp = ws._socket?.remoteAddress || 'unknown';
+    const currentCount = this._wsConnectionsByIp.get(clientIp) || 0;
+    if (currentCount >= 10) {
+      ws.close(1008, 'Too many connections from this IP');
+      return;
+    }
+
     const playerId = crypto.randomUUID();
-    this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws });
-    ws.send(JSON.stringify({ type: 'connected', playerId }));
+    const sessionToken = crypto.randomUUID();
+    this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws, sessionToken });
+    this._wsConnectionsByIp.set(clientIp, currentCount + 1);
+    ws._clientIp = clientIp;
+    ws._playerId = playerId;
+
+    ws.send(JSON.stringify({ type: 'connected', playerId, sessionToken }));
     ws.send(JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() }));
     ws.on('message', (data) => this._handleMessage(ws, data));
     ws.on('close', () => this._handleDisconnect(playerId));
   }
 
+  findBySessionToken(token) {
+    for (const [, player] of this.players) {
+      if (player.sessionToken === token) {
+        return player;
+      }
+    }
+    return null;
+  }
+
   _handleMessage(ws, data) {
+    // Rate limit: 30 messages per 10 seconds per WebSocket
+    const now = Date.now();
+    const entry = this._wsMessageCounts.get(ws);
+    if (!entry || now > entry.resetAt) {
+      this._wsMessageCounts.set(ws, { count: 1, resetAt: now + 10000 });
+    } else {
+      if (entry.count >= 30) {
+        ws.close(1008, 'Message rate limit exceeded');
+        return;
+      }
+      entry.count++;
+    }
+
     let msg;
     try {
       msg = JSON.parse(data.toString());
@@ -149,6 +189,18 @@ class ThousandStore {
     if (!player) {
       return;
     }
+
+    const clientIp = player.ws?._clientIp;
+    if (clientIp) {
+      const count = this._wsConnectionsByIp.get(clientIp) || 1;
+      if (count <= 1) {
+        this._wsConnectionsByIp.delete(clientIp);
+      } else {
+        this._wsConnectionsByIp.set(clientIp, count - 1);
+      }
+    }
+
+    this._wsMessageCounts.delete(player.ws);
 
     const { gameId, nickname } = player;
     this.players.delete(playerId);

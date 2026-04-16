@@ -25,7 +25,10 @@ class HttpUtil {
         }
       });
       req.on('end', () => {
-        if (size > maxBytes) { reject(new Error('Request body too large')); return; }
+        if (size > maxBytes) {
+          reject(new Error('Request body too large'));
+          return;
+        }
         try { resolve(JSON.parse(data || '{}')); }
         catch { reject(new Error('Invalid JSON')); }
       });

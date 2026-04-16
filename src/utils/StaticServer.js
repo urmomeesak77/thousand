@@ -15,12 +15,23 @@ class StaticServer {
 
   static serve(req, res) {
     const publicDir = path.join(__dirname, '..', 'public');
-    const filePath = req.url === '/'
-      ? path.join(publicDir, 'index.html')
-      : path.join(publicDir, req.url.split('?')[0]);
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent(req.url === '/' ? '/index.html' : req.url.split('?')[0]);
+    } catch {
+      res.writeHead(400);
+      res.end('Bad Request');
+      return;
+    }
 
-    if (!filePath.startsWith(publicDir)) {
-      res.writeHead(404); res.end('Not Found');
+    const filePath = path.resolve(publicDir, urlPath.replace(/^\//, ''));
+
+    // Check that resolved path is within publicDir
+    const publicDirWithSep = publicDir + path.sep;
+    const isValid = filePath.startsWith(publicDirWithSep) || filePath === path.join(publicDir, 'index.html');
+    if (!isValid) {
+      res.writeHead(404);
+      res.end('Not Found');
       return;
     }
 
