@@ -1,9 +1,0 @@
-node_modules
-.git
-.env
-docs
-specs
-tests
-.specify
-.claude
-.githooks
