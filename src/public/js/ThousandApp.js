@@ -86,7 +86,7 @@ class ThousandApp {
         this._api.setSessionToken(this._sessionToken);
         break;
       case 'lobby_update':
-        this._gameList.update(msg.games);
+        this._gameList.setGames(msg.games);
         if (this._selectedGameId && !msg.games.find((g) => g.id === this._selectedGameId)) {
           this._clearGameSelection();
         }

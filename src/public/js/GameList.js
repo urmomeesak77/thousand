@@ -10,7 +10,7 @@ class GameList extends HtmlGameObject {
     this._elapsedTimerId = null;
   }
 
-  update(games) {
+  setGames(games) {
     this._games = games;
     this.renderContent();
   }
