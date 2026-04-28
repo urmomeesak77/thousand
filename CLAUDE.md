@@ -44,7 +44,10 @@ Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 - `Antlion.onInput(type, handler)` — register a named input handler
 - `Antlion.onTick(handler)` — register a per-tick callback
 - `Antlion.emit(type, data)` — dispatch an engine-level event
-- `Antlion.start()` / `Antlion.stop()` — lifecycle control
+- `Antlion.bindInput(element, domEvent, type)` — wire a DOM event to a named engine input
+- `Antlion.schedule(delay, cb)` / `Antlion.cancelScheduled(id)` — managed `setTimeout`
+- `Antlion.scheduleInterval(delay, cb)` / `Antlion.cancelInterval(id)` — managed `setInterval`
+- `Antlion.start()` / `Antlion.stop()` — lifecycle control (stop also tears down all timers and listeners)
 
 ### Feature logic (`src/public/js/<feature-name>/`)
 - Registers into Antlion via the API above — no direct DOM listeners, no raw `setInterval`.

@@ -297,8 +297,6 @@ input[type="text"]::placeholder {
    Game list
    ============================================================ */
 .game-list-section {
-  width: 100%;
-  max-width: 42rem;
   display: flex;
   flex-direction: column;
 }
@@ -308,9 +306,9 @@ input[type="text"]::placeholder {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: calc(3 * 3.125rem + 2 * 0.5rem);  /* 3 rows */
+  max-height: calc(10 * 3.125rem + 9 * 0.5rem); /* 10 rows, then scroll */
   overflow-y: auto;
-  max-height: calc(100vh - 21rem);
-  min-height: 7rem;
 }
 
 #game-list li {

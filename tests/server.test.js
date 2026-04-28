@@ -177,7 +177,7 @@ beforeEach(async () => {
 
   // Reset rate limiters so tests don't hit limits (all tests come from same IP)
   handler._httpLimiter._counts.clear();
-  handler._createLimiter._counts.clear();
+  handler._games._createLimiter._counts.clear();
 
   // Wait to allow WebSocket connections to fully close and clean up from previous tests
   // The server limits to 10 WebSocket connections per IP, and async close events

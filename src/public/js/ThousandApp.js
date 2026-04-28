@@ -1,18 +1,32 @@
+import HtmlContainer from './antlion/HtmlContainer.js';
+import NicknameScreen from './NicknameScreen.js';
+import GameList from './GameList.js';
+import PlayerTooltip from './PlayerTooltip.js';
+import WaitingRoom from './WaitingRoom.js';
 import Toast from './Toast.js';
-import ThousandRenderer from './ThousandRenderer.js';
 import ThousandSocket from './ThousandSocket.js';
 import GameApi from './GameApi.js';
 import ModalController from './ModalController.js';
 
 const $ = (id) => document.getElementById(id);
 
-// ============================================================
-// ThousandApp — coordinator: player state, UI binding, message handling
-// ============================================================
+// Defensive shape checks for server→client WS messages. Today renderers use
+// textContent so an unexpected shape can't trip XSS, but if a future renderer
+// switches to innerHTML this gate keeps the surface narrow.
+const MESSAGE_VALIDATORS = {
+  connected: (m) => typeof m.playerId === 'string' && typeof m.sessionToken === 'string',
+  lobby_update: (m) => Array.isArray(m.games),
+  game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players),
+  player_joined: (m) => Array.isArray(m.players) && m.player && typeof m.player.nickname === 'string',
+  player_left: (m) => Array.isArray(m.players) && typeof m.nickname === 'string',
+  game_disbanded: () => true,
+  error: (m) => m.message === undefined || typeof m.message === 'string',
+};
 
 class ThousandApp {
-  constructor(antlion) {
+  constructor(antlion, scene) {
     this._antlion = antlion;
+    this._scene = scene;
     this._playerId = null;
     this._sessionToken = null;
     this._nickname = null;
@@ -35,12 +49,56 @@ class ThousandApp {
   }
 
   init() {
+    const nicknameEl = $('nickname-screen');
+    const lobbyEl = $('lobby-screen');
+    const gameEl = $('game-screen');
+
+    this._nicknameScreen = new NicknameScreen(nicknameEl, this._api, this._toast);
+    this._lobbyContainer = HtmlContainer.adopt('lobby-screen', lobbyEl);
+    this._gameContainer = HtmlContainer.adopt('game-screen', gameEl);
+    this._gameList = new GameList($('game-list'));
+    this._playerTooltip = new PlayerTooltip();
+    this._waitingRoom = new WaitingRoom(gameEl.querySelector('.card'));
+
+    this._scene.root.addChild(this._nicknameScreen);
+    this._scene.root.addChild(this._lobbyContainer);
+    this._scene.root.addChild(this._gameContainer);
+    this._lobbyContainer.addChild(this._gameList);
+    this._lobbyContainer.addChild(this._playerTooltip);
+    this._gameContainer.addChild(this._waitingRoom);
+
+    this._antlion.onInput('nickname-entered', ({ nick }) => {
+      this._nickname = nick;
+      $('player-name-display').textContent = nick;
+      this._showScreen('lobby-screen');
+      this._gameList.startElapsedTimer();
+    });
+
     this._bindUI();
-    ThousandRenderer.init(this._antlion);
     this._socket.connect();
   }
 
+  _showScreen(name) {
+    this._nicknameScreen.hide();
+    this._lobbyContainer.hide();
+    this._gameContainer.hide();
+    if (name === 'nickname-screen') {
+      this._nicknameScreen.show();
+    } else if (name === 'lobby-screen') {
+      this._lobbyContainer.show();
+    } else if (name === 'game-screen') {
+      this._gameContainer.show();
+    }
+  }
+
   _handleMessage(msg) {
+    if (!msg || typeof msg.type !== 'string') {
+      return;
+    }
+    const validator = MESSAGE_VALIDATORS[msg.type];
+    if (!validator || !validator(msg)) {
+      return;
+    }
     switch (msg.type) {
       case 'connected':
         this._playerId = msg.playerId;
@@ -48,7 +106,7 @@ class ThousandApp {
         this._api.setSessionToken(this._sessionToken);
         break;
       case 'lobby_update':
-        ThousandRenderer.renderGameList(msg.games);
+        this._gameList.setGames(msg.games);
         if (this._selectedGameId && !msg.games.find((g) => g.id === this._selectedGameId)) {
           this._clearGameSelection();
         }
@@ -56,25 +114,25 @@ class ThousandApp {
       case 'game_joined':
         this._gameId = msg.gameId;
         this._clearGameSelection();
-        ThousandRenderer.stopElapsedTimer();
-        ThousandRenderer.renderWaitingRoom(this._gameId, this._inviteCode, msg.players);
-        ThousandRenderer.showScreen('game-screen');
-        ThousandRenderer.startWaitingTimer(msg.createdAt);
+        this._gameList.stopElapsedTimer();
+        this._waitingRoom.load(this._gameId, this._inviteCode, msg.players);
+        this._showScreen('game-screen');
+        this._waitingRoom.startTimer(msg.createdAt);
         break;
       case 'player_joined':
-        ThousandRenderer.renderWaitingRoomPlayers(msg.players);
+        this._waitingRoom.updatePlayers(msg.players);
         this._toast.show(`${msg.player.nickname} joined the game.`);
         break;
       case 'player_left':
-        ThousandRenderer.renderWaitingRoomPlayers(msg.players);
+        this._waitingRoom.updatePlayers(msg.players);
         this._toast.show(`${msg.nickname} left the game.`);
         break;
       case 'game_disbanded':
         this._gameId = null;
         this._inviteCode = null;
-        ThousandRenderer.stopWaitingTimer();
-        ThousandRenderer.showScreen('lobby-screen');
-        ThousandRenderer.startElapsedTimer();
+        this._waitingRoom.stopTimer();
+        this._showScreen('lobby-screen');
+        this._gameList.startElapsedTimer();
         this._toast.show('The host left — game was disbanded.');
         break;
       case 'error':
@@ -84,36 +142,12 @@ class ThousandApp {
   }
 
   _bindUI() {
-    this._bindNicknameForm();
     this._modal.bind();
     this._bindInviteJoin();
     this._bindCopyInvite();
     this._bindGameListSelect();
     this._bindJoinSelectedBtn();
     this._bindLeaveGame();
-  }
-
-  _bindNicknameForm() {
-    this._antlion.bindInput($('nickname-form'), 'submit', 'nickname-submit');
-    this._antlion.onInput('nickname-submit', async (e) => {
-      e.preventDefault();
-      const nick = $('nickname-input').value.trim();
-      if (!nick) {
-        return;
-      }
-      if (nick.length < 3 || nick.length > 20) {
-        this._toast.show('Nickname must be 3–20 characters.');
-        return;
-      }
-      const ok = await this._api.claimNickname(nick);
-      if (!ok) {
-        return;
-      }
-      this._nickname = nick;
-      $('player-name-display').textContent = nick;
-      ThousandRenderer.showScreen('lobby-screen');
-      ThousandRenderer.startElapsedTimer();
-    });
   }
 
   _bindInviteJoin() {
@@ -249,9 +283,9 @@ class ThousandApp {
       }
       this._gameId = null;
       this._inviteCode = null;
-      ThousandRenderer.stopWaitingTimer();
-      ThousandRenderer.showScreen('lobby-screen');
-      ThousandRenderer.startElapsedTimer();
+      this._waitingRoom.stopTimer();
+      this._showScreen('lobby-screen');
+      this._gameList.startElapsedTimer();
     });
   }
 

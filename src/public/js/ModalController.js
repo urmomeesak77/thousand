@@ -40,9 +40,13 @@ class ModalController {
         this._onError('Enter a nickname first.');
         return;
       }
-      const type = document.querySelector('input[name="game-type"]:checked').value;
+      const checked = document.querySelector('input[name="game-type"]:checked');
+      if (!checked) {
+        this._onError('Pick public or private.');
+        return;
+      }
       this._close();
-      this._onCreateGame(type);
+      this._onCreateGame(checked.value);
     });
   }
 

@@ -15,7 +15,10 @@ class GameApi {
   async claimNickname(nickname) {
     try {
       const { res, data } = await this._post('/api/nickname', { nickname });
-      if (!res.ok) { this._onError(data.message || 'Nickname unavailable'); return false; }
+      if (!res.ok) {
+        this._onError(data.message || 'Nickname unavailable');
+        return false;
+      }
       return true;
     } catch {
       this._onError('Network error. Please try again.');
@@ -24,7 +27,10 @@ class GameApi {
   }
 
   async join(gameId, nickname) {
-    if (!nickname) { this._onError('Enter a nickname first.'); return null; }
+    if (!nickname) {
+      this._onError('Enter a nickname first.');
+      return null;
+    }
     try {
       const { res, data } = await this._post(`/api/games/${gameId}/join`, { nickname });
       if (!res.ok) {
@@ -41,7 +47,10 @@ class GameApi {
   async create(type, nickname) {
     try {
       const { res, data } = await this._post('/api/games', { type, nickname });
-      if (!res.ok) { this._onError(data.message || 'Failed to create game'); return null; }
+      if (!res.ok) {
+        this._onError(data.message || 'Failed to create game');
+        return null;
+      }
       return data;
     } catch {
       this._onError('Network error. Please try again.');
@@ -68,7 +77,10 @@ class GameApi {
   async leave(gameId) {
     try {
       const { res, data } = await this._post(`/api/games/${gameId}/leave`, {});
-      if (!res.ok) { this._onError(data.message || 'Failed to leave game'); return false; }
+      if (!res.ok) {
+        this._onError(data.message || 'Failed to leave game');
+        return false;
+      }
       return true;
     } catch {
       this._onError('Network error. Please try again.');
@@ -86,7 +98,16 @@ class GameApi {
       headers,
       body: JSON.stringify(body),
     });
-    return { res, data: await res.json() };
+    const text = await res.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      // Non-JSON error page (e.g. HTML 502 from a proxy) — preserve a snippet so
+      // callers can surface something useful instead of swallowing it silently.
+      data = { message: text.slice(0, 200) };
+    }
+    return { res, data };
   }
 }
 
