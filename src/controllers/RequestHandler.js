@@ -12,6 +12,11 @@ class RequestHandler {
     this._createLimiter = new RateLimiter(60000, 5); // 5 creates per minute per IP
   }
 
+  cleanupRateLimiters() {
+    this._httpLimiter.cleanup();
+    this._createLimiter.cleanup();
+  }
+
   // T039 – nickname validation
   static _validateNickname(nickname) {
     if (!nickname || typeof nickname !== 'string') {
@@ -50,7 +55,30 @@ class RequestHandler {
     return false;
   }
 
-// Adds player to game, updates player record, and fires WS notifications
+  // Shared join preconditions for public join + invite-code join.
+  // Caller must have located the game and validated nickname format already
+  // (so 400/404 responses keep their original ordering).
+  // Returns [status, code, message] on failure, or null when checks pass.
+  // Treat the returned tuple → admission path as a critical section: do NOT
+  // introduce an `await` between this check and `_admitPlayerToGame`, or two
+  // concurrent joiners can both pass the capacity check before either is admitted.
+  _validateJoinPreconditions(game, player, nickname) {
+    if (game.status !== 'waiting' || game.players.size >= game.maxPlayers) {
+      return [409, 'game_full', 'Game is full'];
+    }
+    if (player.gameId !== null) {
+      return [409, 'already_in_game', 'Leave your current game first'];
+    }
+    if (game.players.has(player.id)) {
+      return [409, 'already_in_game', 'Already in this game'];
+    }
+    if (this._isNicknameTaken(nickname.trim(), player.id)) {
+      return [409, 'duplicate_nickname', 'That nickname is already taken'];
+    }
+    return null;
+  }
+
+  // Adds player to game, updates player record, and fires WS notifications
   _admitPlayerToGame(game, gameId, playerId) {
     game.players.add(playerId);
     this.store.players.get(playerId).gameId = gameId;
@@ -87,7 +115,9 @@ class RequestHandler {
     }
 
     let body;
-    try { body = await HttpUtil.parseBody(req); } catch {
+    try {
+      body = await HttpUtil.parseBody(req);
+    } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
@@ -130,7 +160,9 @@ class RequestHandler {
     }
 
     let body;
-    try { body = await HttpUtil.parseBody(req); } catch {
+    try {
+      body = await HttpUtil.parseBody(req);
+    } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
@@ -186,7 +218,9 @@ class RequestHandler {
     }
 
     let body;
-    try { body = await HttpUtil.parseBody(req); } catch {
+    try {
+      body = await HttpUtil.parseBody(req);
+    } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
@@ -200,35 +234,20 @@ class RequestHandler {
 
     const game = this.store.games.get(gameId);
 
-    // T040 – race-condition guard
     if (!game || game.type !== 'public') {
       HttpUtil.sendError(res, 404, 'not_found', 'Game not found');
       return;
     }
-    if (game.status !== 'waiting' || game.players.size >= game.maxPlayers) {
-      HttpUtil.sendError(res, 409, 'game_full', 'Game is full');
+
+    // T040 – race-condition guard. Critical section starts here — see
+    // _validateJoinPreconditions for why no `await` may slip in below.
+    const failure = this._validateJoinPreconditions(game, player, nickname);
+    if (failure) {
+      HttpUtil.sendError(res, ...failure);
       return;
     }
 
-    if (player.gameId !== null) {
-      HttpUtil.sendError(res, 409, 'already_in_game', 'Leave your current game first');
-      return;
-    }
-
-    if (game.players.has(player.id)) {
-      HttpUtil.sendError(res, 409, 'already_in_game', 'Already in this game');
-      return;
-    }
-
-    const nick = nickname.trim();
-
-    if (this._isNicknameTaken(nick, player.id)) {
-      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
-      return;
-    }
-
-    player.nickname = nick;
-
+    player.nickname = nickname.trim();
     this._admitPlayerToGame(game, gameId, player.id);
 
     HttpUtil.sendJSON(res, 200, { gameId });
@@ -243,7 +262,9 @@ class RequestHandler {
     }
 
     let body;
-    try { body = await HttpUtil.parseBody(req); } catch {
+    try {
+      body = await HttpUtil.parseBody(req);
+    } catch {
       HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
       return;
     }
@@ -272,31 +293,15 @@ class RequestHandler {
       return;
     }
 
-    // T040 – race-condition guard
-    if (game.players.size >= game.maxPlayers) {
-      HttpUtil.sendError(res, 409, 'game_full', 'Game is full');
+    // T040 – race-condition guard. Critical section starts here — see
+    // _validateJoinPreconditions for why no `await` may slip in below.
+    const failure = this._validateJoinPreconditions(game, player, nickname);
+    if (failure) {
+      HttpUtil.sendError(res, ...failure);
       return;
     }
 
-    if (player.gameId !== null) {
-      HttpUtil.sendError(res, 409, 'already_in_game', 'Leave your current game first');
-      return;
-    }
-
-    if (game.players.has(player.id)) {
-      HttpUtil.sendError(res, 409, 'already_in_game', 'Already in this game');
-      return;
-    }
-
-    const nick = nickname.trim();
-
-    if (this._isNicknameTaken(nick, player.id)) {
-      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
-      return;
-    }
-
-    player.nickname = nick;
-
+    player.nickname = nickname.trim();
     this._admitPlayerToGame(game, gameId, player.id);
 
     HttpUtil.sendJSON(res, 200, { gameId });

@@ -41,6 +41,10 @@ if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
+
+  const rateLimiterCleanupTimer = setInterval(() => handler.cleanupRateLimiters(), 60000);
+  rateLimiterCleanupTimer.unref();
+  connectionManager.startHeartbeat();
 }
 
 module.exports = { server, store, handler, connectionManager };

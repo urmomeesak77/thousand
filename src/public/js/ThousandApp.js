@@ -10,6 +10,19 @@ import ModalController from './ModalController.js';
 
 const $ = (id) => document.getElementById(id);
 
+// Defensive shape checks for server→client WS messages. Today renderers use
+// textContent so an unexpected shape can't trip XSS, but if a future renderer
+// switches to innerHTML this gate keeps the surface narrow.
+const MESSAGE_VALIDATORS = {
+  connected: (m) => typeof m.playerId === 'string' && typeof m.sessionToken === 'string',
+  lobby_update: (m) => Array.isArray(m.games),
+  game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players),
+  player_joined: (m) => Array.isArray(m.players) && m.player && typeof m.player.nickname === 'string',
+  player_left: (m) => Array.isArray(m.players) && typeof m.nickname === 'string',
+  game_disbanded: () => true,
+  error: (m) => m.message === undefined || typeof m.message === 'string',
+};
+
 class ThousandApp {
   constructor(antlion, scene) {
     this._antlion = antlion;
@@ -79,6 +92,13 @@ class ThousandApp {
   }
 
   _handleMessage(msg) {
+    if (!msg || typeof msg.type !== 'string') {
+      return;
+    }
+    const validator = MESSAGE_VALIDATORS[msg.type];
+    if (!validator || !validator(msg)) {
+      return;
+    }
     switch (msg.type) {
       case 'connected':
         this._playerId = msg.playerId;

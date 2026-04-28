@@ -65,6 +65,11 @@ class GameList extends HtmlGameObject {
     }
   }
 
+  onDestroy() {
+    this.stopElapsedTimer();
+    super.onDestroy();
+  }
+
   _updateElapsedTimes() {
     const now = Date.now();
     for (const li of this._element.querySelectorAll('li[data-created-at]')) {
@@ -74,18 +79,9 @@ class GameList extends HtmlGameObject {
       }
       const span = li.querySelector('.game-waiting-time');
       if (span) {
-        span.textContent = this._formatElapsed(Math.floor((now - createdAt) / 1000));
+        span.textContent = HtmlUtil.formatElapsed(Math.floor((now - createdAt) / 1000));
       }
     }
-  }
-
-  _formatElapsed(secs) {
-    if (secs < 60) {
-      return `${secs}s`;
-    }
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}m ${s}s`;
   }
 }
 

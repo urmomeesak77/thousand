@@ -1,4 +1,5 @@
 import HtmlContainer from './antlion/HtmlContainer.js';
+import HtmlUtil from './utils/HtmlUtil.js';
 
 class WaitingRoom extends HtmlContainer {
   constructor(element) {
@@ -45,7 +46,7 @@ class WaitingRoom extends HtmlContainer {
     const elapsed = document.getElementById('waiting-elapsed');
     this._timerId = this.getEngine().scheduleInterval(1000, () => {
       if (elapsed) {
-        elapsed.textContent = this._formatElapsed(Math.floor((Date.now() - start) / 1000));
+        elapsed.textContent = HtmlUtil.formatElapsed(Math.floor((Date.now() - start) / 1000));
       }
     });
   }
@@ -61,13 +62,12 @@ class WaitingRoom extends HtmlContainer {
     }
   }
 
-  _formatElapsed(secs) {
-    if (secs < 60) {
-      return `${secs}s`;
+  onDestroy() {
+    if (this._timerId) {
+      this.getEngine().cancelInterval(this._timerId);
+      this._timerId = null;
     }
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}m ${s}s`;
+    super.onDestroy();
   }
 }
 
