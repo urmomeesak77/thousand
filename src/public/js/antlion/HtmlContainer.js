@@ -12,7 +12,7 @@ class HtmlContainer extends HtmlGameObject {
     if (child._parent) {
       child._parent.removeChild(child);
     }
-    if (child.element && child.element.parentNode !== this._element) {
+    if (child.element && !this._element.contains(child.element)) {
       this._element.appendChild(child.element);
     }
     child._parent = this;
