@@ -69,17 +69,17 @@ A player's stored credentials (playerId) are visible in browser devtools. Anothe
 - **FR-001**: System MUST generate a unique player identity (ID + secret token) on first visit and store it in the browser's persistent local storage.
 - **FR-002**: System MUST send stored credentials to the server on every connection attempt (first visit and reconnect).
 - **FR-003**: Server MUST validate submitted credentials: if ID exists and token matches, restore the player record; if ID is unknown or token mismatches, issue a fresh identity.
-- **FR-004**: Server MUST keep a disconnected player's record alive for a configurable grace period (default: 30 seconds) after WebSocket disconnect.
+- **FR-004**: Server MUST keep a disconnected player's record alive for a grace period after WebSocket disconnect. The grace period is configurable via the `GRACE_PERIOD_MS` environment variable (default: 30 000 ms).
 - **FR-005**: Server MUST restore a reconnecting player's nickname and game membership if they reconnect within the grace period.
-- **FR-006**: Server MUST release a player's record and free their game seat if the grace period expires without reconnect. In the lobby, the player is removed silently and other players are unaffected. The behavior for active mid-game purge (pause, cancel, or continue) is phase-dependent and out of scope for this feature — to be defined in a game-rules spec.
+- **FR-006**: Server MUST release a player's record and free their game seat if the grace period expires without reconnect. For lobby players, purge is non-disruptive: no notification banner is shown to remaining members, and the lobby player list updates passively to reflect the removal. For mid-game purge, the default behavior is to evict the disconnected player and trigger the existing game-resolution path (`_resolveGameAfterExit`); refined user-visible treatment (pause, cancel, or continue messaging) is phase-dependent and deferred to a future game-rules spec.
 - **FR-007**: System MUST prevent a player from holding more than one active connection at a time; a second connection with valid credentials replaces the first (last-connect-wins).
 - **FR-008**: System MUST NOT share or infer identity across different browser storage contexts (incognito / different browser / cleared storage = new identity).
 
 ### Key Entities
 
-- **Player Identity**: playerId (unique, opaque), sessionToken (secret, unguessable), nickname, storage origin (browser local storage key).
-- **Session Record** (server-side): playerId, sessionToken, nickname, connection status, disconnect timestamp, grace-period expiry timer handle.
-- **Game Membership**: reference from session record to current game and player seat (nullable).
+- **Client Identity** (browser localStorage): playerId (unique, opaque), sessionToken (secret, unguessable), cached nickname (server is source of truth).
+- **PlayerRecord** (server-side, lives in `ThousandStore.players`): playerId, sessionToken, nickname, current WebSocket (or `null` during grace period), disconnect timestamp, grace-period timer handle, gameId.
+- **Game Membership**: reference from PlayerRecord to current game and player seat (nullable).
 
 ## Success Criteria *(mandatory)*
 
@@ -99,6 +99,7 @@ A player's stored credentials (playerId) are visible in browser devtools. Anothe
 - Multi-tab behavior: last-connect-wins — the second tab's connection supersedes the first; the first tab receives a disconnect signal.
 - Identity is browser-scoped and anonymous — no username/password login is in scope for this feature.
 - The feature applies to the lobby and any active game; no distinction between lobby-only and in-game reconnect handling.
+- Protocol-level handshake details — including the server-side timeout that closes a connection if no `hello` arrives shortly after WS open — are defined in plan.md, not spec.md.
 
 ## Clarifications
 

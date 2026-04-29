@@ -1,46 +1,72 @@
-﻿# thousand Development Guidelines
+# thousand Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-29
+Last updated: 2026-04-29
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
 
 ## Active Technologies
-- Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules) + `ws` npm package (backend WebSocket); no frontend dependencies (001-card-game-lobby)
-- N/A (in-memory backend state) (001-card-game-lobby)
-- Node.js v18+ (CommonJS) / Vanilla JS ES6+ (browser) + `ws` npm package, Node.js built-in `crypto` (already in use) (003-persistent-player-identity)
-- In-memory server state + browser `localStorage` (client) (003-persistent-player-identity)
 
-- Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages) (001-card-game-lobby)
+- **Runtime**: Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules)
+- **Dependencies**: `ws` ^8 (WebSocket), Node.js built-in `crypto` (session tokens)
+- **State**: In-memory server state (`ThousandStore`) + browser `localStorage` (client identity)
+- **Dev tools**: ESLint, `jsdom` (tests), Node.js built-in test runner
 
 ## Project Structure
 
 ```text
-src/server.js                        # single backend entry point
-src/                                 # backend source code (all server-side modules)
-src/public/                          # frontend assets
-  index.html / index.css / index.js  # lobby entry point (uses Antlion — see §XI)
+src/server.js                          # HTTP + WebSocket server entry point
+src/services/
+  ThousandStore.js                     # game/player state (in-memory)
+  ConnectionManager.js                 # WebSocket connection lifecycle + message dispatch
+src/controllers/
+  RequestHandler.js                    # HTTP routing
+  GameController.js                    # game CRUD handlers
+  validators.js                        # input validation
+src/utils/
+  HttpUtil.js                          # HTTP helpers
+  RateLimiter.js                       # per-IP rate limiting
+  StaticServer.js                      # static file serving
+src/public/
+  index.html / css/index.css           # lobby entry point + styles
   js/
-    LobbyApp.js                      # lobby coordinator — state + orchestration
-    LobbyRenderer.js                 # lobby stateless DOM rendering
-    LobbySocket.js                   # lobby WebSocket wrapper
-    Toast.js                         # shared notification utility
-    antlion/                         # engine layer — generic, game-agnostic
-    <game-name>/                     # game logic layer — one directory per game
-tests/                               # backend test files (*.test.js)
-specs/                               # feature specs, plans, and contracts (read-only at runtime)
+    index.js                           # bootstrap — creates ThousandApp, starts Antlion
+    ThousandApp.js                     # app coordinator — state + orchestration
+    ThousandSocket.js                  # WebSocket wrapper
+    GameApi.js                         # REST API client
+    GameList.js                        # game list component
+    ModalController.js                 # modal dialogs
+    NicknameScreen.js                  # nickname entry screen
+    WaitingRoom.js                     # waiting room screen
+    PlayerTooltip.js                   # player hover tooltip
+    Toast.js                           # notification utility
+    utils/HtmlUtil.js                  # DOM helpers
+    antlion/                           # engine layer — generic, game-agnostic
+tests/                                 # Node.js built-in test runner (*.test.js)
+specs/                                 # feature specs, plans, and contracts (read-only at runtime)
+docs/                                  # developer documentation
 ```
 
 ## Commands
 
-# Add commands for Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+)
+```bash
+npm start              # start server (port 3000 or $PORT)
+npm run dev            # start with --watch (auto-restart on file changes)
+npm test               # run all tests
+npm run test:coverage  # run tests with experimental coverage report
+npm run lint           # ESLint check on src/
+```
 
 ## Code Style
 
-Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
+See `docs/CODING_CONVENTIONS.md` for the full reference. Key points:
+- Indent 2 spaces; semicolons required; `const` by default
+- `camelCase` functions/variables, `PascalCase` classes, `UPPER_SNAKE_CASE` constants
+- Max 50-line functions; early returns over nesting; no `var`
+- Comments explain *why*, never *what*; no debug logs committed
 
 ## Frontend Architecture (see constitution.md §XI for rationale)
 
-**Applies to all frontend pages including lobby files.**
+**Applies to all frontend JS.**
 
 ### Antlion engine API surface (`src/public/js/antlion/`)
 - `Antlion.onInput(type, handler)` — register a named input handler
@@ -51,19 +77,11 @@ Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 - `Antlion.scheduleInterval(delay, cb)` / `Antlion.cancelInterval(id)` — managed `setInterval`
 - `Antlion.start()` / `Antlion.stop()` — lifecycle control (stop also tears down all timers and listeners)
 
-### Feature logic (`src/public/js/<feature-name>/`)
-- Registers into Antlion via the API above — no direct DOM listeners, no raw `setInterval`.
-- Lobby modules (`LobbyApp.js`, `LobbyRenderer.js`, `LobbySocket.js`) follow this pattern.
-- Game-specific logic lives under `src/public/js/thousand/`.
+### Feature modules (`src/public/js/`)
+- Register into Antlion via the API above — no direct DOM listeners, no raw `setInterval`.
+- `ThousandApp.js` is the app coordinator; `ThousandSocket.js` wraps the WebSocket connection.
+- Game-specific logic will live under `src/public/js/thousand/` (not yet created).
 
-## Recent Changes
-- 003-persistent-player-identity: Added Node.js v18+ (CommonJS) / Vanilla JS ES6+ (browser) + `ws` npm package, Node.js built-in `crypto` (already in use)
-- 001-card-game-lobby: Added Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules) + `ws` npm package (backend WebSocket); no frontend dependencies
+## Active Feature Branch
 
-- 001-card-game-lobby: Added Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages)
-
-<!-- MANUAL ADDITIONS START -->
-
-## Coding conventions
-- check file docs/CODING_CONVENTIONS.md
-<!-- MANUAL ADDITIONS END -->
+**003-persistent-player-identity** (in progress): Adds session tokens + `localStorage` so players survive page refreshes and short network disconnects. New files: `IdentityStore.js`, `ReconnectOverlay.js`. Extends `ThousandStore`, `ConnectionManager`, `ThousandApp`, `ThousandSocket`. Grace period (default 30 s) keeps player records alive during disconnect.

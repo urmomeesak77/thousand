@@ -26,12 +26,12 @@ Add browser-scoped persistent identity using localStorage (playerId + sessionTok
 | §   | Principle               | Status    | Notes |
 |-----|-------------------------|-----------|-------|
 | §I  | Vanilla JS + Node.js    | ✓ PASS    | No new dependencies; `crypto` built-in already in use |
-| §II | Single-file frontend    | ✓ PASS    | Modifying existing files; no new pages |
+| §II | Single-file frontend    | ✓ PASS    | New JS modules (`IdentityStore.js`, `ReconnectOverlay.js`) are ES modules under `src/public/js/`, permitted by constitution §II (v2.3.0). No bundlers, no CDN deps, no inline JS. |
 | §III | Least code             | ✓ PASS    | Built-in `crypto.randomUUID()` for tokens; no new libs |
 | §IV | Backend as thin server  | ✓ PASS    | Session logic lives in `ThousandStore` (service layer) |
 | §V  | No build step           | ✓ PASS    | Plain `.js` files; no transpilation |
 | §VI | Responsive design       | ✓ PASS    | Reconnecting overlay uses existing CSS patterns |
-| §VII | Classes over functions | ✓ PASS    | `IdentityStore`, `ReconnectOverlay` as ES6 classes |
+| §VII | Classes over functions | ✓ PASS    | `ReconnectOverlay` is a stateful ES6 class. `IdentityStore` exposes only static methods (`save` / `load` / `clear`) — its sole "state" is the localStorage entry, which is already a singleton. Static methods on a class keep the §VIII one-class-per-file convention while honouring §VII's "use functions only for pure utilities with no associated state" guidance. |
 | §VIII | One class per file    | ✓ PASS    | New classes in their own files |
 | §IX | Small units             | ✓ PASS    | Each new class <100 lines; each method <20 lines |
 | §X  | Logical cohesion        | ✓ PASS    | Session validation in `ThousandStore`; localStorage in `IdentityStore` |
@@ -87,4 +87,5 @@ tests/IdentityStore.test.js           # localStorage wrapper (jsdom)
 
 | Risk | Detail | Mitigation |
 |------|--------|------------|
-| ThousandStore size (§IX signal) | `ThousandStore` is 165 lines before this feature; adding `createOrRestorePlayer`, `reconnectPlayer`, `_purgePlayer`, and grace timer config pushes it to ~220 lines. §IX treats this as a signal to decompose ("a class should represent a single concept"). | Monitor during implementation. If the class exceeds ~220 lines or becomes hard to read, extract session-lifecycle methods (`createOrRestorePlayer`, `reconnectPlayer`, `_purgePlayer`, `_gracePeriodMs`) into a `PlayerRegistry` class in `src/services/PlayerRegistry.js`. This is not required to ship the feature but should be the first refactor task if the file grows further. |
+| ThousandStore size (§IX signal) | `ThousandStore` is 165 lines before this feature; adding `createOrRestorePlayer`, `reconnectPlayer`, `_purgePlayer`, and grace timer config pushes it to ~220 lines. §IX treats this as a signal to decompose ("a class should represent a single concept"). | Tracked as **T033** in tasks.md — measure final line count post-implementation; extract `PlayerRegistry` if > 200 lines, otherwise document and accept. |
+| Hello-handler growth (§IX signal) | The `hello` branch in `ConnectionManager._handleMessage` accumulates ~6 steps after T006 + T024 + T025 (cancel timer, validate creds, attach ws, dispatch `connected`, dispatch `lobby_update`, dispatch `game_joined` if restored). Risks crossing the §IX 20-line guideline. | Tracked as **T034** in tasks.md — measure the resulting hello branch; if > 20 lines, extract a private `_handleHello(ws, msg)` method on `ConnectionManager`. |
