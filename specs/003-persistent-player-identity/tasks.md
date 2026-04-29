@@ -98,13 +98,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Write `tests/IdentityStore.test.js` using jsdom — test `save()` writes correct JSON; `load()` returns parsed object; `load()` returns `{}` on missing key; `load()` returns `{}` on corrupted JSON; `clear()` removes key; `save()` overwrites previous value. Note: SC-005 (incognito window always yields a distinct identity) is behaviorally guaranteed by the browser scoping localStorage per storage context; the `load()` returns `{}` on missing key case is the equivalent code path.
+- [X] T027 [P] [US3] Write `tests/IdentityStore.test.js` using jsdom — test `save()` writes correct JSON; `load()` returns parsed object; `load()` returns `{}` on missing key; `load()` returns `{}` on corrupted JSON; `clear()` removes key; `save()` overwrites previous value. Note: SC-005 (incognito window always yields a distinct identity) is behaviorally guaranteed by the browser scoping localStorage per storage context; the `load()` returns `{}` on missing key case is the equivalent code path.
 
-- [ ] T028 [P] [US3] Add security edge-case tests to `tests/ThousandStore.reconnect.test.js` — (a) valid playerId + wrong token → new playerId issued, original record untouched; (b) valid playerId + valid token but player in grace period → reconnect succeeds; (c) playerId present in hello but sessionToken absent → new identity
+- [X] T028 [P] [US3] Add security edge-case tests to `tests/ThousandStore.reconnect.test.js` — (a) valid playerId + wrong token → new playerId issued, original record untouched; (b) valid playerId + valid token but player in grace period → reconnect succeeds; (c) playerId present in hello but sessionToken absent → new identity
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Add type-guard at the top of `ThousandStore.createOrRestorePlayer` in `src/services/ThousandStore.js` — if `typeof playerId !== 'string' || typeof sessionToken !== 'string'`, skip the Map lookup and call `createPlayer(ws, clientIp)` directly. This prevents prototype-pollution-style payloads (e.g. `{playerId: {}, sessionToken: {}}`) from short-circuiting the lookup branch. **Precondition** (verify before editing — already holds in current code from T004): token comparison in `createOrRestorePlayer` uses strict equality (`===`).
+- [X] T029 [US3] Add type-guard at the top of `ThousandStore.createOrRestorePlayer` in `src/services/ThousandStore.js` — if `typeof playerId !== 'string' || typeof sessionToken !== 'string'`, skip the Map lookup and call `createPlayer(ws, clientIp)` directly. This prevents prototype-pollution-style payloads (e.g. `{playerId: {}, sessionToken: {}}`) from short-circuiting the lookup branch. **Precondition** (verify before editing — already holds in current code from T004): token comparison in `createOrRestorePlayer` uses strict equality (`===`).
 
 **Checkpoint**: All three user stories functional. Identity theft attempt returns a fresh identity, never the target player's state.
 

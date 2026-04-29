@@ -167,3 +167,50 @@ describe('ThousandStore.createOrRestorePlayer', () => {
     assert.equal(original.nickname, 'Bob');
   });
 });
+
+// T028: security edge-case tests
+describe('ThousandStore.createOrRestorePlayer security edge cases', () => {
+  it('(a) valid playerId + wrong token → new identity, original record untouched', () => {
+    const store = new ThousandStore();
+    const ws1 = makeWs();
+    const { playerId } = store.createPlayer(ws1, '127.0.0.1');
+    store.players.get(playerId).nickname = 'Victim';
+
+    const ws2 = makeWs();
+    const result = store.createOrRestorePlayer(ws2, '127.0.0.1', playerId, 'attacker-token');
+    assert.equal(result.restored, false);
+    assert.ok(typeof result.playerId === 'string');
+    assert.notEqual(result.playerId, playerId, 'attacker must not receive victim playerId');
+    const original = store.players.get(playerId);
+    assert.ok(original, 'victim record must still exist');
+    assert.equal(original.nickname, 'Victim');
+  });
+
+  it('(b) valid playerId + valid token while player in grace period → reconnect succeeds', () => {
+    process.env.GRACE_PERIOD_MS = '60000';
+    const store = new ThousandStore();
+    delete process.env.GRACE_PERIOD_MS;
+    const ws1 = makeWs();
+    const { playerId, sessionToken } = store.createPlayer(ws1, '127.0.0.1');
+    store.players.get(playerId).nickname = 'Grace';
+    store.handlePlayerDisconnect(playerId);
+
+    const ws2 = makeWs();
+    const result = store.createOrRestorePlayer(ws2, '127.0.0.1', playerId, sessionToken);
+    assert.equal(result.restored, true);
+    assert.equal(result.playerId, playerId);
+    assert.equal(result.nickname, 'Grace');
+    clearTimeout(store.players.get(playerId).graceTimer);
+  });
+
+  it('(c) sessionToken absent (undefined) → new identity issued', () => {
+    const store = new ThousandStore();
+    const ws1 = makeWs();
+    const { playerId } = store.createPlayer(ws1, '127.0.0.1');
+
+    const ws2 = makeWs();
+    const result = store.createOrRestorePlayer(ws2, '127.0.0.1', playerId, undefined);
+    assert.equal(result.restored, false);
+    assert.notEqual(result.playerId, playerId);
+  });
+});

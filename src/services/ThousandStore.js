@@ -20,6 +20,10 @@ class ThousandStore {
   }
 
   createOrRestorePlayer(ws, clientIp, playerId, sessionToken) {
+    if (typeof playerId !== 'string' || typeof sessionToken !== 'string') {
+      const result = this.createPlayer(ws, clientIp);
+      return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
+    }
     const player = this.players.get(playerId);
     if (player && player.sessionToken === sessionToken) {
       return { playerId, sessionToken, restored: true, nickname: player.nickname, gameId: player.gameId };
