@@ -155,6 +155,9 @@ class ThousandApp {
         this._gameList.startElapsedTimer();
         this._toast.show('The host left — game was disbanded.');
         break;
+      case 'session_replaced':
+        this._toast.show('Connected from another tab or browser — this session ended.');
+        break;
       case 'error':
         this._toast.show(msg.message || 'An error occurred');
         break;

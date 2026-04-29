@@ -39,6 +39,7 @@ class RequestHandler {
 
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
+    console.log(' Path:' + pathname);
 
     if (req.method === 'POST' && pathname === '/api/nickname') {
       const player = this._requireAuth(req, res);

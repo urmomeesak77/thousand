@@ -183,6 +183,9 @@ beforeEach(async () => {
   handler._httpLimiter._counts.clear();
   handler._games._createLimiter._counts.clear();
 
+  // Use 0 ms grace period so disconnect tests see immediate cleanup via the event loop
+  store._gracePeriodMs = 0;
+
   // Wait to allow WebSocket connections to fully close and clean up from previous tests
   // The server limits to 10 WebSocket connections per IP, and async close events
   // may not have been processed yet by the time beforeEach runs

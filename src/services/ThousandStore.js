@@ -7,6 +7,7 @@ class ThousandStore {
     this.games = new Map();       // gameId -> Game
     this.players = new Map();     // playerId -> Player
     this.inviteCodes = new Map(); // inviteCode -> gameId
+    this._gracePeriodMs = process.env.GRACE_PERIOD_MS ? Number(process.env.GRACE_PERIOD_MS) : 30_000;
   }
 
   createPlayer(ws, clientIp) {
@@ -89,22 +90,37 @@ class ThousandStore {
   }
 
   handlePlayerDisconnect(playerId) {
-    const player = this.players.get(playerId);
-    if (!player) {
+    if (!playerId || !this.players.has(playerId)) {
       return;
     }
+    const player = this.players.get(playerId);
+    player.ws = null;
+    player.disconnectedAt = Date.now();
+    player.graceTimer = setTimeout(() => this._purgePlayer(playerId), this._gracePeriodMs);
+  }
 
+  reconnectPlayer(playerId, ws) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+    clearTimeout(player.graceTimer);
+    player.graceTimer = null;
+    player.disconnectedAt = null;
+    if (player.ws && player.ws.readyState === 1 /* OPEN */) {
+      player.ws.send(JSON.stringify({ type: 'session_replaced' }));
+      player.ws.close();
+    }
+    player.ws = ws;
+    ws._playerId = playerId;
+  }
+
+  _purgePlayer(playerId) {
+    const player = this.players.get(playerId);
+    if (!player) return;
     const { gameId, nickname } = player;
     this.players.delete(playerId);
-    if (!gameId) {
-      return;
-    }
-
+    if (!gameId) return;
     const game = this.games.get(gameId);
-    if (!game) {
-      return;
-    }
-
+    if (!game) return;
     game.players.delete(playerId);
     this._resolveGameAfterExit(gameId, game, playerId, nickname);
   }

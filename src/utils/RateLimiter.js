@@ -16,6 +16,8 @@ class RateLimiter {
       return true;
     }
 
+    console.log('Ip:' + key + ' Count:' + entry.count);
+
     if (entry.count >= this._max) {
       return false;
     }
