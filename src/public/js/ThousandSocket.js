@@ -2,6 +2,8 @@
 // ThousandSocket — owns WebSocket connection and reconnect logic
 // ============================================================
 
+import { IdentityStore } from './IdentityStore.js';
+
 class ThousandSocket {
   constructor(antlion, onMessage, onError) {
     this._antlion = antlion;
@@ -17,7 +19,9 @@ class ThousandSocket {
   }
 
   _attachHandlers(ws) {
-    ws.onopen = () => {};
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'hello', ...IdentityStore.load() }));
+    };
     ws.onmessage = (event) => {
       let msg;
       try { 

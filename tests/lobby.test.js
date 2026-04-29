@@ -29,6 +29,8 @@ before(() => {
     path.join(publicDir, 'js', 'antlion', 'Scene.js'),
     path.join(publicDir, 'js', 'Toast.js'),
     path.join(publicDir, 'js', 'utils', 'HtmlUtil.js'),
+    path.join(publicDir, 'js', 'IdentityStore.js'),
+    path.join(publicDir, 'js', 'ReconnectOverlay.js'),
     path.join(publicDir, 'js', 'ThousandSocket.js'),
     path.join(publicDir, 'js', 'GameApi.js'),
     path.join(publicDir, 'js', 'ModalController.js'),
@@ -42,14 +44,17 @@ before(() => {
 
   // Strip ES module syntax for jsdom inline execution.
   // Each file is wrapped in an IIFE so local `const` declarations (e.g. $)
-  // don't collide across files. `export default Foo` is replaced with
-  // `window.Foo = Foo` so classes remain accessible as globals to later IIFEs.
+  // don't collide across files. `export default Foo` → `window.Foo = Foo`;
+  // `export class Foo` → `class Foo` + `window.Foo = Foo` appended inside IIFE.
   const combinedJs = jsFiles.map((filePath) => {
     const js = fs.readFileSync(filePath, 'utf8');
+    const exportedClasses = [];
     const stripped = js
-      .replace(/^import\s+\w+\s+from\s+['"][^'"]+['"];\s*$/gm, '')
-      .replace(/^export default\s+(\w+);\s*$/gm, (_, name) => `window.${name} = ${name};`);
-    return `(function () {\n${stripped}\n})();`;
+      .replace(/^import\s+(?:\{[^}]+\}|\w+)\s+from\s+['"][^'"]+['"];\s*$/gm, '')
+      .replace(/^export default\s+(\w+);\s*$/gm, (_, name) => `window.${name} = ${name};`)
+      .replace(/^export class (\w+)/gm, (_, name) => { exportedClasses.push(name); return `class ${name}`; });
+    const windowAssignments = exportedClasses.map((n) => `window.${n} = ${n};`).join('\n');
+    return `(function () {\n${stripped}\n${windowAssignments}\n})();`;
   }).join('\n');
 
   inlinedHTML = html

@@ -18,17 +18,17 @@ class ConnectionManager {
       return;
     }
 
-    const { playerId, sessionToken } = this._store.createPlayer(ws, clientIp);
     this._wsConnectionsByIp.set(clientIp, currentCount + 1);
     this._clients.add(ws);
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
 
-    ws.send(JSON.stringify({ type: 'connected', playerId, sessionToken }));
-    ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
+    ws._helloTimer = setTimeout(() => ws.close(1008, 'Hello timeout'), 5000);
+
     ws.on('message', (data) => this._handleMessage(ws, data));
     ws.on('close', () => {
-      this._store.handlePlayerDisconnect(playerId);
+      clearTimeout(ws._helloTimer);
+      this._store.handlePlayerDisconnect(ws._playerId);
       this._wsMessageCounts.delete(ws);
       this._clients.delete(ws);
       this._decrementIpCount(clientIp);
@@ -91,6 +91,20 @@ class ConnectionManager {
     if (msg.type === 'ping') {
       return;
     }
+
+    if (msg.type === 'hello') {
+      if (ws._playerId) {
+        return;
+      }
+      clearTimeout(ws._helloTimer);
+      const clientIp = ws._socket?.remoteAddress || 'unknown';
+      const result = this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken);
+      ws._playerId = result.playerId;
+      ws.send(JSON.stringify({ type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken, restored: result.restored, nickname: result.nickname }));
+      ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
+      return;
+    }
+
     // Lobby flows are HTTP-driven; gameplay protocol over WS is not implemented yet.
     // Until then, anything other than ping is rejected so a misbehaving client
     // doesn't silently believe it sent a meaningful command.

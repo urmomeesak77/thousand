@@ -12,10 +12,19 @@ class ThousandStore {
   createPlayer(ws, clientIp) {
     const playerId = crypto.randomUUID();
     const sessionToken = crypto.randomUUID();
-    this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws, sessionToken });
+    this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws, sessionToken, disconnectedAt: null, graceTimer: null });
     ws._clientIp = clientIp;
     ws._playerId = playerId;
     return { playerId, sessionToken };
+  }
+
+  createOrRestorePlayer(ws, clientIp, playerId, sessionToken) {
+    const player = this.players.get(playerId);
+    if (player && player.sessionToken === sessionToken) {
+      return { playerId, sessionToken, restored: true, nickname: player.nickname, gameId: player.gameId };
+    }
+    const result = this.createPlayer(ws, clientIp);
+    return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
   }
 
   findBySessionToken(token) {

@@ -89,7 +89,7 @@ function requestRaw(path, rawBody, sessionToken) {
   });
 }
 
-function connectWS() {
+function connectWS(creds = {}) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
     const msgs = [];
@@ -101,10 +101,14 @@ function connectWS() {
       }
     }, 5000);
 
+    ws.on('open', () => {
+      ws.send(JSON.stringify({ type: 'hello', ...creds }));
+    });
+
     ws.on('message', (data) => {
       msgs.push(JSON.parse(data.toString()));
-      // Resolve once we receive the first message (connected message)
-      if (!messageReceived) {
+      // Resolve once we receive the connected message
+      if (!messageReceived && msgs.some((m) => m.type === 'connected')) {
         messageReceived = true;
         clearTimeout(timeout);
         ws.msgs = msgs;

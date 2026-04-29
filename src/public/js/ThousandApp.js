@@ -1,3 +1,5 @@
+import { IdentityStore } from './IdentityStore.js';
+import { ReconnectOverlay } from './ReconnectOverlay.js';
 import HtmlContainer from './antlion/HtmlContainer.js';
 import NicknameScreen from './NicknameScreen.js';
 import GameList from './GameList.js';
@@ -14,7 +16,8 @@ const $ = (id) => document.getElementById(id);
 // textContent so an unexpected shape can't trip XSS, but if a future renderer
 // switches to innerHTML this gate keeps the surface narrow.
 const MESSAGE_VALIDATORS = {
-  connected: (m) => typeof m.playerId === 'string' && typeof m.sessionToken === 'string',
+  connected: (m) => typeof m.playerId === 'string' && typeof m.sessionToken === 'string' && typeof m.restored === 'boolean' && (m.nickname === null || typeof m.nickname === 'string'),
+  session_replaced: () => true,
   lobby_update: (m) => Array.isArray(m.games),
   game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players),
   player_joined: (m) => Array.isArray(m.players) && m.player && typeof m.player.nickname === 'string',
@@ -60,6 +63,8 @@ class ThousandApp {
     this._playerTooltip = new PlayerTooltip();
     this._waitingRoom = new WaitingRoom(gameEl.querySelector('.card'));
 
+    this._reconnectOverlay = new ReconnectOverlay($('reconnect-overlay'));
+
     this._scene.root.addChild(this._nicknameScreen);
     this._scene.root.addChild(this._lobbyContainer);
     this._scene.root.addChild(this._gameContainer);
@@ -75,6 +80,9 @@ class ThousandApp {
     });
 
     this._bindUI();
+    if (IdentityStore.load().playerId) {
+      this._reconnectOverlay.show();
+    }
     this._socket.connect();
   }
 
@@ -104,6 +112,18 @@ class ThousandApp {
         this._playerId = msg.playerId;
         this._sessionToken = msg.sessionToken;
         this._api.setSessionToken(this._sessionToken);
+        if (msg.restored) {
+          IdentityStore.save(msg.playerId, msg.sessionToken, msg.nickname);
+          this._nickname = msg.nickname;
+          $('player-name-display').textContent = msg.nickname;
+          this._reconnectOverlay.hide();
+          this._showScreen('lobby-screen');
+          this._gameList.startElapsedTimer();
+        } else {
+          IdentityStore.save(msg.playerId, msg.sessionToken, null);
+          this._reconnectOverlay.hide();
+          this._showScreen('nickname-screen');
+        }
         break;
       case 'lobby_update':
         this._gameList.setGames(msg.games);
