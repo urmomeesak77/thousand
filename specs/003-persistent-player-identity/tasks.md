@@ -28,12 +28,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Add `createOrRestorePlayer(ws, clientIp, playerId, sessionToken)` to `ThousandStore` in `src/services/ThousandStore.js` — if `playerId` exists in `this.players` and `player.sessionToken === sessionToken`, return `{ playerId, sessionToken, restored: true, nickname: player.nickname, gameId: player.gameId }`; otherwise call `createPlayer(ws, clientIp)` and return `{ playerId, sessionToken, restored: false, nickname: null, gameId: null }`
-- [ ] T005 Refactor `ConnectionManager.handleConnection` in `src/services/ConnectionManager.js` — remove the immediate `createPlayer` + `ws.send('connected')` call; instead start a 5-second timeout (store handle on `ws._helloTimer`) that closes the socket with code 1008 if no `hello` message arrives; keep all other setup (ip count, clients set, isAlive, pong, close handler) unchanged
-- [ ] T006 Add `hello` handling to `ConnectionManager._handleMessage` in `src/services/ConnectionManager.js` — on first `hello`: cancel `ws._helloTimer`, call `this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken)`, send `{ type: 'connected', playerId, sessionToken, restored, nickname }`, then send `{ type: 'lobby_update', games }` ; guard against duplicate hello by checking `ws._playerId` is not already set
+- [ ] T004 Add `createOrRestorePlayer(ws, clientIp, playerId, sessionToken)` to `ThousandStore` in `src/services/ThousandStore.js` — if `playerId` exists in `this.players` and `player.sessionToken === sessionToken`, return `{ playerId, sessionToken, restored: true, nickname: player.nickname, gameId: player.gameId }`; otherwise call `createPlayer(ws, clientIp)` and return `{ playerId, sessionToken, restored: false, nickname: null, gameId: null }`. Note: `this.players` contains both connected AND grace-period players (ws=null); the lookup correctly restores either. Do not assign `ws` to the player record here — that is `reconnectPlayer`'s responsibility (T022).
+- [ ] T005 Refactor `ConnectionManager.handleConnection` in `src/services/ConnectionManager.js` — remove the immediate `createPlayer` + `ws.send('connected')` call; instead start a 5-second timeout (store handle on `ws._helloTimer`) that closes the socket with code 1008 if no `hello` message arrives; keep all other setup (ip count, clients set, isAlive, pong, close handler) structurally unchanged for now — the close handler is updated in T030 (immediately below) to cancel `ws._helloTimer` and use `ws._playerId`
+- [ ] T006 Add `hello` handling to `ConnectionManager._handleMessage` in `src/services/ConnectionManager.js` — on first `hello`: cancel `ws._helloTimer`, call `this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken)`, set `ws._playerId = result.playerId`, send `{ type: 'connected', playerId, sessionToken, restored, nickname }`, then send `{ type: 'lobby_update', games }`; guard against duplicate hello by checking `ws._playerId` is not already set
+- [ ] T030 Update close handler in `ConnectionManager.handleConnection` in `src/services/ConnectionManager.js` — (a) add `clearTimeout(ws._helloTimer)` at the top of the close callback to prevent the hello timeout firing on a dead socket; (b) change `this._store.handlePlayerDisconnect(playerId)` to `this._store.handlePlayerDisconnect(ws._playerId)` — `ws._playerId` is set in T006 for players who completed the hello handshake; `undefined` for clients that disconnected before hello, which `handlePlayerDisconnect` ignores safely
 - [ ] T007 Update `MESSAGE_VALIDATORS` in `src/public/js/ThousandApp.js` — extend `connected` validator to also accept `restored` (boolean) and `nickname` (string or null); add `session_replaced` validator returning `true`
 - [ ] T008 Update `ThousandSocket.connect()` in `src/public/js/ThousandSocket.js` — import `IdentityStore`; in `ws.onopen`, send `JSON.stringify({ type: 'hello', ...IdentityStore.load() })` (spreads `playerId`/`sessionToken` if present, harmlessly spreads empty object on first visit)
-- [ ] T009 Update `src/public/js/index.js` to import `IdentityStore` and pass it to `ThousandSocket` (or export it as a module-level singleton) so `ThousandSocket` can call `IdentityStore.load()`
+- [ ] T009 Verification checkpoint — no code changes needed in `src/public/js/index.js` for `IdentityStore`: `ThousandSocket` imports it directly (T008) and `ThousandApp` imports it directly (T017), both as ES modules. Confirm no module-level `IdentityStore` singleton is created in `index.js` and that the two direct imports are consistent.
 
 **Checkpoint**: Server accepts `hello`, validates/creates identity, sends `connected { restored, nickname }`. Client sends credentials on every connect.
 
@@ -72,15 +73,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T018 [P] [US2] Extend `tests/ThousandStore.reconnect.test.js` with grace period tests — (a) `handlePlayerDisconnect` starts timer, does not immediately delete record; (b) `reconnectPlayer` within grace period → record restored, timer cancelled, `ws` updated; (c) grace timer expiry → player record deleted, lobby updated; (d) player in game: expiry removes player from game and calls `_resolveGameAfterExit`
+- [ ] T018 [P] [US2] Extend `tests/ThousandStore.reconnect.test.js` with grace period tests — (a) `handlePlayerDisconnect` starts timer, does not immediately delete record; (b) `reconnectPlayer` within grace period → record restored, timer cancelled, `ws` updated; (c) grace timer expiry → player record deleted, lobby updated; (d) player in game: expiry removes player from game and calls `_resolveGameAfterExit`; (e) race condition: call `reconnectPlayer` synchronously before the grace timer fires (use fake timers) — verify player is restored, `clearTimeout` prevents the purge from running, and the player record is intact after the timer would have fired
 
 - [ ] T019 [P] [US2] Extend `tests/ThousandStore.reconnect.test.js` with last-connect-wins test — `reconnectPlayer` called when player already has live ws → `session_replaced` sent to old ws, old ws closed, new ws attached
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Add `_purgePlayer(playerId)` private method to `ThousandStore` in `src/services/ThousandStore.js` — contains the delete-and-notify logic currently in `handlePlayerDisconnect` (delete from map, resolve game exit)
+- [ ] T020 [US2] Add `_purgePlayer(playerId)` private method to `ThousandStore` in `src/services/ThousandStore.js` — contains the delete-and-notify logic currently in `handlePlayerDisconnect` (delete from map, resolve game exit via `_resolveGameAfterExit`); confirm that `_resolveGameAfterExit` → `broadcastLobbyUpdate()` path fires for lobby players, satisfying FR-006's requirement that remaining lobby members receive an updated player list after purge
 - [ ] T021 [US2] Rewrite `ThousandStore.handlePlayerDisconnect` in `src/services/ThousandStore.js` — set `player.ws = null`, `player.disconnectedAt = Date.now()`; start `setTimeout(() => this._purgePlayer(playerId), this._gracePeriodMs)` stored as `player.graceTimer`; do NOT delete the record immediately
-- [ ] T022 [US2] Add `reconnectPlayer(playerId, ws)` to `ThousandStore` in `src/services/ThousandStore.js` — cancel `player.graceTimer` via `clearTimeout`, reset `disconnectedAt` to null, assign new `ws`; if `player.ws` was already open (readyState OPEN), send `{ type: 'session_replaced' }` and close it first (last-connect-wins)
+- [ ] T022 [US2] Add `reconnectPlayer(playerId, ws)` to `ThousandStore` in `src/services/ThousandStore.js` — cancel `player.graceTimer` via `clearTimeout`, reset `disconnectedAt` to null, assign new `ws`, and set `ws._playerId = player.id` (required by the close handler in T030 to identify this player on future disconnect); if `player.ws` was already open (readyState OPEN), send `{ type: 'session_replaced' }` and close it first (last-connect-wins)
 - [ ] T023 [US2] Add `_gracePeriodMs` to `ThousandStore` constructor in `src/services/ThousandStore.js` — default `process.env.GRACE_PERIOD_MS ? Number(process.env.GRACE_PERIOD_MS) : 30_000`
 - [ ] T024 [US2] Update `ConnectionManager._handleMessage` hello branch in `src/services/ConnectionManager.js` — when `result.restored === true`, call `this._store.reconnectPlayer(result.playerId, ws)` to attach the new ws and cancel any grace timer; then send `connected`
 - [ ] T025 [US2] After sending `connected` for a restored player in `ConnectionManager._handleMessage` in `src/services/ConnectionManager.js` — if `result.gameId` is set, look up the game in `this._store.games`, compose and send `{ type: 'game_joined', gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt }` to restore the game screen
@@ -98,7 +99,7 @@
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Write `tests/IdentityStore.test.js` using jsdom — test `save()` writes correct JSON; `load()` returns parsed object; `load()` returns `{}` on missing key; `load()` returns `{}` on corrupted JSON; `clear()` removes key; `save()` overwrites previous value
+- [ ] T027 [P] [US3] Write `tests/IdentityStore.test.js` using jsdom — test `save()` writes correct JSON; `load()` returns parsed object; `load()` returns `{}` on missing key; `load()` returns `{}` on corrupted JSON; `clear()` removes key; `save()` overwrites previous value. Note: SC-005 (incognito window always yields a distinct identity) is behaviorally guaranteed by the browser scoping localStorage per storage context; the `load()` returns `{}` on missing key case is the equivalent code path.
 
 - [ ] T028 [P] [US3] Add security edge-case tests to `tests/ThousandStore.reconnect.test.js` — (a) valid playerId + wrong token → new playerId issued, original record untouched; (b) valid playerId + valid token but player in grace period → reconnect succeeds; (c) playerId present in hello but sessionToken absent → new identity
 
@@ -112,7 +113,6 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T030 [P] Update `src/services/ConnectionManager.js` close handler — change `this._store.handlePlayerDisconnect(playerId)` call site to use `ws._playerId` instead of the closed-over `playerId` variable to survive the deferred-hello refactor (verify `ws._playerId` is still set correctly in the hello handler at T006)
 - [ ] T031 [P] Run `npm run lint` and fix any ESLint errors introduced by new/modified files
 - [ ] T032 Run `npm test -- --experimental-test-coverage` and confirm line coverage ≥ 90% per constitution; add targeted tests to close any gaps found
 
@@ -123,7 +123,7 @@
 ### Phase Dependencies
 
 - **Phase 1 (Setup)**: No dependencies — start immediately; T002 and T003 are parallel
-- **Phase 2 (Foundational)**: Depends on Phase 1 — T004 → T005 → T006 (sequential); T007, T008, T009 can run in parallel with T005/T006 once T001–T003 complete
+- **Phase 2 (Foundational)**: Depends on Phase 1 — T004 → T005 → T006 → T030 (sequential); T007, T008 can run in parallel with the T004–T030 pipeline once T001–T003 complete; T009 is a verification checkpoint (no code change expected)
 - **Phase 3 (US1)**: Depends on Phase 2 complete — T012, T013 parallel; T014 after T012/T013; T015–T017 sequential in ThousandApp
 - **Phase 4 (US2)**: Depends on Phase 2 complete — T020 → T021 → T022 (sequential in ThousandStore); T024–T025 depend on T022
 - **Phase 5 (US3)**: Depends on Phase 2 complete — T029 is a review/guard task; T027, T028 are parallel
@@ -137,7 +137,7 @@
 
 ### Parallel Opportunities per Phase
 
-**Phase 2**: T007, T008, T009 (different files: ThousandApp.js, ThousandSocket.js, index.js) run in parallel after T001–T003 complete; T004 → T005 → T006 remain sequential (same file, dependent logic).
+**Phase 2**: T007, T008 (different files: ThousandApp.js, ThousandSocket.js) run in parallel after T001–T003 complete; T004 → T005 → T006 → T030 remain sequential (ThousandStore.js → ConnectionManager.js pipeline); T009 is a verification checkpoint with no code change.
 
 **Phase 3**: T010, T011 (test files) parallel; T012, T013 (HTML, CSS) parallel with each other and with T010/T011; T014, T015, T016, T017 are sequential changes to ThousandApp.js.
 
@@ -151,12 +151,12 @@
 
 ```bash
 # Sequential (same file, dependent):
-T004 → T005 → T006  (src/services/ThousandStore.js → ConnectionManager.js)
+T004 → T005 → T006 → T030  (ThousandStore.js → ConnectionManager.js)
 
-# Parallel (different files, no deps on T005/T006):
+# Parallel (different files, no deps on T004–T030 pipeline):
 T007  src/public/js/ThousandApp.js       MESSAGE_VALIDATORS update
 T008  src/public/js/ThousandSocket.js    send hello on open
-T009  src/public/js/index.js             IdentityStore wiring
+T009  src/public/js/index.js             verification checkpoint (no code change)
 ```
 
 ## Parallel Example: US1 vs US2
@@ -181,7 +181,7 @@ T026  ThousandApp.js (after US1 T017 completes)
 ### MVP First (User Story 1 Only)
 
 1. Complete Phase 1: Setup (T001–T003)
-2. Complete Phase 2: Foundational (T004–T009) — CRITICAL
+2. Complete Phase 2: Foundational (T004–T030 pipeline + T007/T008 parallel) — CRITICAL
 3. Complete Phase 3: User Story 1 (T010–T017)
 4. **STOP and VALIDATE**: Refresh the lobby page; confirm overlay, nickname restoration, lobby screen
 5. Ship if sufficient; US2 and US3 can follow

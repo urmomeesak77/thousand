@@ -82,3 +82,9 @@ tests/IdentityStore.test.js           # localStorage wrapper (jsdom)
 ## Complexity Tracking
 
 *(No constitution violations — section not required)*
+
+## Known Risks
+
+| Risk | Detail | Mitigation |
+|------|--------|------------|
+| ThousandStore size (§IX signal) | `ThousandStore` is 165 lines before this feature; adding `createOrRestorePlayer`, `reconnectPlayer`, `_purgePlayer`, and grace timer config pushes it to ~220 lines. §IX treats this as a signal to decompose ("a class should represent a single concept"). | Monitor during implementation. If the class exceeds ~220 lines or becomes hard to read, extract session-lifecycle methods (`createOrRestorePlayer`, `reconnectPlayer`, `_purgePlayer`, `_gracePeriodMs`) into a `PlayerRegistry` class in `src/services/PlayerRegistry.js`. This is not required to ship the feature but should be the first refactor task if the file grows further. |
