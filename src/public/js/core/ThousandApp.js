@@ -21,7 +21,7 @@ const MESSAGE_VALIDATORS = {
   lobby_update: (m) => Array.isArray(m.games),
   game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players),
   player_joined: (m) => Array.isArray(m.players) && m.player && typeof m.player.nickname === 'string',
-  player_left: (m) => Array.isArray(m.players) && typeof m.nickname === 'string',
+  player_left: (m) => Array.isArray(m.players) && (m.nickname === null || typeof m.nickname === 'string'),
   game_disbanded: () => true,
   error: (m) => m.message === undefined || typeof m.message === 'string',
 };
@@ -145,7 +145,7 @@ class ThousandApp {
         break;
       case 'player_left':
         this._waitingRoom.updatePlayers(msg.players);
-        this._toast.show(`${msg.nickname} left the game.`);
+        this._toast.show(`${msg.nickname || 'A player'} left the game.`);
         break;
       case 'game_disbanded':
         this._gameId = null;

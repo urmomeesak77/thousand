@@ -4,9 +4,10 @@ const crypto = require('crypto');
 
 class ThousandStore {
   constructor() {
-    this.games = new Map();       // gameId -> Game
-    this.players = new Map();     // playerId -> Player
-    this.inviteCodes = new Map(); // inviteCode -> gameId
+    this.games = new Map();        // gameId -> Game
+    this.players = new Map();      // playerId -> Player
+    this.inviteCodes = new Map();  // inviteCode -> gameId
+    this._tokenIndex = new Map();  // sessionToken -> playerId
     this._gracePeriodMs = process.env.GRACE_PERIOD_MS ? Number(process.env.GRACE_PERIOD_MS) : 30_000;
   }
 
@@ -14,13 +15,18 @@ class ThousandStore {
     const playerId = crypto.randomUUID();
     const sessionToken = crypto.randomUUID();
     this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws, sessionToken, disconnectedAt: null, graceTimer: null });
+    this._tokenIndex.set(sessionToken, playerId);
     ws._clientIp = clientIp;
     ws._playerId = playerId;
     return { playerId, sessionToken };
   }
 
   createOrRestorePlayer(ws, clientIp, playerId, sessionToken) {
-    if (typeof playerId !== 'string' || typeof sessionToken !== 'string') {
+    // crypto.randomUUID() emits 36-char strings (8-4-4-4-12). Reject anything
+    // else so probes with malformed ids fall straight through to a fresh identity.
+    const validShape = typeof playerId === 'string' && typeof sessionToken === 'string'
+      && playerId.length === 36 && sessionToken.length === 36;
+    if (!validShape) {
       const result = this.createPlayer(ws, clientIp);
       return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
     }
@@ -33,10 +39,17 @@ class ThousandStore {
   }
 
   findBySessionToken(token) {
+    if (typeof token !== 'string') return null;
+    const playerId = this._tokenIndex.get(token);
+    if (playerId) {
+      const player = this.players.get(playerId);
+      if (player && player.sessionToken === token) return player;
+    }
+    // Fallback for code paths that mutate `players` directly without going
+    // through createPlayer (tests, in-memory fixtures). Production traffic
+    // always hits the index above.
     for (const [, player] of this.players) {
-      if (player.sessionToken === token) {
-        return player;
-      }
+      if (player.sessionToken === token) return player;
     }
     return null;
   }
@@ -93,11 +106,16 @@ class ThousandStore {
     return true;
   }
 
-  handlePlayerDisconnect(playerId) {
+  handlePlayerDisconnect(playerId, ws) {
     if (!playerId || !this.players.has(playerId)) {
       return;
     }
     const player = this.players.get(playerId);
+    // If a newer ws has replaced this one (last-connect-wins), the old close event
+    // is stale — leave the live session alone.
+    if (ws && player.ws !== ws) {
+      return;
+    }
     player.ws = null;
     player.disconnectedAt = Date.now();
     player.graceTimer = setTimeout(() => this._purgePlayer(playerId), this._gracePeriodMs);
@@ -121,6 +139,7 @@ class ThousandStore {
     const player = this.players.get(playerId);
     if (!player) return;
     const { gameId, nickname } = player;
+    this._tokenIndex.delete(player.sessionToken);
     this.players.delete(playerId);
     if (!gameId) return;
     const game = this.games.get(gameId);

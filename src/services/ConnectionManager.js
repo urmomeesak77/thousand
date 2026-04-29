@@ -1,5 +1,7 @@
 'use strict';
 
+const HttpUtil = require('../utils/HttpUtil');
+
 class ConnectionManager {
   constructor(store) {
     this._store = store;
@@ -11,7 +13,7 @@ class ConnectionManager {
 
   // T011 – WebSocket connection handler
   handleConnection(ws) {
-    const clientIp = ws._socket?.remoteAddress || 'unknown';
+    const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
     const currentCount = this._wsConnectionsByIp.get(clientIp) || 0;
     if (currentCount >= 10) {
       ws.close(1008, 'Too many connections from this IP');
@@ -28,7 +30,7 @@ class ConnectionManager {
     ws.on('message', (data) => this._handleMessage(ws, data));
     ws.on('close', () => {
       clearTimeout(ws._helloTimer);
-      this._store.handlePlayerDisconnect(ws._playerId);
+      this._store.handlePlayerDisconnect(ws._playerId, ws);
       this._wsMessageCounts.delete(ws);
       this._clients.delete(ws);
       this._decrementIpCount(clientIp);
@@ -88,6 +90,10 @@ class ConnectionManager {
       ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid JSON' }));
       return;
     }
+    if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
+      ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid message' }));
+      return;
+    }
     if (msg.type === 'ping') {
       return;
     }
@@ -97,7 +103,7 @@ class ConnectionManager {
         return;
       }
       clearTimeout(ws._helloTimer);
-      const clientIp = ws._socket?.remoteAddress || 'unknown';
+      const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
       const result = this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken);
       ws._playerId = result.playerId;
       if (result.restored) {

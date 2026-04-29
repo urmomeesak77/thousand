@@ -31,7 +31,7 @@ class RequestHandler {
   }
 
   async handleRequest(req, res) {
-    const ip = req.socket.remoteAddress;
+    const ip = HttpUtil.normalizeIp(req.socket.remoteAddress);
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
 
@@ -41,7 +41,6 @@ class RequestHandler {
         return;
       }
     }
-    console.log(' Path:' + pathname);
 
     if (req.method === 'POST' && pathname === '/api/nickname') {
       const player = this._requireAuth(req, res);
