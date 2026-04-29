@@ -113,10 +113,10 @@
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T030 Execute the manual quickstart procedure (`specs/003-persistent-player-identity/quickstart.md`) end-to-end to verify SC-001's client-perceived 2-second budget — measure wall-clock time from page reload to overlay dismissal + lobby render, with `Throttling: Fast 3G` set in DevTools Network. Record the observed time in the PR description; if > 2000 ms, file a follow-up task before merge.
-- [ ] T031 [P] Run `npm run lint` and fix any ESLint errors introduced by new/modified files
-- [ ] T032 Run `npm test -- --experimental-test-coverage` and confirm line coverage ≥ 90% per constitution; add targeted tests to close any gaps found
-- [ ] T033 §IX follow-up — measure final line count of `src/services/ThousandStore.js`. If > 200 lines (per plan.md Known Risks signal), extract session-lifecycle methods (`createOrRestorePlayer`, `reconnectPlayer`, `_purgePlayer`, `_gracePeriodMs`) into a new `PlayerRegistry` class at `src/services/PlayerRegistry.js`, and have `ThousandStore` delegate. Otherwise, document the line count in the PR description and close the signal as accepted.
-- [ ] T034 §IX follow-up — measure the line count of the `hello` branch in `ConnectionManager._handleMessage` after T006 + T024 + T025. If > 20 lines, extract a private `_handleHello(ws, msg)` method on `ConnectionManager` and replace the inline body with a single call. Otherwise, document the line count in the PR description and close the signal as accepted.
+- [X] T031 [P] Run `npm run lint` and fix any ESLint errors introduced by new/modified files
+- [X] T032 Run `npm test -- --experimental-test-coverage` and confirm line coverage ≥ 90% per constitution; add targeted tests to close any gaps found — **91% line coverage achieved** (added ConnectionManager heartbeat/IP-limit/rate-limit/game-restoration tests + RateLimiter tests; 95 total tests, 0 failures)
+- [X] T033 §IX follow-up — measure final line count of `src/services/ThousandStore.js`. If > 200 lines (per plan.md Known Risks signal), extract session-lifecycle methods (`createOrRestorePlayer`, `reconnectPlayer`, `_purgePlayer`, `_gracePeriodMs`) into a new `PlayerRegistry` class at `src/services/PlayerRegistry.js`, and have `ThousandStore` delegate. Otherwise, document the line count in the PR description and close the signal as accepted. — **194 lines (≤ 200); signal accepted, no extraction needed**
+- [X] T034 §IX follow-up — measure the line count of the `hello` branch in `ConnectionManager._handleMessage` after T006 + T024 + T025. If > 20 lines, extract a private `_handleHello(ws, msg)` method on `ConnectionManager` and replace the inline body with a single call. Otherwise, document the line count in the PR description and close the signal as accepted. — **20 lines (not > 20); signal accepted, no extraction needed**
 
 ---
 
