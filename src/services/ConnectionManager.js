@@ -2,6 +2,11 @@
 
 const HttpUtil = require('../utils/HttpUtil');
 
+const MAX_CONNECTIONS_PER_IP = 10;
+const HELLO_TIMEOUT_MS = 5000;
+const MESSAGE_RATE_LIMIT = 30;
+const MESSAGE_RATE_WINDOW_MS = 10000;
+
 class ConnectionManager {
   constructor(store) {
     this._store = store;
@@ -15,7 +20,7 @@ class ConnectionManager {
   handleConnection(ws) {
     const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
     const currentCount = this._wsConnectionsByIp.get(clientIp) || 0;
-    if (currentCount >= 10) {
+    if (currentCount >= MAX_CONNECTIONS_PER_IP) {
       ws.close(1008, 'Too many connections from this IP');
       return;
     }
@@ -25,7 +30,7 @@ class ConnectionManager {
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
 
-    ws._helloTimer = setTimeout(() => ws.close(1008, 'Hello timeout'), 5000);
+    ws._helloTimer = setTimeout(() => ws.close(1008, 'Hello timeout'), HELLO_TIMEOUT_MS);
 
     ws.on('message', (data) => this._handleMessage(ws, data));
     ws.on('close', () => {
@@ -70,13 +75,12 @@ class ConnectionManager {
   }
 
   _handleMessage(ws, data) {
-    // Rate limit: 30 messages per 10 seconds per WebSocket
     const now = Date.now();
     const entry = this._wsMessageCounts.get(ws);
     if (!entry || now > entry.resetAt) {
-      this._wsMessageCounts.set(ws, { count: 1, resetAt: now + 10000 });
+      this._wsMessageCounts.set(ws, { count: 1, resetAt: now + MESSAGE_RATE_WINDOW_MS });
     } else {
-      if (entry.count >= 30) {
+      if (entry.count >= MESSAGE_RATE_LIMIT) {
         ws.close(1008, 'Message rate limit exceeded');
         return;
       }
