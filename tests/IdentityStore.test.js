@@ -36,18 +36,17 @@ function plain(obj) {
 describe('IdentityStore', () => {
   it('save() writes correct JSON to localStorage', () => {
     const { IS, ls } = makeStore();
-    IS.save('pid1', 'tok1', 'Alice');
+    IS.save('pid1', 'tok1');
     assert.deepEqual(JSON.parse(ls.getItem('thousand_identity')), {
       playerId: 'pid1',
       sessionToken: 'tok1',
-      nickname: 'Alice',
     });
   });
 
   it('load() returns parsed object after save()', () => {
     const { IS } = makeStore();
-    IS.save('pid2', 'tok2', 'Bob');
-    assert.deepEqual(plain(IS.load()), { playerId: 'pid2', sessionToken: 'tok2', nickname: 'Bob' });
+    IS.save('pid2', 'tok2');
+    assert.deepEqual(plain(IS.load()), { playerId: 'pid2', sessionToken: 'tok2' });
   });
 
   it('load() returns {} on missing key', () => {
@@ -63,15 +62,15 @@ describe('IdentityStore', () => {
 
   it('clear() removes the key', () => {
     const { IS, ls } = makeStore();
-    IS.save('pid3', 'tok3', 'Carol');
+    IS.save('pid3', 'tok3');
     IS.clear();
     assert.equal(ls.getItem('thousand_identity'), null);
   });
 
   it('save() overwrites previous value', () => {
     const { IS } = makeStore();
-    IS.save('pid4', 'tok4', 'Dave');
-    IS.save('pid5', 'tok5', 'Eve');
-    assert.deepEqual(plain(IS.load()), { playerId: 'pid5', sessionToken: 'tok5', nickname: 'Eve' });
+    IS.save('pid4', 'tok4');
+    IS.save('pid5', 'tok5');
+    assert.deepEqual(plain(IS.load()), { playerId: 'pid5', sessionToken: 'tok5' });
   });
 });

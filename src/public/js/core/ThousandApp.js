@@ -112,16 +112,14 @@ class ThousandApp {
         this._playerId = msg.playerId;
         this._sessionToken = msg.sessionToken;
         this._api.setSessionToken(this._sessionToken);
+        IdentityStore.save(msg.playerId, msg.sessionToken);
+        this._reconnectOverlay.hide();
         if (msg.restored && msg.nickname !== null) {
-          IdentityStore.save(msg.playerId, msg.sessionToken, msg.nickname);
           this._nickname = msg.nickname;
           $('player-name-display').textContent = msg.nickname;
-          this._reconnectOverlay.hide();
           this._showScreen('lobby-screen');
           this._gameList.startElapsedTimer();
         } else {
-          IdentityStore.save(msg.playerId, msg.sessionToken, null);
-          this._reconnectOverlay.hide();
           this._showScreen('nickname-screen');
         }
         break;

@@ -668,7 +668,7 @@ describe('Join-invite game status guard', () => {
 });
 
 describe('Existing sessionToken re-use on join', () => {
-  it('updates nickname of pre-existing player on join', async () => {
+  it('preserves the claimed nickname when join body sends a different one', async () => {
     // Pre-register a player with sessionToken (simulates WS-connected player)
     const { token, playerId } = await getSessionToken();
     players.set(playerId, { id: playerId, nickname: 'OldName', gameId: null, ws: null, sessionToken: token });
@@ -681,7 +681,9 @@ describe('Existing sessionToken re-use on join', () => {
 
     const res = await request('POST', '/api/games/00000c/join', { nickname: 'NewName' }, token);
     assert.equal(res.status, 200);
-    assert.equal(players.get(playerId).nickname, 'NewName');
+    // body.nickname is informational once the player is named — the server
+    // keeps the claimed identity to avoid silent renames.
+    assert.equal(players.get(playerId).nickname, 'OldName');
   });
 });
 

@@ -8,7 +8,10 @@ class ThousandStore {
     this.players = new Map();      // playerId -> Player
     this.inviteCodes = new Map();  // inviteCode -> gameId
     this._tokenIndex = new Map();  // sessionToken -> playerId
-    this._gracePeriodMs = process.env.GRACE_PERIOD_MS ? Number(process.env.GRACE_PERIOD_MS) : 30_000;
+    // A bad env value (e.g. "foo") becomes NaN, and setTimeout(NaN) fires immediately —
+    // every disconnect would purge instantly. Reject anything that isn't a positive finite number.
+    const parsed = process.env.GRACE_PERIOD_MS ? Number(process.env.GRACE_PERIOD_MS) : null;
+    this._gracePeriodMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 30_000;
   }
 
   createPlayer(ws, clientIp) {
@@ -32,6 +35,11 @@ class ThousandStore {
     }
     const player = this.players.get(playerId);
     if (player && player.sessionToken === sessionToken) {
+      // Mirror the bookkeeping createPlayer does, so anything that later reads
+      // ws._clientIp / ws._playerId (audit logging, abuse detection) sees the
+      // same shape on restored sessions.
+      ws._clientIp = clientIp;
+      ws._playerId = playerId;
       return { playerId, sessionToken, restored: true, nickname: player.nickname, gameId: player.gameId };
     }
     const result = this.createPlayer(ws, clientIp);

@@ -1,6 +1,6 @@
 export class IdentityStore {
-  static save(playerId, sessionToken, nickname) {
-    localStorage.setItem('thousand_identity', JSON.stringify({ playerId, sessionToken, nickname }));
+  static save(playerId, sessionToken) {
+    localStorage.setItem('thousand_identity', JSON.stringify({ playerId, sessionToken }));
   }
 
   static load() {
@@ -13,7 +13,6 @@ export class IdentityStore {
       const out = {};
       if (typeof parsed.playerId === 'string') out.playerId = parsed.playerId;
       if (typeof parsed.sessionToken === 'string') out.sessionToken = parsed.sessionToken;
-      if (typeof parsed.nickname === 'string' || parsed.nickname === null) out.nickname = parsed.nickname;
       return out;
     } catch {
       return {};
