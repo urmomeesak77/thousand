@@ -10,7 +10,7 @@ let strippedSrc;
 
 before(() => {
   const src = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'public', 'js', 'IdentityStore.js'),
+    path.join(__dirname, '..', 'src', 'public', 'js', 'storage', 'IdentityStore.js'),
     'utf8'
   );
   strippedSrc = src

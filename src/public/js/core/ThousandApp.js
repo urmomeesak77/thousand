@@ -1,14 +1,14 @@
-import { IdentityStore } from './IdentityStore.js';
-import { ReconnectOverlay } from './ReconnectOverlay.js';
-import HtmlContainer from './antlion/HtmlContainer.js';
-import NicknameScreen from './NicknameScreen.js';
-import GameList from './GameList.js';
-import PlayerTooltip from './PlayerTooltip.js';
-import WaitingRoom from './WaitingRoom.js';
-import Toast from './Toast.js';
-import ThousandSocket from './ThousandSocket.js';
-import GameApi from './GameApi.js';
-import ModalController from './ModalController.js';
+import { IdentityStore } from '../storage/IdentityStore.js';
+import { ReconnectOverlay } from '../overlays/ReconnectOverlay.js';
+import HtmlContainer from '../antlion/HtmlContainer.js';
+import NicknameScreen from '../screens/NicknameScreen.js';
+import GameList from '../screens/GameList.js';
+import PlayerTooltip from '../overlays/PlayerTooltip.js';
+import WaitingRoom from '../screens/WaitingRoom.js';
+import Toast from '../overlays/Toast.js';
+import ThousandSocket from '../network/ThousandSocket.js';
+import GameApi from '../network/GameApi.js';
+import ModalController from '../overlays/ModalController.js';
 
 const $ = (id) => document.getElementById(id);
 

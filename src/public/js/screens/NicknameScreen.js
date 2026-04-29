@@ -1,4 +1,4 @@
-import HtmlContainer from './antlion/HtmlContainer.js';
+import HtmlContainer from '../antlion/HtmlContainer.js';
 
 class NicknameScreen extends HtmlContainer {
   constructor(element, api, toast) {

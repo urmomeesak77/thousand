@@ -1,5 +1,5 @@
-import HtmlContainer from './antlion/HtmlContainer.js';
-import HtmlUtil from './utils/HtmlUtil.js';
+import HtmlContainer from '../antlion/HtmlContainer.js';
+import HtmlUtil from '../utils/HtmlUtil.js';
 
 class WaitingRoom extends HtmlContainer {
   constructor(element) {

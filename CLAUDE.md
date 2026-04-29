@@ -30,15 +30,22 @@ src/public/
   index.html / css/index.css           # lobby entry point + styles
   js/
     index.js                           # bootstrap — creates ThousandApp, starts Antlion
-    ThousandApp.js                     # app coordinator — state + orchestration
-    ThousandSocket.js                  # WebSocket wrapper
-    GameApi.js                         # REST API client
-    GameList.js                        # game list component
-    ModalController.js                 # modal dialogs
-    NicknameScreen.js                  # nickname entry screen
-    WaitingRoom.js                     # waiting room screen
-    PlayerTooltip.js                   # player hover tooltip
-    Toast.js                           # notification utility
+    core/
+      ThousandApp.js                   # app coordinator — state + orchestration
+    network/
+      ThousandSocket.js                # WebSocket wrapper
+      GameApi.js                       # REST API client
+    screens/
+      NicknameScreen.js                # nickname entry screen
+      GameList.js                      # game list component
+      WaitingRoom.js                   # waiting room screen
+    overlays/
+      ModalController.js               # modal dialogs
+      PlayerTooltip.js                 # player hover tooltip
+      Toast.js                         # notification utility
+      ReconnectOverlay.js              # reconnect overlay (branch 003)
+    storage/
+      IdentityStore.js                 # session token storage (branch 003)
     utils/HtmlUtil.js                  # DOM helpers
     antlion/                           # engine layer — generic, game-agnostic
 tests/                                 # Node.js built-in test runner (*.test.js)
@@ -79,9 +86,9 @@ See `docs/CODING_CONVENTIONS.md` for the full reference. Key points:
 
 ### Feature modules (`src/public/js/`)
 - Register into Antlion via the API above — no direct DOM listeners, no raw `setInterval`.
-- `ThousandApp.js` is the app coordinator; `ThousandSocket.js` wraps the WebSocket connection.
+- `core/ThousandApp.js` is the app coordinator; `network/ThousandSocket.js` wraps the WebSocket connection.
 - Game-specific logic will live under `src/public/js/thousand/` (not yet created).
 
 ## Active Feature Branch
 
-**003-persistent-player-identity** (in progress): Adds session tokens + `localStorage` so players survive page refreshes and short network disconnects. New files: `IdentityStore.js`, `ReconnectOverlay.js`. Extends `ThousandStore`, `ConnectionManager`, `ThousandApp`, `ThousandSocket`. Grace period (default 30 s) keeps player records alive during disconnect.
+**003-persistent-player-identity** (in progress): Adds session tokens + `localStorage` so players survive page refreshes and short network disconnects. New files: `storage/IdentityStore.js`, `overlays/ReconnectOverlay.js`. Extends `ThousandStore`, `ConnectionManager`, `core/ThousandApp.js`, `network/ThousandSocket.js`. Grace period (default 30 s) keeps player records alive during disconnect.

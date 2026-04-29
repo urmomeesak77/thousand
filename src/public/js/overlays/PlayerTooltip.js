@@ -1,4 +1,4 @@
-import HtmlGameObject from './antlion/HtmlGameObject.js';
+import HtmlGameObject from '../antlion/HtmlGameObject.js';
 
 class PlayerTooltip extends HtmlGameObject {
   constructor() {

@@ -1,5 +1,5 @@
-import HtmlGameObject from './antlion/HtmlGameObject.js';
-import HtmlUtil from './utils/HtmlUtil.js';
+import HtmlGameObject from '../antlion/HtmlGameObject.js';
+import HtmlUtil from '../utils/HtmlUtil.js';
 
 class GameList extends HtmlGameObject {
   constructor(element) {

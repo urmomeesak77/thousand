@@ -32,13 +32,15 @@ class RequestHandler {
 
   async handleRequest(req, res) {
     const ip = req.socket.remoteAddress;
-    if (!this._httpLimiter.isAllowed(ip)) {
-      HttpUtil.sendError(res, 429, 'rate_limited', 'Too many requests');
-      return;
-    }
-
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
+
+    if (pathname.startsWith('/api/')) {
+      if (!this._httpLimiter.isAllowed(ip)) {
+        HttpUtil.sendError(res, 429, 'rate_limited', 'Too many requests');
+        return;
+      }
+    }
     console.log(' Path:' + pathname);
 
     if (req.method === 'POST' && pathname === '/api/nickname') {

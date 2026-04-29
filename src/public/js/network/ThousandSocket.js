@@ -2,7 +2,7 @@
 // ThousandSocket — owns WebSocket connection and reconnect logic
 // ============================================================
 
-import { IdentityStore } from './IdentityStore.js';
+import { IdentityStore } from '../storage/IdentityStore.js';
 
 class ThousandSocket {
   constructor(antlion, onMessage, onError) {
