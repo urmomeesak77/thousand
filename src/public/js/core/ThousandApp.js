@@ -112,7 +112,7 @@ class ThousandApp {
         this._playerId = msg.playerId;
         this._sessionToken = msg.sessionToken;
         this._api.setSessionToken(this._sessionToken);
-        if (msg.restored) {
+        if (msg.restored && msg.nickname !== null) {
           IdentityStore.save(msg.playerId, msg.sessionToken, msg.nickname);
           this._nickname = msg.nickname;
           $('player-name-display').textContent = msg.nickname;
