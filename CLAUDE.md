@@ -1,12 +1,14 @@
 ﻿# thousand Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-16
+Auto-generated from all feature plans. Last updated: 2026-04-29
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
 
 ## Active Technologies
 - Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules) + `ws` npm package (backend WebSocket); no frontend dependencies (001-card-game-lobby)
 - N/A (in-memory backend state) (001-card-game-lobby)
+- Node.js v18+ (CommonJS) / Vanilla JS ES6+ (browser) + `ws` npm package, Node.js built-in `crypto` (already in use) (003-persistent-player-identity)
+- In-memory server state + browser `localStorage` (client) (003-persistent-player-identity)
 
 - Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages) (001-card-game-lobby)
 
@@ -55,6 +57,7 @@ Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+): Follow standard conventions
 - Game-specific logic lives under `src/public/js/thousand/`.
 
 ## Recent Changes
+- 003-persistent-player-identity: Added Node.js v18+ (CommonJS) / Vanilla JS ES6+ (browser) + `ws` npm package, Node.js built-in `crypto` (already in use)
 - 001-card-game-lobby: Added Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules) + `ws` npm package (backend WebSocket); no frontend dependencies
 
 - 001-card-game-lobby: Added Node.js v18+ (CommonJS) / HTML5, Vanilla JS (ES6+) + `ws` npm package (WebSocket — genuinely needed for real-time lobby updates and future gameplay; no other external packages)
