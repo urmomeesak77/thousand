@@ -19,7 +19,7 @@ const MESSAGE_VALIDATORS = {
   connected: (m) => typeof m.playerId === 'string' && typeof m.sessionToken === 'string' && typeof m.restored === 'boolean' && (m.nickname === null || typeof m.nickname === 'string'),
   session_replaced: () => true,
   lobby_update: (m) => Array.isArray(m.games),
-  game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players),
+  game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players) && typeof m.requiredPlayers === 'number',
   player_joined: (m) => Array.isArray(m.players) && m.player && typeof m.player.nickname === 'string',
   player_left: (m) => Array.isArray(m.players) && (m.nickname === null || typeof m.nickname === 'string'),
   game_disbanded: () => true,
@@ -135,7 +135,7 @@ class ThousandApp {
         this._inviteCode = msg.inviteCode ?? null;
         this._clearGameSelection();
         this._gameList.stopElapsedTimer();
-        this._waitingRoom.load(this._gameId, this._inviteCode, msg.players);
+        this._waitingRoom.load(this._gameId, this._inviteCode, msg.players, msg.requiredPlayers);
         this._showScreen('game-screen');
         this._waitingRoom.startTimer(msg.createdAt);
         break;

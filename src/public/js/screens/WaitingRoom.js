@@ -9,13 +9,15 @@ class WaitingRoom extends HtmlContainer {
     this._gameId = null;
     this._inviteCode = null;
     this._players = [];
+    this._requiredPlayers = null;
     this._timerId = null;
   }
 
-  load(gameId, inviteCode, players) {
+  load(gameId, inviteCode, players, requiredPlayers) {
     this._gameId = gameId;
     this._inviteCode = inviteCode;
     this._players = players;
+    this._requiredPlayers = requiredPlayers;
     this.renderContent();
   }
 
@@ -37,6 +39,10 @@ class WaitingRoom extends HtmlContainer {
       const li = document.createElement('li');
       li.textContent = p.nickname || p.id;
       ul.appendChild(li);
+    }
+    const hint = document.querySelector('.waiting-hint');
+    if (hint && this._requiredPlayers !== null) {
+      hint.textContent = `Waiting for players… (${this._requiredPlayers} needed to start)`;
     }
   }
 
