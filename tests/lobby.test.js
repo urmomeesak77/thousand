@@ -118,8 +118,8 @@ describe('Lobby game-list rendering', () => {
     deliverWS(window, {
       type: 'lobby_update',
       games: [
-        { id: 'g1', playerCount: 1, maxPlayers: 4 },
-        { id: 'g2', playerCount: 2, maxPlayers: 4 },
+        { id: 'g1', playerCount: 1, requiredPlayers: 4 },
+        { id: 'g2', playerCount: 2, requiredPlayers: 4 },
       ],
     });
     await new Promise((r) => setTimeout(r, 20));
@@ -151,13 +151,13 @@ describe('Lobby game-list rendering', () => {
     await new Promise((r) => setTimeout(r, 50));
 
     deliverWS(window, { type: 'lobby_update', games: [
-      { id: 'g1', playerCount: 1, maxPlayers: 4 },
-      { id: 'g2', playerCount: 2, maxPlayers: 4 },
+      { id: 'g1', playerCount: 1, requiredPlayers: 4 },
+      { id: 'g2', playerCount: 2, requiredPlayers: 4 },
     ] });
     await new Promise((r) => setTimeout(r, 20));
 
     deliverWS(window, { type: 'lobby_update', games: [
-      { id: 'g3', playerCount: 3, maxPlayers: 4 },
+      { id: 'g3', playerCount: 3, requiredPlayers: 4 },
     ] });
     await new Promise((r) => setTimeout(r, 20));
 

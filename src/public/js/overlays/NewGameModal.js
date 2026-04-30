@@ -45,9 +45,9 @@ class NewGameModal {
         this._onError('Pick public or private.');
         return;
       }
-      const maxPlayers = parseInt($('max-players').value, 10);
+      const requiredPlayers = parseInt($('player-count').value, 10);
       this._close();
-      this._onCreateGame(checked.value, maxPlayers);
+      this._onCreateGame(checked.value, requiredPlayers);
     });
   }
 

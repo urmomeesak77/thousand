@@ -111,7 +111,7 @@ describe('ConnectionManager hello — game restoration', () => {
     const player = store.players.get(playerId);
     player.nickname = 'Bob';
     const gameId = 'g1';
-    store.games.set(gameId, { id: gameId, players: new Set([playerId]), hostId: playerId, type: 'public', status: 'waiting', maxPlayers: 4, createdAt: 1000, inviteCode: null });
+    store.games.set(gameId, { id: gameId, players: new Set([playerId]), hostId: playerId, type: 'public', status: 'waiting', requiredPlayers: 4, createdAt: 1000, inviteCode: null });
     player.gameId = gameId;
 
     const cm = new ConnectionManager(store);

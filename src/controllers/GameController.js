@@ -3,7 +3,7 @@
 const crypto = require('crypto');
 const HttpUtil = require('../utils/HttpUtil');
 const RateLimiter = require('../utils/RateLimiter');
-const { validateNickname, validateMaxPlayers } = require('./validators');
+const { validateNickname, validateRequiredPlayers } = require('./validators');
 
 class GameController {
   constructor(store) {
@@ -38,7 +38,7 @@ class GameController {
     if (game.players.has(player.id)) {
       return [409, 'already_in_game', 'Already in this game'];
     }
-    if (game.status !== 'waiting' || game.players.size >= game.maxPlayers) {
+    if (game.status !== 'waiting' || game.players.size >= game.requiredPlayers) {
       return [409, 'game_full', 'Game is full'];
     }
     // Skip the duplicate check for already-named players — body.nickname is
@@ -123,7 +123,7 @@ class GameController {
       return;
     }
 
-    const { type, nickname, maxPlayers: rawMax = 3 } = body;
+    const { type, nickname, requiredPlayers: rawRequired = 3 } = body;
 
     if (!validateNickname(nickname)) {
       HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
@@ -133,12 +133,12 @@ class GameController {
       HttpUtil.sendError(res, 400, 'invalid_request', 'type must be "public" or "private"');
       return;
     }
-    const maxPlayersErr = validateMaxPlayers(rawMax);
-    if (maxPlayersErr) {
-      HttpUtil.sendError(res, 400, 'invalid_request', maxPlayersErr);
+    const requiredPlayersErr = validateRequiredPlayers(rawRequired);
+    if (requiredPlayersErr) {
+      HttpUtil.sendError(res, 400, 'invalid_request', requiredPlayersErr);
       return;
     }
-    const maxPlayers = Number(rawMax);
+    const requiredPlayers = Number(rawRequired);
 
     const nick = nickname.trim();
     const playerId = player.id;
@@ -159,7 +159,7 @@ class GameController {
 
     const game = {
       id: gameId, type, hostId: playerId,
-      players: new Set([playerId]), maxPlayers,
+      players: new Set([playerId]), requiredPlayers,
       status: 'waiting', inviteCode,
       createdAt: Date.now(),
     };

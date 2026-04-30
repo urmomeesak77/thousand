@@ -242,17 +242,17 @@ describe('GET /api/games', () => {
     // Add a public waiting game
     games.set('000007', {
       id: '000007', type: 'public', hostId: 'p1',
-      players: new Set(['p1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['p1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     // Add a private game — should NOT appear
     games.set('000008', {
       id: '000008', type: 'private', hostId: 'p2',
-      players: new Set(['p2']), maxPlayers: 4, status: 'waiting', inviteCode: 'ABCDEF',
+      players: new Set(['p2']), requiredPlayers: 4, status: 'waiting', inviteCode: 'ABCDEF',
     });
     // Add a public game that's playing — should NOT appear
     games.set('000009', {
       id: '000009', type: 'public', hostId: 'p3',
-      players: new Set(['p3']), maxPlayers: 4, status: 'playing', inviteCode: null,
+      players: new Set(['p3']), requiredPlayers: 4, status: 'playing', inviteCode: null,
     });
 
     const res = await request('GET', '/api/games');
@@ -264,21 +264,21 @@ describe('GET /api/games', () => {
   it('does not expose inviteCode field in response', async () => {
     games.set('000007', {
       id: '000007', type: 'public', hostId: 'p1',
-      players: new Set(['p1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['p1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     const res = await request('GET', '/api/games');
     assert.equal(res.status, 200);
     assert.ok(!('inviteCode' in res.body.games[0]));
   });
 
-  it('includes playerCount and maxPlayers fields', async () => {
+  it('includes playerCount and requiredPlayers fields', async () => {
     games.set('000007', {
       id: '000007', type: 'public', hostId: 'p1',
-      players: new Set(['p1', 'p2']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['p1', 'p2']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     const res = await request('GET', '/api/games');
     assert.equal(res.body.games[0].playerCount, 2);
-    assert.equal(res.body.games[0].maxPlayers, 4);
+    assert.equal(res.body.games[0].requiredPlayers, 4);
   });
 });
 
@@ -291,7 +291,7 @@ describe('POST /api/games/:id/join', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000001', {
       id: '000001', type: 'public', hostId: 'host1',
-      players: new Set(['host1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['host1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     players.set('host1', { id: 'host1', nickname: 'Host', gameId: '000001', ws: null, sessionToken: 'token1' });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
@@ -314,7 +314,7 @@ describe('POST /api/games/:id/join', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000002', {
       id: '000002', type: 'private', hostId: 'host1',
-      players: new Set(['host1']), maxPlayers: 4, status: 'waiting', inviteCode: 'ABCDEF',
+      players: new Set(['host1']), requiredPlayers: 4, status: 'waiting', inviteCode: 'ABCDEF',
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
 
@@ -327,7 +327,7 @@ describe('POST /api/games/:id/join', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000003', {
       id: '000003', type: 'public', hostId: 'h1',
-      players: new Set(['h1', 'h2', 'h3', 'h4']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['h1', 'h2', 'h3', 'h4']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
 
@@ -340,7 +340,7 @@ describe('POST /api/games/:id/join', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000004', {
       id: '000004', type: 'public', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'playing', inviteCode: null,
+      players: new Set(['h1']), requiredPlayers: 4, status: 'playing', inviteCode: null,
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
 
@@ -352,7 +352,7 @@ describe('POST /api/games/:id/join', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000001', {
       id: '000001', type: 'public', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['h1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
 
@@ -430,7 +430,7 @@ describe('POST /api/games/join-invite', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000002', {
       id: '000002', type: 'private', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: 'AABBCC',
+      players: new Set(['h1']), requiredPlayers: 4, status: 'waiting', inviteCode: 'AABBCC',
     });
     players.set('h1', { id: 'h1', nickname: 'Host', gameId: '000002', ws: null, sessionToken: 'token-h1' });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
@@ -454,7 +454,7 @@ describe('POST /api/games/join-invite', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000005', {
       id: '000005', type: 'private', hostId: 'h1',
-      players: new Set(['h1', 'h2', 'h3', 'h4']), maxPlayers: 4, status: 'waiting', inviteCode: 'F00001',
+      players: new Set(['h1', 'h2', 'h3', 'h4']), requiredPlayers: 4, status: 'waiting', inviteCode: 'F00001',
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     inviteCodes.set('F00001', '000005');
@@ -468,7 +468,7 @@ describe('POST /api/games/join-invite', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000006', {
       id: '000006', type: 'private', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: 'CODE01',
+      players: new Set(['h1']), requiredPlayers: 4, status: 'waiting', inviteCode: 'CODE01',
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     inviteCodes.set('CODE01', '000006');
@@ -505,7 +505,7 @@ describe('Nickname validation', () => {
     const { token, playerId } = await getSessionToken();
     games.set('000001', {
       id: '000001', type: 'public', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['h1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     const res = await request('POST', '/api/games/000001/join', { nickname: '   ' }, token);
@@ -559,7 +559,7 @@ describe('WebSocket lobby_update broadcast', () => {
   it('sends initial lobby_update immediately on connect', async () => {
     games.set('00000a', {
       id: '00000a', type: 'public', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['h1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
 
     const ws = await connectWS();
@@ -653,7 +653,7 @@ describe('Invalid JSON body handling', () => {
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
     games.set('000001', {
       id: '000001', type: 'public', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['h1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     const res = await requestRaw('/api/games/000001/join', '{bad json}', token);
     assert.equal(res.status, 400);
@@ -674,7 +674,7 @@ describe('Join-invite game status guard', () => {
     const { token, playerId } = await getSessionToken();
     games.set('00000b', {
       id: '00000b', type: 'private', hostId: 'h1',
-      players: new Set(['h1']), maxPlayers: 4, status: 'playing', inviteCode: 'PLAY99',
+      players: new Set(['h1']), requiredPlayers: 4, status: 'playing', inviteCode: 'PLAY99',
     });
     inviteCodes.set('PLAY99', '00000b');
     players.set(playerId, { id: playerId, nickname: null, gameId: null, ws: null, sessionToken: token });
@@ -693,7 +693,7 @@ describe('Existing sessionToken re-use on join', () => {
 
     games.set('00000c', {
       id: '00000c', type: 'public', hostId: 'host1',
-      players: new Set(['host1']), maxPlayers: 4, status: 'waiting', inviteCode: null,
+      players: new Set(['host1']), requiredPlayers: 4, status: 'waiting', inviteCode: null,
     });
     players.set('host1', { id: 'host1', nickname: 'Host', gameId: '00000c', ws: null, sessionToken: 'host-token' });
 

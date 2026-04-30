@@ -45,7 +45,7 @@ class GameList extends HtmlGameObject {
       li.innerHTML = `
         <span class="game-id-label">Game #${HtmlUtil.escape(game.id)}</span>
         <span class="game-owner">Created by: ${HtmlUtil.escape(game.owner || 'Unknown')}</span>
-        <span class="game-player-count">${game.playerCount} / ${game.maxPlayers} players</span>
+        <span class="game-player-count">${game.playerCount} / ${game.requiredPlayers} needed</span>
         <span class="game-waiting-time"></span>
       `;
       li.querySelector('.game-player-count').dataset.players = playerList;

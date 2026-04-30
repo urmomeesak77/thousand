@@ -80,7 +80,7 @@ describe('ThousandStore.handlePlayerDisconnect grace period', () => {
       hostId: playerId,
       status: 'waiting',
       type: 'public',
-      maxPlayers: 4,
+      requiredPlayers: 4,
       inviteCode: null,
       createdAt: Date.now(),
     });

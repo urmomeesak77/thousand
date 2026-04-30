@@ -88,7 +88,7 @@ class ThousandStore {
         result.push({
           id,
           playerCount: game.players.size,
-          maxPlayers: game.maxPlayers,
+          requiredPlayers: game.requiredPlayers,
           owner: host ? host.nickname : null,
           createdAt: game.createdAt,
           players: playerNames,

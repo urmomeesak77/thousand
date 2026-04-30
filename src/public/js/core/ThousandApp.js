@@ -41,7 +41,7 @@ class ThousandApp {
     this._modal = new NewGameModal(
       antlion,
       () => this._nickname,
-      (type) => this._createGame(type),
+      (type, requiredPlayers) => this._createGame(type, requiredPlayers),
       (msg) => this._toast.show(msg),
     );
     this._socket = new ThousandSocket(
@@ -323,8 +323,8 @@ class ThousandApp {
     }
   }
 
-  async _createGame(type, maxPlayers) {
-    const data = await this._api.create(type, this._nickname, maxPlayers);
+  async _createGame(type, requiredPlayers) {
+    const data = await this._api.create(type, this._nickname, requiredPlayers);
     if (data) {
       this._gameId = data.gameId;
       this._inviteCode = data.inviteCode;
