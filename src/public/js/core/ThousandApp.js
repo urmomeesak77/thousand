@@ -8,7 +8,7 @@ import WaitingRoom from '../screens/WaitingRoom.js';
 import Toast from '../overlays/Toast.js';
 import ThousandSocket from '../network/ThousandSocket.js';
 import GameApi from '../network/GameApi.js';
-import ModalController from '../overlays/ModalController.js';
+import NewGameModal from '../overlays/NewGameModal.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -38,7 +38,7 @@ class ThousandApp {
     this._selectedGameId = null;
     this._toast = new Toast(antlion);
     this._api = new GameApi((msg) => this._toast.show(msg));
-    this._modal = new ModalController(
+    this._modal = new NewGameModal(
       antlion,
       () => this._nickname,
       (type) => this._createGame(type),

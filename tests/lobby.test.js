@@ -33,7 +33,7 @@ before(() => {
     path.join(publicDir, 'js', 'overlays', 'ReconnectOverlay.js'),
     path.join(publicDir, 'js', 'network', 'ThousandSocket.js'),
     path.join(publicDir, 'js', 'network', 'GameApi.js'),
-    path.join(publicDir, 'js', 'overlays', 'ModalController.js'),
+    path.join(publicDir, 'js', 'overlays', 'NewGameModal.js'),
     path.join(publicDir, 'js', 'screens', 'NicknameScreen.js'),
     path.join(publicDir, 'js', 'screens', 'GameList.js'),
     path.join(publicDir, 'js', 'overlays', 'PlayerTooltip.js'),

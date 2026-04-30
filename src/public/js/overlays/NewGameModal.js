@@ -1,10 +1,10 @@
 const $ = (id) => document.getElementById(id);
 
 // ============================================================
-// ModalController — new-game modal open/close/submit
+// NewGameModal — new-game modal open/close/submit
 // ============================================================
 
-class ModalController {
+class NewGameModal {
   constructor(antlion, getNickname, onCreateGame, onError) {
     this._antlion = antlion;
     this._getNickname = getNickname;
@@ -64,4 +64,4 @@ class ModalController {
   }
 }
 
-export default ModalController;
+export default NewGameModal;
