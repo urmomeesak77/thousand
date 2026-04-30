@@ -1,5 +1,12 @@
 'use strict';
 
+const HttpUtil = require('../utils/HttpUtil');
+
+const MAX_CONNECTIONS_PER_IP = 10;
+const HELLO_TIMEOUT_MS = 5000;
+const MESSAGE_RATE_LIMIT = 30;
+const MESSAGE_RATE_WINDOW_MS = 10000;
+
 class ConnectionManager {
   constructor(store) {
     this._store = store;
@@ -11,24 +18,24 @@ class ConnectionManager {
 
   // T011 – WebSocket connection handler
   handleConnection(ws) {
-    const clientIp = ws._socket?.remoteAddress || 'unknown';
+    const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
     const currentCount = this._wsConnectionsByIp.get(clientIp) || 0;
-    if (currentCount >= 10) {
+    if (currentCount >= MAX_CONNECTIONS_PER_IP) {
       ws.close(1008, 'Too many connections from this IP');
       return;
     }
 
-    const { playerId, sessionToken } = this._store.createPlayer(ws, clientIp);
     this._wsConnectionsByIp.set(clientIp, currentCount + 1);
     this._clients.add(ws);
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
 
-    ws.send(JSON.stringify({ type: 'connected', playerId, sessionToken }));
-    ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
+    ws._helloTimer = setTimeout(() => ws.close(1008, 'Hello timeout'), HELLO_TIMEOUT_MS);
+
     ws.on('message', (data) => this._handleMessage(ws, data));
     ws.on('close', () => {
-      this._store.handlePlayerDisconnect(playerId);
+      clearTimeout(ws._helloTimer);
+      this._store.handlePlayerDisconnect(ws._playerId, ws);
       this._wsMessageCounts.delete(ws);
       this._clients.delete(ws);
       this._decrementIpCount(clientIp);
@@ -68,13 +75,12 @@ class ConnectionManager {
   }
 
   _handleMessage(ws, data) {
-    // Rate limit: 30 messages per 10 seconds per WebSocket
     const now = Date.now();
     const entry = this._wsMessageCounts.get(ws);
     if (!entry || now > entry.resetAt) {
-      this._wsMessageCounts.set(ws, { count: 1, resetAt: now + 10000 });
+      this._wsMessageCounts.set(ws, { count: 1, resetAt: now + MESSAGE_RATE_WINDOW_MS });
     } else {
-      if (entry.count >= 30) {
+      if (entry.count >= MESSAGE_RATE_LIMIT) {
         ws.close(1008, 'Message rate limit exceeded');
         return;
       }
@@ -88,9 +94,36 @@ class ConnectionManager {
       ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid JSON' }));
       return;
     }
+    if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
+      ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid message' }));
+      return;
+    }
     if (msg.type === 'ping') {
       return;
     }
+
+    if (msg.type === 'hello') {
+      if (ws._playerId) {
+        return;
+      }
+      clearTimeout(ws._helloTimer);
+      const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
+      const result = this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken);
+      ws._playerId = result.playerId;
+      if (result.restored) {
+        this._store.reconnectPlayer(result.playerId, ws);
+      }
+      ws.send(JSON.stringify({ type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken, restored: result.restored, nickname: result.nickname }));
+      ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
+      if (result.restored && result.gameId) {
+        const game = this._store.games.get(result.gameId);
+        if (game) {
+          ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt }));
+        }
+      }
+      return;
+    }
+
     // Lobby flows are HTTP-driven; gameplay protocol over WS is not implemented yet.
     // Until then, anything other than ping is rejected so a misbehaving client
     // doesn't silently believe it sent a meaningful command.

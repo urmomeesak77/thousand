@@ -1,6 +1,6 @@
 'use strict';
 
-const { describe, it, before, after, beforeEach } = require('node:test');
+const { describe, it, before, after, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
 const { WebSocket } = require('ws');
@@ -9,8 +9,9 @@ const { WebSocket } = require('ws');
 // Test helpers
 // ---------------------------------------------------------------------------
 
-let server, store, handler, connectionManager, games, players, inviteCodes;
+let server, wss, store, handler, connectionManager, games, players, inviteCodes;
 let baseUrl, wsUrl;
+let openSockets = new Set();
 
 function request(method, path, body, sessionToken) {
   return new Promise((resolve, reject) => {
@@ -89,7 +90,14 @@ function requestRaw(path, rawBody, sessionToken) {
   });
 }
 
-function connectWS() {
+async function connectWS(creds = {}) {
+  const ws = await _connectWS(creds);
+  openSockets.add(ws);
+  ws.once('close', () => openSockets.delete(ws));
+  return ws;
+}
+
+function _connectWS(creds = {}) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
     const msgs = [];
@@ -101,10 +109,14 @@ function connectWS() {
       }
     }, 5000);
 
+    ws.on('open', () => {
+      ws.send(JSON.stringify({ type: 'hello', ...creds }));
+    });
+
     ws.on('message', (data) => {
       msgs.push(JSON.parse(data.toString()));
-      // Resolve once we receive the first message (connected message)
-      if (!messageReceived) {
+      // Resolve once we receive the connected message
+      if (!messageReceived && msgs.some((m) => m.type === 'connected')) {
         messageReceived = true;
         clearTimeout(timeout);
         ws.msgs = msgs;
@@ -151,6 +163,7 @@ before(async () => {
   // Clear module cache so each test run gets fresh state
   const mod = require('../src/server');
   server = mod.server;
+  wss = mod.wss;
   store = mod.store;
   handler = mod.handler;
   connectionManager = mod.connectionManager;
@@ -165,7 +178,21 @@ before(async () => {
 });
 
 after(async () => {
+  for (const client of wss.clients) client.terminate();
+  server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
+  await new Promise((resolve) => wss.close(resolve));
+});
+
+afterEach(async () => {
+  for (const game of games.values()) clearTimeout(game.waitingRoomTimer);
+  for (const player of players.values()) clearTimeout(player.graceTimer);
+
+  const closing = [...openSockets].map(
+    (ws) => new Promise((r) => { ws.once('close', r); ws.close(); })
+  );
+  await Promise.all(closing);
+  openSockets.clear();
 });
 
 beforeEach(async () => {
@@ -179,10 +206,8 @@ beforeEach(async () => {
   handler._httpLimiter._counts.clear();
   handler._games._createLimiter._counts.clear();
 
-  // Wait to allow WebSocket connections to fully close and clean up from previous tests
-  // The server limits to 10 WebSocket connections per IP, and async close events
-  // may not have been processed yet by the time beforeEach runs
-  await new Promise((r) => setTimeout(r, 500));
+  // Use 0 ms grace period so disconnect tests see immediate cleanup via the event loop
+  store._gracePeriodMs = 0;
 });
 
 // ---------------------------------------------------------------------------
@@ -661,7 +686,7 @@ describe('Join-invite game status guard', () => {
 });
 
 describe('Existing sessionToken re-use on join', () => {
-  it('updates nickname of pre-existing player on join', async () => {
+  it('preserves the claimed nickname when join body sends a different one', async () => {
     // Pre-register a player with sessionToken (simulates WS-connected player)
     const { token, playerId } = await getSessionToken();
     players.set(playerId, { id: playerId, nickname: 'OldName', gameId: null, ws: null, sessionToken: token });
@@ -674,7 +699,9 @@ describe('Existing sessionToken re-use on join', () => {
 
     const res = await request('POST', '/api/games/00000c/join', { nickname: 'NewName' }, token);
     assert.equal(res.status, 200);
-    assert.equal(players.get(playerId).nickname, 'NewName');
+    // body.nickname is informational once the player is named — the server
+    // keeps the claimed identity to avoid silent renames.
+    assert.equal(players.get(playerId).nickname, 'OldName');
   });
 });
 

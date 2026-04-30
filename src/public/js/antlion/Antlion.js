@@ -39,7 +39,14 @@ class Antlion {
 
   // Schedule a delayed callback (replaces direct setTimeout in feature modules)
   schedule(delay, cb) {
-    const id = setTimeout(cb, delay);
+    // Self-removing wrapper: a timer that fires naturally would otherwise
+    // accumulate in `_timers` for the lifetime of the engine.
+    let id;
+    const wrapped = () => {
+      this._timers = this._timers.filter((t) => t !== id);
+      cb();
+    };
+    id = setTimeout(wrapped, delay);
     this._timers.push(id);
     return id;
   }

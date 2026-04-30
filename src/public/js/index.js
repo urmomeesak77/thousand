@@ -1,6 +1,6 @@
 import Antlion from './antlion/Antlion.js';
 import Scene from './antlion/Scene.js';
-import ThousandApp from './ThousandApp.js';
+import ThousandApp from './core/ThousandApp.js';
 
 const antlion = new Antlion();
 const scene = new Scene(antlion, document.getElementById('app'));

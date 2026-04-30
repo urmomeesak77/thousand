@@ -30,16 +30,20 @@ class GameController {
   // introduce an `await` between this check and `_admitPlayerToGame`, or two
   // concurrent joiners can both pass the capacity check before either is admitted.
   _validateJoinPreconditions(game, player, nickname) {
-    if (game.status !== 'waiting' || game.players.size >= game.maxPlayers) {
-      return [409, 'game_full', 'Game is full'];
-    }
+    // Identity checks come first so a duplicate request from someone already in
+    // the (full) game gets `already_in_game` instead of a misleading `game_full`.
     if (player.gameId !== null) {
       return [409, 'already_in_game', 'Leave your current game first'];
     }
     if (game.players.has(player.id)) {
       return [409, 'already_in_game', 'Already in this game'];
     }
-    if (this._isNicknameTaken(nickname.trim(), player.id)) {
+    if (game.status !== 'waiting' || game.players.size >= game.maxPlayers) {
+      return [409, 'game_full', 'Game is full'];
+    }
+    // Skip the duplicate check for already-named players — body.nickname is
+    // informational on join, and the server-side name was vetted at claim time.
+    if (!player.nickname && this._isNicknameTaken(nickname.trim(), player.id)) {
       return [409, 'duplicate_nickname', 'That nickname is already taken'];
     }
     return null;
@@ -132,12 +136,16 @@ class GameController {
     const nick = nickname.trim();
     const playerId = player.id;
 
-    if (this._isNicknameTaken(nick, playerId)) {
-      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
-      return;
+    // Honor a previously-claimed nickname. The body field is required by the API
+    // (so old/new clients all send it), but it's informational once the player
+    // has a server-side identity — silently renaming on every create was a footgun.
+    if (!player.nickname) {
+      if (this._isNicknameTaken(nick, playerId)) {
+        HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
+        return;
+      }
+      player.nickname = nick;
     }
-
-    player.nickname = nick;
 
     const gameId = crypto.randomBytes(3).toString('hex');
     const inviteCode = type === 'private' ? this.store.generateInviteCode() : null;
@@ -153,6 +161,7 @@ class GameController {
     if (inviteCode) {
       this.store.inviteCodes.set(inviteCode, gameId);
     }
+    this.store.scheduleWaitingRoomTimeout(gameId);
 
     // T035, T041 – broadcast and notify host
     this._admitPlayerToGame(game, gameId, playerId);
@@ -190,7 +199,9 @@ class GameController {
       return;
     }
 
-    player.nickname = nickname.trim();
+    if (!player.nickname) {
+      player.nickname = nickname.trim();
+    }
     this._admitPlayerToGame(game, gameId, player.id);
 
     HttpUtil.sendJSON(res, 200, { gameId });
@@ -238,7 +249,9 @@ class GameController {
       return;
     }
 
-    player.nickname = nickname.trim();
+    if (!player.nickname) {
+      player.nickname = nickname.trim();
+    }
     this._admitPlayerToGame(game, gameId, player.id);
 
     HttpUtil.sendJSON(res, 200, { gameId });

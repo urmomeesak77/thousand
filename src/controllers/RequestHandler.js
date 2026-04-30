@@ -31,14 +31,16 @@ class RequestHandler {
   }
 
   async handleRequest(req, res) {
-    const ip = req.socket.remoteAddress;
-    if (!this._httpLimiter.isAllowed(ip)) {
-      HttpUtil.sendError(res, 429, 'rate_limited', 'Too many requests');
-      return;
-    }
-
+    const ip = HttpUtil.normalizeIp(req.socket.remoteAddress);
     const url = new URL(req.url, 'http://localhost');
     const { pathname } = url;
+
+    if (pathname.startsWith('/api/')) {
+      if (!this._httpLimiter.isAllowed(ip)) {
+        HttpUtil.sendError(res, 429, 'rate_limited', 'Too many requests');
+        return;
+      }
+    }
 
     if (req.method === 'POST' && pathname === '/api/nickname') {
       const player = this._requireAuth(req, res);

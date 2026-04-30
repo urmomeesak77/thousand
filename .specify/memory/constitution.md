@@ -6,7 +6,7 @@
 Frontend: Vanilla JS, HTML, CSS — no frameworks, no build tools. Backend: Node.js — no TypeScript, no transpilation. Open files directly or serve via Node's built-in `http` module.
 
 ### II. Single-File Frontend
-Each game page is a single `.html` file. No inline CSS or JS. No bundlers, no imports, no CDN dependencies.
+Each page has one entry HTML file. CSS and JS live in separate files (no inline). ES modules permitted within `src/public/js/`. No bundlers, no transpilers, no CDN dependencies — what ships is what you wrote.
 
 ### III. Simplicity First
 Write the least code that works. No abstractions for future requirements. No utility libraries unless a feature genuinely needs them.
@@ -99,4 +99,4 @@ When working with files, prefer dedicated tools (Read, Grep, Glob, Edit, Write) 
 
 This constitution supersedes CLAUDE.md for architectural decisions. Keep it minimal — only amend when a new constraint is truly project-wide.
 
-**Version**: 2.2.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-15
+**Version**: 2.3.0 | **Ratified**: 2026-04-14 | **Last Amended**: 2026-04-29
