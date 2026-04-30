@@ -151,7 +151,11 @@ class ThousandApp {
         this._waitingRoom.stopTimer();
         this._showScreen('lobby-screen');
         this._gameList.startElapsedTimer();
-        this._toast.show('The host left — game was disbanded.');
+        this._toast.show(
+          msg.reason === 'waiting_room_timeout'
+            ? 'Waiting room closed — the game wasn\'t started within 10 minutes.'
+            : 'The host left — game was disbanded.'
+        );
         break;
       case 'session_replaced':
         this._toast.show('Connected from another tab or browser — this session ended.');

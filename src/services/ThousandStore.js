@@ -2,6 +2,8 @@
 
 const crypto = require('crypto');
 
+const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
+
 class ThousandStore {
   constructor() {
     this.games = new Map();        // gameId -> Game
@@ -198,6 +200,10 @@ class ThousandStore {
   }
 
   _deleteGame(gameId, game) {
+    if (game.waitingRoomTimer) {
+      clearTimeout(game.waitingRoomTimer);
+      game.waitingRoomTimer = null;
+    }
     if (game.inviteCode) {
       this.inviteCodes.delete(game.inviteCode);
     }
@@ -205,8 +211,8 @@ class ThousandStore {
     this.broadcastLobbyUpdate();
   }
 
-  _disbandGame(gameId, game) {
-    const disbandMsg = { type: 'game_disbanded', reason: 'host_left' };
+  _disbandGame(gameId, game, reason = 'host_left') {
+    const disbandMsg = { type: 'game_disbanded', reason };
     for (const pid of game.players) {
       const p = this.players.get(pid);
       if (p) {
@@ -215,6 +221,16 @@ class ThousandStore {
       this.sendToPlayer(pid, disbandMsg);
     }
     this._deleteGame(gameId, game);
+  }
+
+  scheduleWaitingRoomTimeout(gameId) {
+    const game = this.games.get(gameId);
+    if (!game) return;
+    game.waitingRoomTimer = setTimeout(() => {
+      const g = this.games.get(gameId);
+      if (!g || g.status !== 'waiting') return;
+      this._disbandGame(gameId, g, 'waiting_room_timeout');
+    }, WAITING_ROOM_TIMEOUT_MS);
   }
 }
 

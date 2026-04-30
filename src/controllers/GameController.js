@@ -161,6 +161,7 @@ class GameController {
     if (inviteCode) {
       this.store.inviteCodes.set(inviteCode, gameId);
     }
+    this.store.scheduleWaitingRoomTimeout(gameId);
 
     // T035, T041 – broadcast and notify host
     this._admitPlayerToGame(game, gameId, playerId);
