@@ -132,6 +132,7 @@ class ThousandApp {
         break;
       case 'game_joined':
         this._gameId = msg.gameId;
+        this._inviteCode = msg.inviteCode ?? null;
         this._clearGameSelection();
         this._gameList.stopElapsedTimer();
         this._waitingRoom.load(this._gameId, this._inviteCode, msg.players);

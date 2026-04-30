@@ -118,7 +118,7 @@ class ConnectionManager {
       if (result.restored && result.gameId) {
         const game = this._store.games.get(result.gameId);
         if (game) {
-          ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt }));
+          ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt, inviteCode: game.inviteCode ?? null }));
         }
       }
       return;

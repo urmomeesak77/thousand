@@ -60,6 +60,7 @@ class GameController {
       gameId,
       players: this.store.serializePlayers(game),
       createdAt: game.createdAt,
+      inviteCode: game.inviteCode ?? null,
     });
 
     // T042 – player_joined to existing players
