@@ -48,6 +48,7 @@ class ThousandApp {
       antlion,
       (msg) => this._handleMessage(msg),
       (err) => this._toast.show(err),
+      () => this._reconnectOverlay?.show(),
     );
   }
 

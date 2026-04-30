@@ -8,10 +8,11 @@ const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 
 class ThousandSocket {
-  constructor(antlion, onMessage, onError) {
+  constructor(antlion, onMessage, onError, onDisconnect) {
     this._antlion = antlion;
     this._onMessage = onMessage;
     this._onError = onError;
+    this._onDisconnect = onDisconnect ?? null;
     this._reconnectId = null;
     this._ws = null;
     this._stopped = false;
@@ -52,9 +53,10 @@ class ThousandSocket {
       }
       this._onMessage(msg);
     };
-    ws.onerror = () => this._onError('Connection error. Please refresh.');
+    ws.onerror = () => this._onError('Connection error.');
     ws.onclose = () => {
       if (this._stopped) return;
+      this._onDisconnect?.();
       if (this._reconnectId !== null) {
         this._antlion.cancelScheduled(this._reconnectId);
       }
