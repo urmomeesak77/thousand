@@ -321,8 +321,8 @@ class ThousandApp {
     }
   }
 
-  async _createGame(type) {
-    const data = await this._api.create(type, this._nickname);
+  async _createGame(type, maxPlayers) {
+    const data = await this._api.create(type, this._nickname, maxPlayers);
     if (data) {
       this._gameId = data.gameId;
       this._inviteCode = data.inviteCode;

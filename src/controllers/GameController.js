@@ -3,7 +3,7 @@
 const crypto = require('crypto');
 const HttpUtil = require('../utils/HttpUtil');
 const RateLimiter = require('../utils/RateLimiter');
-const { validateNickname } = require('./validators');
+const { validateNickname, validateMaxPlayers } = require('./validators');
 
 class GameController {
   constructor(store) {
@@ -122,7 +122,7 @@ class GameController {
       return;
     }
 
-    const { type, nickname } = body;
+    const { type, nickname, maxPlayers: rawMax = 3 } = body;
 
     if (!validateNickname(nickname)) {
       HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
@@ -132,6 +132,12 @@ class GameController {
       HttpUtil.sendError(res, 400, 'invalid_request', 'type must be "public" or "private"');
       return;
     }
+    const maxPlayersErr = validateMaxPlayers(rawMax);
+    if (maxPlayersErr) {
+      HttpUtil.sendError(res, 400, 'invalid_request', maxPlayersErr);
+      return;
+    }
+    const maxPlayers = Number(rawMax);
 
     const nick = nickname.trim();
     const playerId = player.id;
@@ -152,7 +158,7 @@ class GameController {
 
     const game = {
       id: gameId, type, hostId: playerId,
-      players: new Set([playerId]), maxPlayers: 4,
+      players: new Set([playerId]), maxPlayers,
       status: 'waiting', inviteCode,
       createdAt: Date.now(),
     };

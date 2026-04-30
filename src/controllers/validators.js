@@ -20,4 +20,10 @@ function validateNickname(nickname) {
   return true;
 }
 
-module.exports = { validateNickname };
+function validateMaxPlayers(v) {
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 2 || n > 4) return 'Max players must be 2, 3, or 4';
+  return null;
+}
+
+module.exports = { validateNickname, validateMaxPlayers };

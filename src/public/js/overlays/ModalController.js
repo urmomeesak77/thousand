@@ -45,8 +45,9 @@ class ModalController {
         this._onError('Pick public or private.');
         return;
       }
+      const maxPlayers = parseInt($('max-players').value, 10);
       this._close();
-      this._onCreateGame(checked.value);
+      this._onCreateGame(checked.value, maxPlayers);
     });
   }
 

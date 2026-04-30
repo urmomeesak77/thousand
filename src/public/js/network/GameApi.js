@@ -44,9 +44,9 @@ class GameApi {
     }
   }
 
-  async create(type, nickname) {
+  async create(type, nickname, maxPlayers) {
     try {
-      const { res, data } = await this._post('/api/games', { type, nickname });
+      const { res, data } = await this._post('/api/games', { type, nickname, maxPlayers });
       if (!res.ok) {
         this._onError(data.message || 'Failed to create game');
         return null;
