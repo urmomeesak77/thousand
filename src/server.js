@@ -47,4 +47,4 @@ if (require.main === module) {
   connectionManager.startHeartbeat();
 }
 
-module.exports = { server, store, handler, connectionManager };
+module.exports = { server, wss, store, handler, connectionManager };
