@@ -163,7 +163,9 @@ class ThousandStore {
     const msg = JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() });
     for (const [, player] of this.players) {
       if (player.gameId === null && player.ws && player.ws.readyState === 1 /* OPEN */) {
-        player.ws.send(msg);
+        // readyState can flip between the check and send (socket terminated mid-iteration).
+        // Swallow per-recipient errors so one bad ws doesn't abort the broadcast.
+        try { player.ws.send(msg); } catch { /* ignore */ }
       }
     }
   }
@@ -171,7 +173,7 @@ class ThousandStore {
   sendToPlayer(playerId, payload) {
     const player = this.players.get(playerId);
     if (player && player.ws && player.ws.readyState === 1) {
-      player.ws.send(JSON.stringify(payload));
+      try { player.ws.send(JSON.stringify(payload)); } catch { /* ignore */ }
     }
   }
 

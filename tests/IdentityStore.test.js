@@ -73,4 +73,25 @@ describe('IdentityStore', () => {
     IS.save('pid5', 'tok5');
     assert.deepEqual(plain(IS.load()), { playerId: 'pid5', sessionToken: 'tok5' });
   });
+
+  it('save() swallows QuotaExceededError and returns false', () => {
+    const { IS, ls } = makeStore();
+    // Storage methods live on the prototype; assigning ls.setItem doesn't shadow them
+    // in jsdom. Patch the prototype directly.
+    const proto = Object.getPrototypeOf(ls);
+    const original = proto.setItem;
+    proto.setItem = () => { throw new Error('QuotaExceededError'); };
+    try {
+      let result;
+      assert.doesNotThrow(() => { result = IS.save('pidQ', 'tokQ'); });
+      assert.equal(result, false);
+    } finally {
+      proto.setItem = original;
+    }
+  });
+
+  it('save() returns true on success', () => {
+    const { IS } = makeStore();
+    assert.equal(IS.save('pidT', 'tokT'), true);
+  });
 });

@@ -1,6 +1,14 @@
 export class IdentityStore {
   static save(playerId, sessionToken) {
-    localStorage.setItem('thousand_identity', JSON.stringify({ playerId, sessionToken }));
+    try {
+      localStorage.setItem('thousand_identity', JSON.stringify({ playerId, sessionToken }));
+      return true;
+    } catch {
+      // Quota exceeded, storage disabled (Safari private mode), or storage access denied.
+      // Persistence is best-effort — losing it for one session is better than crashing
+      // the message handler that called save().
+      return false;
+    }
   }
 
   static load() {
