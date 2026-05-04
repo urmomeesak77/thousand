@@ -10,15 +10,15 @@
 }
 
 :root {
-  --color-bg: #0f0e17;
-  --color-surface: #1a1a2e;
-  --color-surface-alt: #16213e;
-  --color-border: #2a2a4a;
-  --color-primary: #7c5cbf;
-  --color-primary-hover: #9370db;
+  --color-bg: #0d1410;
+  --color-surface: #111d16;
+  --color-surface-alt: #0e1913;
+  --color-border: #1e3828;
+  --color-primary: #3ea86c;
+  --color-primary-hover: #52c47e;
   --color-accent: #e94560;
   --color-text: #ececec;
-  --color-text-muted: #888aaa;
+  --color-text-muted: #7a9e87;
   --color-success: #3ecf8e;
   --color-error: #e94560;
   --radius: 0.5rem;
@@ -572,7 +572,7 @@ fieldset legend {
 #reconnect-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 14, 23, 0.88);
+  background: rgba(13, 20, 16, 0.88);
   display: flex;
   align-items: center;
   justify-content: center;
