@@ -1,0 +1,474 @@
+1000 (THOUSAND) - CARD GAME RULES - COMPREHENSIVE EDITION
+===========================================================
+
+GAME OVERVIEW
+=============
+1000 (also known as Thousand or Tysiacha) is a classic European card game popular in Eastern Europe,
+Poland, and Russia. It is a strategic point-trick game where players aim to be the first to reach 1000 points.
+The game combines bidding, trump-suit strategy, and trick-taking mechanics.
+
+PLAYERS: 3 players (fixed)
+DECK: 24-card deck (9, 10, J, Q, K, A in each of 4 suits: Hearts, Diamonds, Clubs, Spades)
+
+CARD VALUES IN TRICKS
+=====================
+Ace (A):     11 points
+Ten (10):    10 points
+King (K):     4 points
+Queen (Q):    3 points
+Jack (J):     2 points
+Nine (9):     0 points
+
+SPECIAL HAND COMBINATIONS (MARRIAGES)
+======================================
+A "marriage" is a King and Queen of the same suit held by the same player.
+- Announcing a marriage allows declaring the suit as trump and carries strategic significance.
+- A player may hold multiple marriages (one per suit) in their hand.
+- Marriage points are declared (not scored) and do not contribute to trick points.
+
+SETUP & DEALING
+===============
+1. Shuffle the 24-card deck thoroughly.
+2. Choose a dealer by any agreed method (e.g., highest card or rotating each hand).
+3. Deal 7 cards to each player, one card at a time, going clockwise.
+   - If 3 players, dealing order: Player 1 → Player 2 → Player 3 → Player 1 → etc.
+4. Place the remaining 3 cards face-down in the center of the table (called the "prikup" or "talon").
+   - These 3 cards will be given to the winning bidder (the declarer).
+5. Game position: Player to the dealer's left is in first position (bids first).
+
+BIDDING PHASE
+=============
+
+INITIAL BIDDING
+1. The player to the dealer's left bids first (position 1).
+2. Bidding starts at 100 points as the minimum bid.
+3. Each bid must be:
+   - Higher than the previous bid
+   - Divisible by 5 (allowed bids: 100, 105, 110, 115, ..., 295, 300)
+4. The maximum allowed bid is 300 points.
+5. Players bid in clockwise order (position 1 → position 2 → position 3 → position 1, etc.)
+6. A player may PASS at any time during bidding. Once a player passes, they cannot bid again in this round.
+7. Bidding continues until only one player remains (all others have passed).
+
+DETERMINING THE DECLARER
+1. The player with the highest bid becomes the "declarer" (also called "declarant" or "taker").
+2. The declarer must score at least the amount they bid to gain positive points for that round.
+3. If all players pass on the initial 100-point minimum, the dealer becomes the declarer automatically
+   with a bid of exactly 100 points. The dealer can raise this automatic bid.
+
+DECLARER'S OPTIONS AFTER WINNING THE BID
+1. Once the declarer wins the bidding, they take the 3 talon cards into their hand.
+   - They now have 10 cards total (7 dealt + 3 from talon).
+2. The declarer now has two main choices:
+   a) SELL THE BID (attempt to pass the contract to another player)
+   b) START THE GAME (proceed to play with their current hand)
+
+SELLING THE BID PHASE
+=====================
+
+SELLING THE BID - DETAILED PROCESS
+1. The declarer may attempt to sell the bid. They do this by selecting 3 cards from their 10-card hand
+   and placing them face-up on the table (these replace the talon).
+2. The other two players (non-declarers) now get a chance to "buy" the bid by bidding higher than
+   the original bid.
+   - For example: if original bid was 120, a buyer must bid at least 125.
+3. Bidding for the talon proceeds as follows:
+   a) Starting with the player to the declarer's left (clockwise), each player may:
+      - BID a higher amount (which must be divisible by 5 and higher than current bid)
+      - PASS (and cannot bid again in this selling round)
+   b) Bidding continues clockwise until only one player remains (the other passed).
+   c) That player becomes the new declarer with the higher bid and takes the 3 revealed cards.
+   d) The original declarer is EXCLUDED from further bidding on this talon.
+
+SELLING THE BID - OUTCOMES
+- If a player buys the bid:
+  * They become the new declarer with the new (higher) bid.
+  * They take the 3 revealed talon cards into their hand.
+
+- If no one bids on the revealed cards:
+  * The revealed cards go back to the original declarer's hand.
+  * The original declarer must decide: try to sell again with 3 different cards, or start the game.
+
+SELLING THE BID - MULTIPLE ATTEMPTS
+1. The original declarer may attempt to sell the bid up to 3 times per round.
+   - Attempt 1: Reveal 3 cards, wait for bids.
+   - Attempt 2 (if no buyers on Attempt 1): Put those 3 back, reveal 3 different cards.
+   - Attempt 3 (if still no buyers): Put those 3 back, reveal 3 different cards one final time.
+2. If no one buys on the 3rd attempt, all revealed cards are returned to the declarer's hand.
+3. The declarer MUST now start the game with their 10-card hand. They cannot attempt to sell again.
+4. If someone buys the bid on Attempt 1 or 2, the selling phase ends immediately.
+
+
+STARTING THE GAME PHASE
+=======================
+
+CARD EXCHANGE (PASSING CARDS)
+1. After the declarer is finalized (either from bidding or from selling the bid), the declarer prepares
+   to play by exchanging cards.
+2. The declarer selects exactly 2 cards from their hand that they do NOT want to play.
+3. These 2 cards are passed face-down to other players:
+   - 1 card to the player on their left
+   - 1 card to the player on their right
+
+IMPORTANT NOTE ON CARD PASSING
+- Players typically pass their weakest or least useful cards.
+
+TRUMP SUIT DECLARATION
+======================
+
+TIMING OF TRUMP DECLARATION
+1. Trump can only be declared AFTER the first trick has been played (not on trick 1).
+2. Trump can only be declared when a player is leading a trick AND holds at least 3 cards in hand
+   at the moment they lead (counting the card they are about to play as the lead).
+   - Each player has 8 cards after card exchange.
+   - When leading trick 7, the player holds only 2 cards; when leading trick 8, only 1.
+   - This means trump cannot be declared when leading trick 7 or 8.
+3. Trump may be declared when leading any trick from trick 2 through trick 6 (inclusive).
+
+DECLARING TRUMP WITH A MARRIAGE
+1. Any player who holds a marriage (a King and Queen of the same suit) may declare that suit
+   as trump during the allowed window (after trick 1, while holding at least 3 cards including
+   the lead card, and when they lead a trick).
+2. To declare trump by marriage:
+   a) The player must be leading the trick (playing the first card).
+   b) The player plays either the King or Queen of a suit where they hold the marriage.
+   c) The player announces the suit as trump (e.g., "Marriage in Hearts" or "Trump Hearts").
+   d) That suit becomes the trump suit for all remaining tricks in this round (or a new trump can be declared later).
+3. Trump suit effects:
+   - Any trump card beats any non-trump card of any other suit.
+   - Trump cards win tricks even if they are lower ranking (e.g., a trump 9 beats a non-trump Ace).
+
+NO TRUMP OPTION
+1. The declarer may choose NOT to declare any trump suit during the entire round, playing in "no-trump" mode.
+2. In no-trump, tricks are won by the highest card of the suit that was led (no trump beats any card).
+3. Once all tricks are completed without declaring trump, the round remains no-trump.
+
+PLAY PHASE - TRICKS
+===================
+
+STARTING PLAY
+1. The declarer leads the first trick (plays the first card).
+2. The declarer plays any card from their 10-card hand face-up in the center of the table.
+   - NOTE: Only the declarer leads the first trick. After that, whoever wins each trick leads the next trick.
+
+FOLLOWING SUIT (FUNDAMENTAL RULE)
+1. The other two players must play in order (clockwise from the declarer).
+2. RULE: If a player has a card of the same suit as the card led, they MUST play a card of that suit.
+3. EXCEPTION: If a player cannot follow suit, they MUST play trump if they have one (and trump has been declared).
+    If they don't have the suit nor trump, they can choose any card they have.
+
+WINNING A TRICK
+1. Once all three players have played one card each, the trick is resolved.
+2. The winner of the trick is determined by these rules (in priority order):
+   a) If trump was played: The highest trump card wins the trick.
+   b) If no trump was played: The highest card of the suit led wins the trick.
+   c) If a player played a card of a different suit (and no trump), that card does not win.
+3. For example:
+   - Declarer leads a 10 of Hearts (non-trump).
+   - Player 2 plays a King of Hearts (following suit).
+   - Player 3 plays a 9 of Spades (trump).
+   - RESULT: Player 3 wins the trick (trump beats all non-trump).
+
+   - Declarer leads a 10 of Hearts.
+   - Player 2 plays a Queen of Diamonds (cannot follow suit, no trump available).
+   - Player 3 plays an Ace of Hearts (following suit).
+   - RESULT: Player 3 wins (Ace of Hearts beats 10 of Hearts in the led suit).
+
+COLLECTING TRICKS
+1. The winner of each trick collects all three cards played and places them in front of them face down.
+2. CRITICAL: The winner of the trick ALWAYS leads the next trick by playing any card from their remaining hand.
+   - This applies to all 8 tricks: whoever won the previous trick gets to lead the current trick.
+   - The trick leader determines which suit is led (forcing other players to follow suit if possible).
+3. Play continues until all cards are exhausted (8 tricks total, since each player started with the appropriate number).
+
+PLAY CONTINUES
+1. Each player plays a card in clockwise order for each of the remaining 8 tricks.
+2. Players keep their won tricks separate so points can be counted later.
+3. No trick is won or lost until all players have played; the highest card (by the rules above) determines the winner.
+
+
+SCORING PHASE
+=============
+
+COUNTING TRICK POINTS
+1. After all 8 tricks are played, each player counts the points in their collected tricks.
+2. Use the CARD VALUES list at the top of these rules (Ace = 11, Ten = 10, King = 4, Queen = 3, Jack = 2, Nine = 0).
+3. A player's trick total is the sum of all card values they won.
+4. Example: If a player won tricks containing an Ace, a King, a Jack, and a Nine:
+   11 + 4 + 2 + 0 = 17 points
+
+MARRIAGE POINT VALUES
+======================
+When any player declares a marriage (by playing the King or Queen of a suit where they hold the marriage),
+the marriage adds bonus points to that player's score in addition to the card values and trick points:
+
+Clubs marriage:     100 points
+Spades marriage:     80 points
+Hearts marriage:     60 points
+Diamonds marriage:   40 points
+
+Multiple marriages: If a player declares more than one marriage during the round (by leading with K or Q
+in different suits), each marriage adds its full bonus value to that player's total score.
+
+DECLARER'S SCORE CALCULATION
+1. The declarer's total score for this round is calculated as:
+   - Trick points + Declared marriage bonus points
+2. Compare the declarer's total to their bid amount:
+
+   a) IF total >= bid amount:
+      - The declarer GAINS the bid amount to their total score.
+      - Example: Bid was 130, declarer took tricks worth 90 + declared Hearts marriage (60) = 150 total
+        → Gain +130 points
+
+   b) IF total < bid amount:
+      - The declarer LOSES the bid amount from their total score (negative points).
+      - Example: Bid was 140, declarer took tricks worth 85 + no marriage declared = 85 total
+        → Lose -140 points
+      - A player's score can go NEGATIVE if they fail badly enough.
+
+OPPONENTS' SCORE CALCULATION
+1. Each opponent (non-declarer) who did not win the bid scores separately.
+2. Each opponent's total score for this round is calculated as:
+   - Trick points + Declared marriage bonus points
+3. Opponents may declare marriages during play (by playing King or Queen of a suit) to earn marriage bonuses.
+   - Use the same MARRIAGE POINT VALUES listed above.
+   - Multiple marriages declared by an opponent add their full bonus values.
+4. Each opponent gains their total (trick points + marriage bonuses) to their score.
+5. Example: Opponent 1 took 23 trick points + declared Spades marriage (80) = 103 total → gains +103 points
+6. Example: Opponent 2 took 7 trick points + no marriages declared = 7 total → gains +7 points
+
+ROUND CONCLUSION
+1. Each player's score is updated based on the above calculations.
+2. The scores for this round are final.
+3. A player's cumulative score can go negative — there is no floor. A declarer who loses a large bid
+   early in the game may start subsequent rounds with a negative total.
+4. Proceed to the next round (next dealer, next bidding phase).
+
+SPECIAL SCORING SITUATIONS
+===========================
+
+THE BARREL (880-1000 POINT RANGE) - CRITICAL RULE
+1. If a player's score reaches between 880 and 1000 points (inclusive), they are "on the barrel" or "in the barrel."
+2. A player on the barrel has a three-round window to reach 1000+:
+   - The counter advances by 1 after every round while the player is on the barrel, regardless of outcome.
+   - A round where the barrel player does not win the bid (outbid by opponents) still advances the counter.
+   - A round where the barrel player wins a bid but fails to score enough also advances the counter
+     (and their score drops by the bid amount as normal).
+   - These three rounds do NOT need to be consecutive; barrel status persists across rounds until resolved.
+3. While on the barrel, the player must bid at least 120. They cannot win the bid at a lower amount.
+4. If the barrel player fails to reach 1000 within their three-round window:
+   - Their score is reduced by 120 points.
+   - They drop out of barrel status and are back below 880.
+   - They must then work back up to try again.
+5. Barrel resets: If a barrel player successfully wins a bid and scores enough to reach 1000+, they WIN the game.
+6. Multiple players on barrel: If multiple players are in the barrel simultaneously, each has their own three-round counter.
+
+EXAMPLE BARREL SCENARIO
+- Player A has 895 points (on the barrel, counter = 0 rounds).
+- Round 1: Player A bids 130 but only takes 85 trick points. They lose 130 points → 765 total (out of barrel). Counter resets.
+- Player A works back up to 890.
+- Round 5: Player A bids 140 and takes 150 trick points. They gain 140 points → 1030 total. WINS THE GAME!
+
+- Player B has 920 points (on barrel, counter = 0).
+- Rounds 1-3: Player B does not win any bids (other players bid higher). Counter advances to 3 after Round 3.
+- After Round 3: Counter reached 3. Barrel penalty applied immediately → 920 - 120 = 800. Player B is now off the barrel.
+- Round 4: Player B is no longer on the barrel and bids 110 freely. Takes 85 trick points → loses 110 → 690 total.
+
+THREE CONSECUTIVE ZEROS (ZERO PENALTY RULE)
+1. If a single player fails to score ANY points in three consecutive rounds (takes zero tricks or only 9-value tricks),
+   they incur an immediate 120-point PENALTY to their score.
+2. This penalty is applied immediately after the third consecutive zero round is identified.
+3. The counter resets after the penalty, so the player must avoid zeros again in future rounds.
+4. This rule discourages complete passivity and ensures participation.
+
+EXAMPLE THREE ZEROS SCENARIO
+- Round 1: Player C round points is 0  (counter = 1)
+- Round 2: Player C round points is 0  (counter = 2)
+- Round 3: Player C round points is 0  (counter = 3)
+- PENALTY: Player C loses 120 points immediately. Counter resets.
+
+WINNING THE GAME
+================
+
+VICTORY CONDITION
+1. The first player to reach a score of 1000 points or more WINS THE GAME immediately.
+2. Once a player's total score reaches 1000+, the game ends at the end of that round.
+3. If multiple players reach 1000+ in the same round (theoretically rare), the player with the highest score wins.
+4. In case of exact tie (both 1000 exactly), the player who reached it first wins (the one in the declarer position).
+
+GAME OVER SCENARIOS
+- A player wins by reaching 1000+ points through normal bidding and scoring.
+- A player wins from the barrel by successfully scoring 120+ points in a bid and reaching 1000+.
+
+DETAILED ROUND FLOW SUMMARY
+============================
+
+A typical complete round proceeds as follows:
+
+1. SETUP: Dealer deals 7 cards to each player. 3 cards placed in talon.
+2. BIDDING: Players bid starting from player to dealer's left. Highest bidder becomes declarer.
+3. TALON: Declarer takes 3 talon cards (now has 10).
+4. SELLING (Optional): Declarer may attempt to sell the bid up to 3 times.
+   - If someone buys, they become new declarer with higher bid.
+   - If no one buys after 3 attempts, original declarer must play.
+5. CARD EXCHANGE: Declarer selects 2 cards to pass to other players.
+6. TRUMP DECLARATION: Players can declare trump suit (if they have a marriage) by playing K or Q if they are leading the trick.
+7. PLAY: Declarer leads first trick. Players follow suit or play any card. Highest card (per rules) wins trick.
+   - The winner of each trick collects the cards and leads the next trick.
+   - Continue this sequence for all remaining tricks.
+8. EIGHT TRICKS: Repeat trick play 8 times until all cards are played (first trick led by declarer, subsequent tricks led by trick winners).
+9. SCORING: Count trick points, apply formulas for declarer and opponents.
+10. BARREL CHECK: If any player is now in barrel (880-1000), note their round counter.
+11. VICTORY CHECK: If any player has 1000+, they WIN. Otherwise, continue to next round.
+12. NEXT ROUND: Move dealer to the left; repeat from SETUP.
+
+MARRIAGE DECLARATIONS (IN-DEPTH)
+=================================
+
+WHAT IS A MARRIAGE
+1. A marriage is holding both the King and Queen of the same suit in your hand at any point during play.
+2. A player may hold up to four marriages (one for each suit), though this is rare in a single hand.
+
+DECLARING A MARRIAGE
+1. Any player can declare a marriage during play by leading a trick with either the King or Queen
+   of a suit where they hold the marriage.
+2. Declaration timing rules:
+   - Cannot declare on trick 1 (before any other tricks have been played).
+   - Cannot declare when holding fewer than 3 cards (including the lead card) — cannot declare when leading trick 7 or 8.
+   - Can declare on tricks 2-6 (inclusive) when leading a trick.
+3. When declaring, the player MUST announce the suit and which card (K or Q) they are playing as the lead.
+4. Example: "I lead with King of Clubs, marriage in Clubs declared" or "Queen of Hearts, trump Hearts."
+   - The marriage is declared by the act of leading with K or Q while holding both cards, plus the announcement.
+
+EFFECT OF MARRIAGE DECLARATION
+1. The declared suit becomes the trump suit for next trick (replacing any previous trump).
+2. A different player can declare a different suit as trump later in next rounds (by leading with K or Q of a suit where they hold the marriage).
+3. The marriage adds bonus points to the declaring player's score (see MARRIAGE POINT VALUES above).
+4. Marriage bonuses stack: if a player declares multiple marriages during the round, each adds its full value.
+
+STRATEGIC VALUE
+1. A marriage is valuable because:
+   - It allows a player to declare trump strategically (at the right moment in play).
+   - It provides bonus points when declared.
+   - Trump is powerful for winning tricks.
+2. Declaring too early in a hand may reveal your strategy to opponents.
+3. Waiting until late in the round to declare may limit your ability to use the trump advantage.
+4. Without a marriage, you cannot declare trump; the game proceeds in no-trump mode with no opportunity for trump bonus points.
+
+HOLDING A MARRIAGE BUT NOT DECLARING
+1. A player may hold a marriage but choose not to declare it during the round.
+2. The K and Q are still just regular cards with their face values (4 and 3 points) when played in tricks.
+3. If not declared, the marriage provides no bonus points to the player's score.
+4. A player might not declare if they prefer to play no-trump or if the timing is not advantageous.
+
+ADVANCED STRATEGIC CONSIDERATIONS
+==================================
+
+BIDDING STRATEGY
+- Bid conservatively early in the game (avoid big losses).
+- Increase bids when holding marriages or high-card combinations.
+- Track opponent scores; adjust risk based on their proximity to 1000.
+- Never bid more than you're confident you can make.
+- If on barrel (880-1000), be more aggressive in the next three rounds.
+
+SELLING STRATEGY
+- Sell weak hands to reduce risk of negative points.
+- Selling signals weakness; strong players may avoid it.
+- Sell to reduce points if you think another player can make a higher bid safely.
+- Never sell the exact cards needed to win your bid (keep your best cards).
+
+PLAY STRATEGY
+- As declarer, lead your highest-value cards to collect them.
+- As an opponent, try to "spoil" the declarer by taking high-value cards in tricks the declarer does not lead.
+- Remember which cards have been played to anticipate what remains.
+- Preserve trump cards for critical tricks late in the round.
+
+CARD PASSING STRATEGY
+- Pass weak cards to opponents to keep your strong cards.
+- Some players pass their most dangerous cards (threats to their trick wins).
+
+BARREL STRATEGY
+- When on barrel, you have three rounds to make 120+ points. Be aggressive but calculated.
+- If you fail, you drop 120 and must work back up. So save risk for when you're confident.
+- Opponents may avoid bidding low when you're on barrel (forcing you to be declarer or sit out).
+
+COMMON MISTAKES TO AVOID
+=========================
+
+1. FORGETTING TO FOLLOW SUIT: Players must follow suit if they can. If they don't and have a suit card, it's a foul.
+2. MISCOUNTING TRICK POINTS: Recount the values carefully. An Ace (11) + Ten (10) is NOT 20; it's 21 (11 + 10 = 21).
+3. IGNORING THE BARREL: Players forget they're on barrel and bid normally, missing their three-round window.
+4. SELLING TOO AGGRESSIVELY: Selling makes you look weak; opponents may bid higher than you could have scored.
+5. PLAYING CARDS OUT OF TURN: Each player must wait their turn clockwise. Playing out of turn is a foul.
+6. EXPOSING CARDS: Never reveal cards to opponents except as required (marriage declaration, exposed cards).
+7. FORGETTING MARRIAGES: Players forget they hold marriages and miss opportunities to declare trump and earn bonus points when leading tricks.
+8. MISCALCULATING SCORES: Carefully count trick points and marriage bonuses for accurate score tracking.
+
+EXAMPLE FULL GAME SCENARIO
+===========================
+
+SETUP:
+- Player A (Dealer), Player B, Player C (to dealer's left, starts bidding)
+- Scores: A = 0, B = 0, C = 0
+
+HAND 1:
+- Player C bids first. C bids 100, B bids 110, A bids 120, C passes, B passes.
+- A (declarer) wins with bid of 120. Takes 3 talon cards.
+- A attempts to sell but no one bids. A exchanges 2 cards.
+- A has marriage in Hearts. When A leads trick 3, A plays the King of Hearts and declares trump Hearts (60 bonus points).
+- Play proceeds: A leads trick 1. Tricks are played. A wins 90 trick points from tricks + 60 marriage bonus = 150 total.
+- A made the bid: 150 >= 120, so A gains 120 → A = 120.
+- B won 45 trick points → B = 45.
+- C won 25 trick points → C = 25.
+- No one on barrel yet.
+
+HAND 2:
+- Dealer moves to B. C starts bidding again.
+- C bids 100, A bids 130, B bids 140, C bids 145, A passes, B passes.
+- C (declarer) wins with bid of 145. Takes 3 talon cards.
+- C has no marriage. Plays no-trump.
+- Play proceeds. C wins only 90 trick points + no marriage = 90 total.
+- C failed to make the bid: 90 < 145, so C loses 145 → C = 25 - 145 = -120.
+- A won 60 trick points → A = 120 + 60 = 180.
+- B won 70 trick points → B = 45 + 70 = 115.
+- No one on barrel.
+
+HAND 3:
+- Dealer moves to C. A starts bidding.
+- A bids 100, B passes, C bids 130, A bids 160, C passes.
+- A (declarer) wins with bid of 160. Takes 3 talon cards.
+- A has marriage in Clubs. When A leads trick 2, A plays the Queen of Clubs and declares trump Clubs (100 bonus points).
+- A exchanges cards. Play proceeds. A's marriage declaration locks Clubs as trump for all remaining tricks.
+- A wins 65 trick points from tricks + 100 marriage bonus = 165 total.
+- A made the bid: 165 >= 160, so A gains 160 → A = 180 + 160 = 340.
+- B won 40 trick points → B = 115 + 40 = 155.
+- C won 35 trick points → C = -120 + 35 = -85.
+- A gained, B gained, C is negative but recovering.
+
+... (Game continues through more hands)
+
+HAND 25:
+- C bids high and wins. C scores 140 trick points, bid was 130.
+- C gains 130 → C = 870 (now approaching barrel!)
+
+HAND 26:
+- Dealer position rotates. C is in position 2 now (not first to bid).
+- A bids 120 and wins. A declares marriage in Diamonds when leading trick 4 (40 bonus points).
+- A scores 95 trick points + 40 marriage bonus = 135 total.
+- A made the bid: 135 >= 120, so A gains 120 → A = 930 + 120 = 1050 → A WINS THE GAME!
+
+END OF GAME: Player A reaches 1050 points and wins immediately.
+
+---
+
+GLOSSARY OF TERMS
+=================
+
+BARREL: Score range 880-1000 where a player must score 120+ in a bid within three rounds to win.
+DECLARER: The player who won the bid and must score at least the bid amount.
+MARRIAGE: A King and Queen of the same suit held by the same player.
+PRIKUP: The 3 talon cards dealt to the center of the table.
+ROSPISAT': Option to pass the round without playing, giving opponents 60 points each.
+TALON: The 3 cards in the center dealt from the remaining deck.
+TRICK: Three cards (one from each player) played in sequence, won by the highest card per rules.
+TRUMP: The suit designated to beat all other suits in trick-taking.
