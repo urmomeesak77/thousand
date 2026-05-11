@@ -92,3 +92,8 @@ See `docs/CODING_CONVENTIONS.md` for the full reference. Key points:
 ## Active Feature Branch
 
 **003-persistent-player-identity** (in progress): Adds session tokens + `localStorage` so players survive page refreshes and short network disconnects. New files: `storage/IdentityStore.js`, `overlays/ReconnectOverlay.js`. Extends `ThousandStore`, `ConnectionManager`, `core/ThousandApp.js`, `network/ThousandSocket.js`. Grace period (default 30 s) keeps player records alive during disconnect.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
