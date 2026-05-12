@@ -270,3 +270,34 @@ describe('Round.selling — 3-attempt exhaustion (FR-018)', () => {
     assert.ok(r.reason);
   });
 });
+
+// ---------------------------------------------------------------------------
+// cancelSelling (T060)
+// ---------------------------------------------------------------------------
+
+describe('Round.selling — cancelSelling (T060)', () => {
+  it('cancelSelling returns to post-bid-decision without incrementing attemptCount', () => {
+    const round = makeSellingRound();
+    round.startSelling(0);
+    assert.equal(round.phase, 'selling-selection');
+    const r = round.cancelSelling(0);
+    assert.equal(r.rejected, false);
+    assert.equal(round.phase, 'post-bid-decision', 'phase must revert to post-bid-decision');
+    assert.equal(round.attemptCount, 0, 'attemptCount must not change on cancel (FR-029)');
+  });
+
+  it('cancelSelling from a non-declarer is rejected', () => {
+    const round = makeSellingRound();
+    round.startSelling(0);
+    const r = round.cancelSelling(1);
+    assert.equal(r.rejected, true);
+    assert.ok(r.reason);
+  });
+
+  it('cancelSelling outside selling-selection phase is rejected', () => {
+    const round = makeSellingRound(); // phase = post-bid-decision
+    const r = round.cancelSelling(0);
+    assert.equal(r.rejected, true);
+    assert.ok(r.reason);
+  });
+});

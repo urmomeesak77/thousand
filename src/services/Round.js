@@ -1,6 +1,9 @@
 'use strict';
 
+// Deal sequencing → DealSequencer.js; phase-transition helpers → RoundPhases.js
 const { makeDeck, shuffle } = require('./Deck');
+const { stepDest, buildDealDistribution } = require('./DealSequencer');
+const { absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned } = require('./RoundPhases');
 
 class Round {
   constructor({ game, store }) {
@@ -33,16 +36,9 @@ class Round {
   start() {
     const shuffled = shuffle(makeDeck());
     this.deck = shuffled.map((card, i) => ({ id: i, rank: card.rank, suit: card.suit }));
-
-    for (let i = 0; i < 24; i++) {
-      const to = this._stepDest(i);
-      if (to === 'talon') {
-        this.talon.push(i);
-      } else {
-        this.hands[Number(to[4])].push(i);
-      }
-    }
-
+    const dist = buildDealDistribution();
+    this.hands = dist.hands;
+    this.talon = dist.talon;
     this.phase = 'dealing';
     this.currentTurnSeat = null;
     this.currentHighBid = null;
@@ -61,7 +57,7 @@ class Round {
     }));
 
     const dealSequence = this.deck.map((card, i) => {
-      const to = this._stepDest(i);
+      const to = stepDest(i);
       const step = { id: i, to };
       if (to === 'talon' || to === `seat${selfSeat}`) {
         step.rank = card.rank;
@@ -105,19 +101,11 @@ class Round {
     this.bidHistory.push({ seat, amount });
     this.currentHighBid = amount;
 
-    if (3 - this.passedBidders.size === 1) {
-      this.declarerSeat = seat;
-      this.phase = 'post-bid-decision';
-      this.currentTurnSeat = seat;
-      const { talonIds, identities } = this._absorbTalon();
-      return { rejected: false, resolved: true, talonIds, identities };
-    } else {
-      let next = (seat + 1) % 3;
-      while (this.passedBidders.has(next)) {
-        next = (next + 1) % 3;
-      }
-      this.currentTurnSeat = next;
+    let next = (seat + 1) % 3;
+    while (this.passedBidders.has(next)) {
+      next = (next + 1) % 3;
     }
+    this.currentTurnSeat = next;
 
     return { rejected: false };
   }
@@ -132,14 +120,7 @@ class Round {
     this.bidHistory.push({ seat, amount: null });
 
     const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
-    if (remaining.length === 0) {
-      this.declarerSeat = this.dealerSeat;
-      this.currentHighBid = 100;
-      this.phase = 'post-bid-decision';
-      this.currentTurnSeat = this.dealerSeat;
-      const { talonIds, identities } = this._absorbTalon();
-      return { rejected: false, resolved: true, talonIds, identities };
-    } else if (remaining.length === 1) {
+    if (remaining.length === 1) {
       this.declarerSeat = remaining[0];
       if (this.currentHighBid === null) this.currentHighBid = 100;
       this.phase = 'post-bid-decision';
@@ -406,77 +387,52 @@ class Round {
     return { rejected: false };
   }
 
-  // T062/T063 helpers — sell-phase resolution and opponent rotation
+  // T062/T063 helpers — delegate to RoundPhases helpers
 
   _nextSellOpponent(fromSeat) {
-    for (let i = 1; i <= 2; i++) {
-      const candidate = (fromSeat + i) % 3;
-      if (candidate !== this.declarerSeat && !this.passedSellOpponents.has(candidate)) {
-        return candidate;
-      }
-    }
-    return null;
+    return nextSellOpponent(fromSeat, this.declarerSeat, this.passedSellOpponents);
   }
 
   _activeSellOpponents() {
-    return [0, 1, 2].filter(s => s !== this.declarerSeat && !this.passedSellOpponents.has(s));
+    return activeSellOpponents(this.declarerSeat, this.passedSellOpponents);
   }
 
   _resolveSellSold() {
-    const buyerSeat = this._lastSellBidderSeat;
-    const oldDeclarerSeat = this.declarerSeat;
-    const exposedIds = [...this.exposedSellCards];
-    this.hands[buyerSeat] = [...this.hands[buyerSeat], ...exposedIds];
+    const result = resolveSellSold({
+      hands: this.hands,
+      exposedSellCards: this.exposedSellCards,
+      declarerSeat: this.declarerSeat,
+      lastSellBidderSeat: this._lastSellBidderSeat,
+      attemptHistory: this.attemptHistory,
+    });
+    this.declarerSeat = result.buyerSeat;
+    this.currentTurnSeat = result.buyerSeat;
     this.exposedSellCards = [];
-    this.attemptHistory.push({ outcome: 'sold', exposedIds });
-    this.declarerSeat = buyerSeat;
-    this.currentTurnSeat = buyerSeat;
     this.phase = 'post-bid-decision';
-    return { rejected: false, resolved: true, outcome: 'sold', buyerSeat, oldDeclarerSeat, exposedIds };
+    return result;
   }
 
   _resolveSellReturned() {
-    const exposedIds = [...this.exposedSellCards];
-    this.hands[this.declarerSeat] = [...this.hands[this.declarerSeat], ...exposedIds];
+    const result = resolveSellReturned({
+      hands: this.hands,
+      declarerSeat: this.declarerSeat,
+      exposedSellCards: this.exposedSellCards,
+      attemptHistory: this.attemptHistory,
+    });
     this.exposedSellCards = [];
     this.attemptCount += 1;
-    this.attemptHistory.push({ outcome: 'returned', exposedIds });
     this.currentTurnSeat = this.declarerSeat;
     this.phase = 'post-bid-decision';
-    return { rejected: false, resolved: true, outcome: 'returned', exposedIds };
+    return result;
   }
 
   // T041 helper — moves talon into declarerSeat's hand; called at every bidding resolution site
   _absorbTalon() {
-    const talonIds = [...this.talon];
-    const identities = {};
-    for (const id of talonIds) {
-      const card = this.deck[id];
-      identities[id] = { rank: card.rank, suit: card.suit };
-    }
+    const result = absorbTalon({ hands: this.hands, talon: this.talon, deck: this.deck, declarerSeat: this.declarerSeat });
     this.talon = [];
-    for (const id of talonIds) {
-      this.hands[this.declarerSeat].push(id);
-    }
-    return { talonIds, identities };
+    return result;
   }
 
-  // Canonical 24-step deal destination for step index i (FR-002)
-  // Rounds 1-3 (i 0-11): seat1, seat2, seat0, talon (4-step pattern)
-  // Rounds 4-7 (i 12-23): seat1, seat2, seat0 (3-step pattern)
-  _stepDest(i) {
-    if (i < 12) {
-      const pos = i % 4;
-      if (pos === 0) return 'seat1';
-      if (pos === 1) return 'seat2';
-      if (pos === 2) return 'seat0';
-      return 'talon';
-    }
-    const pos = (i - 12) % 3;
-    if (pos === 0) return 'seat1';
-    if (pos === 1) return 'seat2';
-    return 'seat0';
-  }
 }
 
 module.exports = Round;

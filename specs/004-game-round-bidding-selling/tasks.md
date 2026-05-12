@@ -183,11 +183,11 @@ This is a single project (Node.js server + vanilla-JS frontend, no bundler) per 
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T077 [P] Validate the implementation against `specs/004-game-round-bidding-selling/quickstart.md` by walking the 16-step 3-browser-tab manual verification; record any deviations as new tasks or specs
-- [ ] T078 [P] Measure `src/services/Round.js` line count after all three stories land; if > 150 lines per R-001 in `plan.md`, extract phase-transition helpers into `src/services/RoundPhases.js` and/or the dealing-sequence logic into `src/services/DealSequencer.js`, leaving a one-line comment in `Round.js` documenting the decomposition
-- [ ] T079 [P] Profile the deal animation on the slowest target device (R-002): ensure `CardSprite.setPosition` short-circuits when the target equals the current position; cache table-slot DOM references; eliminate per-tick layout reads
-- [ ] T080 Run `.specify/scripts/powershell/update-agent-context.ps1` to refresh `CLAUDE.md` with the new active technologies and feature files
-- [ ] T081 Run `npm run lint && npm test && npm run test:coverage`; confirm overall coverage is ≥ 90 % per the constitution; address any gaps surfaced by the new feature
+- [X] T077 [P] Validate the implementation against `specs/004-game-round-bidding-selling/quickstart.md` by walking the 16-step 3-browser-tab manual verification; record any deviations as new tasks or specs
+- [X] T078 [P] Measure `src/services/Round.js` line count after all three stories land; if > 150 lines per R-001 in `plan.md`, extract phase-transition helpers into `src/services/RoundPhases.js` and/or the dealing-sequence logic into `src/services/DealSequencer.js`, leaving a one-line comment in `Round.js` documenting the decomposition
+- [X] T079 [P] Profile the deal animation on the slowest target device (R-002): ensure `CardSprite.setPosition` short-circuits when the target equals the current position; cache table-slot DOM references; eliminate per-tick layout reads
+- [X] T080 Run `.specify/scripts/powershell/update-agent-context.ps1` to refresh `CLAUDE.md` with the new active technologies and feature files
+- [X] T081 Run `npm run lint && npm test && npm run test:coverage`; confirm overall coverage is ≥ 90 % per the constitution; address any gaps surfaced by the new feature
 
 ---
 

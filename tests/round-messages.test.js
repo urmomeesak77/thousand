@@ -703,3 +703,192 @@ describe('round-messages — sell_bid then sell_pass → outcome sold (US3)', ()
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// T076 — US3: sell_bid triggers immediate resolution (last opponent bids)
+// ---------------------------------------------------------------------------
+
+describe('round-messages — sell_bid causes immediate sold resolution (US3)', () => {
+  it('sell_bid from the last active opponent broadcasts sell_resolved:sold immediately', () => {
+    // Setup: Bob (seat 1) is first sell bidder. Bob passes; Carol (seat 2) is last.
+    // Carol's bid has no remaining opponent to rotate to → immediate sale.
+    const { store, ws, pids, gameId } = setupPostBidGame();
+    const round = store.games.get(gameId).round;
+    round.startSelling(0);
+    round.commitSellSelection(0, [2, 6, 10]); // selling-bidding; currentTurnSeat=1
+    round.submitSellPass(1); // Bob passes via direct call (no CM rate-limit); Carol's turn
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[2], { type: 'sell_bid', amount: 105 }); // Carol bids — no more opponents
+
+    for (const w of ws) {
+      const resolved = w._sent.find((m) => m.type === 'sell_resolved');
+      assert.ok(resolved, 'sell_resolved must be broadcast when last opponent bids');
+      assert.equal(resolved.outcome, 'sold');
+      assert.equal(resolved.newDeclarerId, pids[2], 'Carol (pids[2]) must become the new declarer');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T076 — US3: sell_cancel broadcasts phase_changed back to Declarer deciding
+// ---------------------------------------------------------------------------
+
+describe('round-messages — sell_cancel from declarer (US3)', () => {
+  it('sell_cancel broadcasts phase_changed to Declarer deciding for all 3', () => {
+    const { store, ws, gameId } = setupPostBidGame();
+    store.games.get(gameId).round.startSelling(0); // → selling-selection (bypasses CM)
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[0], { type: 'sell_cancel' }); // Alice cancels
+
+    for (const w of ws) {
+      const msg = w._sent.find((m) => m.type === 'phase_changed');
+      assert.ok(msg, 'phase_changed must be broadcast after sell_cancel');
+      assert.equal(msg.phase, 'Declarer deciding');
+    }
+  });
+
+  it('sell_cancel from non-declarer is rejected', () => {
+    const { store, ws, gameId } = setupPostBidGame();
+    store.games.get(gameId).round.startSelling(0);
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[1], { type: 'sell_cancel' }); // Bob is not the declarer
+
+    const rejection = ws[1]._sent.find((m) => m.type === 'action_rejected');
+    assert.ok(rejection, 'non-declarer must receive action_rejected');
+    assert.equal(ws[0]._sent.length, 0);
+    assert.equal(ws[2]._sent.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T009 — Reconnect to in-progress game delivers round_state_snapshot
+// ---------------------------------------------------------------------------
+
+describe('round-messages — reconnect to in-progress game (T009)', () => {
+  it('hello with a valid sessionToken for an in-progress game sends round_state_snapshot', () => {
+    const store = new ThousandStore();
+    const cm = new ConnectionManager(store);
+
+    // Connect and register 3 players
+    const ws = [makeWs(), makeWs(), makeWs()];
+    ws.forEach((w) => {
+      cm.handleConnection(w);
+      sendMsg(w, { type: 'hello' });
+    });
+    const pids = ws.map((w) => w._sent.find((m) => m.type === 'connected').playerId);
+    const tokens = ws.map((w) => w._sent.find((m) => m.type === 'connected').sessionToken);
+    pids.forEach((pid, i) => { store.players.get(pid).nickname = ['A', 'B', 'C'][i]; });
+
+    // Set up and start a round
+    const gameId = 'reconnect-game';
+    store.games.set(gameId, {
+      id: gameId,
+      players: new Set(pids),
+      hostId: pids[0],
+      type: 'public',
+      status: 'waiting',
+      requiredPlayers: 3,
+      createdAt: Date.now(),
+      inviteCode: null,
+      round: null,
+      waitingRoomTimer: null,
+    });
+    pids.forEach((pid) => { store.players.get(pid).gameId = gameId; });
+    store.startRound(gameId);
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    // Simulate player 0 reconnecting on a new WS with their session token
+    const newWs = makeWs();
+    cm.handleConnection(newWs);
+    sendMsg(newWs, { type: 'hello', playerId: pids[0], sessionToken: tokens[0] });
+
+    const snapshot = newWs._sent.find((m) => m.type === 'round_state_snapshot');
+    assert.ok(snapshot, 'reconnecting player must receive round_state_snapshot');
+    assert.ok(snapshot.myHand, 'snapshot must include myHand');
+    assert.ok(snapshot.gameStatus, 'snapshot must include gameStatus');
+    assert.ok(snapshot.seats, 'snapshot must include seats');
+    assert.equal(snapshot.seats.self, 0, 'reconnecting player (seat 0) must see seats.self = 0');
+  });
+
+  it('round_state_snapshot for dealing/bidding phase includes talon identities', () => {
+    const store = new ThousandStore();
+    const cm = new ConnectionManager(store);
+
+    const ws = [makeWs(), makeWs(), makeWs()];
+    ws.forEach((w) => {
+      cm.handleConnection(w);
+      sendMsg(w, { type: 'hello' });
+    });
+    const pids = ws.map((w) => w._sent.find((m) => m.type === 'connected').playerId);
+    const tokens = ws.map((w) => w._sent.find((m) => m.type === 'connected').sessionToken);
+    pids.forEach((pid, i) => { store.players.get(pid).nickname = ['A', 'B', 'C'][i]; });
+
+    const gameId = 'snap-talon-game';
+    store.games.set(gameId, {
+      id: gameId, players: new Set(pids), hostId: pids[0], type: 'public',
+      status: 'waiting', requiredPlayers: 3, createdAt: Date.now(),
+      inviteCode: null, round: null, waitingRoomTimer: null,
+    });
+    pids.forEach((pid) => { store.players.get(pid).gameId = gameId; });
+    store.startRound(gameId); // phase = dealing
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    const newWs = makeWs();
+    cm.handleConnection(newWs);
+    sendMsg(newWs, { type: 'hello', playerId: pids[0], sessionToken: tokens[0] });
+
+    const snapshot = newWs._sent.find((m) => m.type === 'round_state_snapshot');
+    assert.ok(Array.isArray(snapshot.talon) && snapshot.talon.length === 3,
+      'dealing-phase snapshot must include talon identities');
+    assert.ok(Array.isArray(snapshot.talonIds) && snapshot.talonIds.length === 3,
+      'snapshot must include talonIds');
+  });
+
+  it('round_state_snapshot for selling-bidding phase includes exposed card identities', () => {
+    const store = new ThousandStore();
+    const cm = new ConnectionManager(store);
+
+    const ws = [makeWs(), makeWs(), makeWs()];
+    ws.forEach((w) => { cm.handleConnection(w); sendMsg(w, { type: 'hello' }); });
+    const pids = ws.map((w) => w._sent.find((m) => m.type === 'connected').playerId);
+    const tokens = ws.map((w) => w._sent.find((m) => m.type === 'connected').sessionToken);
+    pids.forEach((pid, i) => { store.players.get(pid).nickname = ['A', 'B', 'C'][i]; });
+
+    const gameId = 'snap-sell-game';
+    store.games.set(gameId, {
+      id: gameId, players: new Set(pids), hostId: pids[0], type: 'public',
+      status: 'waiting', requiredPlayers: 3, createdAt: Date.now(),
+      inviteCode: null, round: null, waitingRoomTimer: null,
+    });
+    pids.forEach((pid) => { store.players.get(pid).gameId = gameId; });
+    store.startRound(gameId);
+
+    // Drive round to selling-bidding
+    const round = store.games.get(gameId).round;
+    round.passedBidders.add(1);
+    round.passedBidders.add(2);
+    round.declarerSeat = 0;
+    round.currentHighBid = 100;
+    round.phase = 'post-bid-decision';
+    round.currentTurnSeat = 0;
+    const talonIds = [...round.talon];
+    talonIds.forEach((id) => round.hands[0].push(id));
+    round.talon = [];
+    round.startSelling(0);
+    round.commitSellSelection(0, [2, 6, 10]);
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    const newWs = makeWs();
+    cm.handleConnection(newWs);
+    sendMsg(newWs, { type: 'hello', playerId: pids[0], sessionToken: tokens[0] });
+
+    const snapshot = newWs._sent.find((m) => m.type === 'round_state_snapshot');
+    assert.ok(Array.isArray(snapshot.exposed) && snapshot.exposed.length === 3,
+      'selling-bidding snapshot must include exposed card identities');
+    assert.ok(Array.isArray(snapshot.exposedSellCardIds) && snapshot.exposedSellCardIds.length === 3,
+      'snapshot must include exposedSellCardIds');
+  });
+});

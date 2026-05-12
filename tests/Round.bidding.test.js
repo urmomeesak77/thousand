@@ -168,3 +168,15 @@ describe('Round.bidding — last-bidder-remaining resolution (FR-010)', () => {
     assert.equal(round.phase, 'post-bid-decision');
   });
 });
+
+describe('Round.bidding — turn rotation skips passed players after a bid', () => {
+  it('bid rotates to the next non-passed seat, skipping any passed seat in between', () => {
+    // seat 1 passes, seat 2 bids, then seat 0 bids — rotation from seat 0 should skip seat 1 (passed)
+    const round = makeRound();
+    round.submitPass(1);       // seat 1 passes; turn → seat 2
+    round.submitBid(2, 100);   // seat 2 bids; turn → seat 0 (seat 1 is skipped — no change)
+    assert.equal(round.currentTurnSeat, 0, 'turn must skip the passed seat 1 and land on seat 0');
+    round.submitBid(0, 105);   // seat 0 bids; next in rotation is seat 1 (passed) → skip → seat 2
+    assert.equal(round.currentTurnSeat, 2, 'turn must skip passed seat 1 and land on seat 2');
+  });
+});

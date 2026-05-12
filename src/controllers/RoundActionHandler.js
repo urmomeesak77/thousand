@@ -33,16 +33,10 @@ class RoundActionHandler {
     const seat = this._seatOf(playerId);
     const result = round.submitBid(seat, amount);
     if (result.rejected) return this._reject(playerId, result.reason);
-    const declarerPid = result.resolved ? round.seatOrder[round.declarerSeat] : null;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
       this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
-      if (result.resolved) {
-        const msg = { type: 'talon_absorbed', declarerId: declarerPid, talonIds: result.talonIds, gameStatus };
-        if (pid === declarerPid) msg.identities = result.identities;
-        this._store.sendToPlayer(pid, msg);
-      }
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
   }

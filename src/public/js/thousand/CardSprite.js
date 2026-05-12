@@ -35,6 +35,7 @@ class CardSprite {
   // Start animated move; durationMs=0 snaps immediately
   setPosition(x, y, durationMs = 0) {
     if (durationMs <= 0) {
+      if (this._x === x && this._y === y && this._animStart === null) return;
       this._x = x;
       this._y = y;
       this._targetX = x;
@@ -43,6 +44,7 @@ class CardSprite {
       this._applyPosition(x, y);
       return;
     }
+    if (this._targetX === x && this._targetY === y && this._animStart !== null) return;
     this._startX = this._x;
     this._startY = this._y;
     this._targetX = x;

@@ -1,10 +1,12 @@
-# thousand Development Guidelines
+﻿# thousand Development Guidelines
 
-Last updated: 2026-04-29
+Last updated: 2026-05-12
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
 
 ## Active Technologies
+- Node.js v18+ (CommonJS server) / Vanilla JS ES6+ ES modules (browser) + `ws` ^8 (already in use), Node.js built-in `crypto` (for deck shuffle entropy); reuses existing `Antlion`, `Toast`, `RateLimiter`, `IdentityStore`, `ReconnectOverlay` (004-game-round-bidding-selling)
+- In-memory only (`ThousandStore` already in-memory; round state attached as `game.round`); server restart aborts in-flight rounds (consistent with feature 003) (004-game-round-bidding-selling)
 
 - **Runtime**: Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules)
 - **Dependencies**: `ws` ^8 (WebSocket), Node.js built-in `crypto` (session tokens)

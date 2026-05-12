@@ -3,6 +3,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const Round = require('../src/services/Round');
+const { stepDest } = require('../src/services/DealSequencer');
 
 function makeRound() {
   const pids = ['p0', 'p1', 'p2'];
@@ -76,7 +77,7 @@ describe('Round.deal — FR-002 deal sequence (24-step interleaved pattern)', ()
     const round = makeRound();
     const expected = ['seat1', 'seat2', 'seat0', 'talon'];
     for (let i = 0; i < 12; i++) {
-      assert.equal(round._stepDest(i), expected[i % 4], `step ${i} destination`);
+      assert.equal(stepDest(i), expected[i % 4], `step ${i} destination`);
     }
   });
 
@@ -84,7 +85,7 @@ describe('Round.deal — FR-002 deal sequence (24-step interleaved pattern)', ()
     const round = makeRound();
     const expected = ['seat1', 'seat2', 'seat0'];
     for (let i = 12; i < 24; i++) {
-      assert.equal(round._stepDest(i), expected[(i - 12) % 3], `step ${i} destination`);
+      assert.equal(stepDest(i), expected[(i - 12) % 3], `step ${i} destination`);
     }
   });
 
@@ -93,9 +94,9 @@ describe('Round.deal — FR-002 deal sequence (24-step interleaved pattern)', ()
     const talonSteps = new Set([3, 7, 11]);
     for (let i = 0; i < 24; i++) {
       if (talonSteps.has(i)) {
-        assert.equal(round._stepDest(i), 'talon', `step ${i} must go to talon`);
+        assert.equal(stepDest(i), 'talon', `step ${i} must go to talon`);
       } else {
-        assert.notEqual(round._stepDest(i), 'talon', `step ${i} must NOT go to talon`);
+        assert.notEqual(stepDest(i), 'talon', `step ${i} must NOT go to talon`);
       }
     }
   });
