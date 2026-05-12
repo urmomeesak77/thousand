@@ -289,6 +289,57 @@ class Round {
     return { noop: false, declarerId: this.seatOrder[this.declarerSeat], finalBid: this.currentHighBid };
   }
 
+  // T059
+  startSelling(seat) {
+    if (this.phase !== 'post-bid-decision') return { rejected: true, reason: 'Not in decision phase' };
+    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can start selling' };
+    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
+    if (this.attemptHistory.some(a => a.outcome === 'sold')) return { rejected: true, reason: 'Selling is no longer available' };
+    if (this.attemptCount >= 3) return { rejected: true, reason: 'No selling attempts remaining' };
+    this.phase = 'selling-selection';
+    return { rejected: false };
+  }
+
+  // T060
+  cancelSelling(seat) {
+    if (this.phase !== 'selling-selection') return { rejected: true, reason: 'Not in selling-selection phase' };
+    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can cancel selling' };
+    this.phase = 'post-bid-decision';
+    return { rejected: false };
+  }
+
+  // T061
+  commitSellSelection(seat, cardIds) {
+    if (this.phase !== 'selling-selection') return { rejected: true, reason: 'Not in selling-selection phase' };
+    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can select cards' };
+    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
+    if (!Array.isArray(cardIds) || cardIds.length !== 3) {
+      return { rejected: true, reason: 'Exactly 3 cards must be selected' };
+    }
+    if (new Set(cardIds).size !== 3) {
+      return { rejected: true, reason: 'Cards must be distinct' };
+    }
+    const hand = this.hands[this.declarerSeat];
+    for (const id of cardIds) {
+      if (!hand.includes(id)) return { rejected: true, reason: 'Card is not in your hand' };
+    }
+    // FR-016: selection must differ from every prior attempt's exposed set
+    const sortedNew = [...cardIds].sort((a, b) => a - b);
+    for (const entry of this.attemptHistory) {
+      const sortedPrior = [...entry.exposedIds].sort((a, b) => a - b);
+      if (sortedNew.every((v, i) => v === sortedPrior[i])) {
+        return { rejected: true, reason: 'You must select a different set of cards than a prior attempt' };
+      }
+    }
+    this.hands[this.declarerSeat] = hand.filter(id => !cardIds.includes(id));
+    this.exposedSellCards = [...cardIds];
+    this.phase = 'selling-bidding';
+    // clockwise-left of declarer bids first (FR-015, parallels FR-004)
+    this.currentTurnSeat = (this.declarerSeat + 1) % 3;
+    this.passedSellOpponents = new Set();
+    return { rejected: false };
+  }
+
   // T041 helper — moves talon into declarerSeat's hand; called at every bidding resolution site
   _absorbTalon() {
     const talonIds = [...this.talon];
