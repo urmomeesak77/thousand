@@ -493,3 +493,213 @@ describe('round-messages — start_game from non-declarer is rejected (US2)', ()
     assert.equal(ws[2]._sent.length, 0, 'carol must not receive any message');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Helpers for US3 tests
+// ---------------------------------------------------------------------------
+
+// Drives round to selling-bidding state by directly mutating round state
+// (bypasses the ConnectionManager rate limiter for test setup).
+// Alice (ws[0], seat 0) is the declarer; exposed cards are ids [2, 6, 10].
+// Bob (ws[1], seat 1) is the first sell bidder (clockwise-left of seat 0).
+function setupSellingBiddingGame() {
+  const { store, cm, ws, pids, gameId } = setupPostBidGame();
+  const round = store.games.get(gameId).round;
+
+  round.startSelling(0);            // selling-selection
+  round.commitSellSelection(0, [2, 6, 10]); // selling-bidding; currentTurnSeat=1
+
+  ws.forEach((w) => { w._sent.length = 0; });
+  return { store, cm, ws, pids, gameId };
+}
+
+// ---------------------------------------------------------------------------
+// T076 — US3: sell_start broadcast
+// ---------------------------------------------------------------------------
+
+describe('round-messages — sell_start from declarer (US3)', () => {
+  it('sell_start broadcasts sell_started and phase_changed to all 3 players', () => {
+    const { ws } = setupPostBidGame();
+
+    sendMsg(ws[0], { type: 'sell_start' });
+
+    for (const w of ws) {
+      assert.ok(w._sent.find((m) => m.type === 'sell_started'), 'sell_started must be broadcast');
+      assert.ok(w._sent.find((m) => m.type === 'phase_changed'), 'phase_changed must be broadcast');
+    }
+    const phaseMsg = ws[0]._sent.find((m) => m.type === 'phase_changed');
+    assert.equal(phaseMsg.phase, 'Selling');
+  });
+
+  it('sell_start from non-declarer sends action_rejected to sender only', () => {
+    const { ws } = setupPostBidGame(); // Alice (ws[0]) is declarer
+
+    sendMsg(ws[1], { type: 'sell_start' }); // Bob is not the declarer
+
+    const rejection = ws[1]._sent.find((m) => m.type === 'action_rejected');
+    assert.ok(rejection, 'non-declarer must receive action_rejected');
+    assert.equal(ws[0]._sent.length, 0);
+    assert.equal(ws[2]._sent.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T076 — US3: sell_select (sell_exposed) broadcast
+// ---------------------------------------------------------------------------
+
+describe('round-messages — sell_select produces sell_exposed (US3)', () => {
+  it('sell_select broadcasts sell_exposed with identities to ALL 3 recipients (FR-022)', () => {
+    // Start in selling-selection by directly mutating round state so ws[0]'s
+    // first RoundActionHandler message is sell_select (no rate-limit issue).
+    const { store, ws, pids, gameId } = setupPostBidGame();
+    const round = store.games.get(gameId).round;
+    round.startSelling(0); // → selling-selection (bypasses CM)
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[0], { type: 'sell_select', cardIds: [2, 6, 10] });
+
+    for (const w of ws) {
+      const msg = w._sent.find((m) => m.type === 'sell_exposed');
+      assert.ok(msg, 'sell_exposed must be broadcast to all 3');
+      assert.ok(msg.identities, 'identities must be present for all recipients (FR-022)');
+      for (const id of [2, 6, 10]) {
+        assert.ok(msg.identities[String(id)], `identity for card ${id} must be present`);
+      }
+    }
+  });
+
+  it('sell_exposed carries identities for ALL recipients, unlike talon_absorbed (FR-022)', () => {
+    // Contrast: talon_absorbed gives identities only to the declarer recipient.
+    // sell_exposed gives identities to everyone.
+    const { store, ws, pids, gameId } = setupPostBidGame();
+    const round = store.games.get(gameId).round;
+    round.startSelling(0);
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[0], { type: 'sell_select', cardIds: [2, 6, 10] });
+
+    // Non-declarer recipients also have identities (unlike talon_absorbed non-declarers)
+    for (const w of [ws[1], ws[2]]) {
+      const msg = w._sent.find((m) => m.type === 'sell_exposed');
+      assert.ok(msg && msg.identities, 'non-declarer recipients must also receive identities in sell_exposed');
+    }
+  });
+
+  it('sell_select also broadcasts phase_changed to all 3', () => {
+    const { store, ws, gameId } = setupPostBidGame();
+    store.games.get(gameId).round.startSelling(0);
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[0], { type: 'sell_select', cardIds: [2, 6, 10] });
+
+    for (const w of ws) {
+      assert.ok(w._sent.find((m) => m.type === 'phase_changed'), 'phase_changed must be broadcast');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T076 — US3: sell_bid broadcast
+// ---------------------------------------------------------------------------
+
+describe('round-messages — sell_bid broadcast (US3)', () => {
+  it('sell_bid from a valid opponent broadcasts bid_accepted and phase_changed to all 3', () => {
+    const { ws, pids } = setupSellingBiddingGame(); // Bob (ws[1]) is first bidder
+
+    sendMsg(ws[1], { type: 'sell_bid', amount: 105 });
+
+    for (const w of ws) {
+      assert.ok(w._sent.find((m) => m.type === 'bid_accepted'), 'bid_accepted must be broadcast');
+      assert.ok(w._sent.find((m) => m.type === 'phase_changed'), 'phase_changed must be broadcast');
+    }
+    const bidMsg = ws[0]._sent.find((m) => m.type === 'bid_accepted');
+    assert.equal(bidMsg.playerId, pids[1]);
+    assert.equal(bidMsg.amount, 105);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T076 — US3: sell_pass — outcome 'returned'
+// ---------------------------------------------------------------------------
+
+describe('round-messages — sell_pass both pass → outcome returned (US3)', () => {
+  it('sell_resolved with outcome:returned is broadcast when both opponents pass', () => {
+    const { ws, pids } = setupSellingBiddingGame(); // Bob (ws[1]) bids first
+
+    sendMsg(ws[1], { type: 'sell_pass' }); // Bob passes; Carol is next
+    sendMsg(ws[2], { type: 'sell_pass' }); // Carol passes; no bids → returned
+
+    for (const w of ws) {
+      const msg = w._sent.find((m) => m.type === 'sell_resolved');
+      assert.ok(msg, 'sell_resolved must be broadcast to all 3');
+      assert.equal(msg.outcome, 'returned');
+      assert.ok(Array.isArray(msg.exposedIds) && msg.exposedIds.length === 3, 'exposedIds must have 3 entries');
+    }
+  });
+
+  it('sell_resolved:returned has no newDeclarerId', () => {
+    const { ws } = setupSellingBiddingGame();
+    sendMsg(ws[1], { type: 'sell_pass' });
+    sendMsg(ws[2], { type: 'sell_pass' });
+
+    const msg = ws[0]._sent.find((m) => m.type === 'sell_resolved');
+    assert.equal(msg.newDeclarerId, undefined, 'returned outcome must not carry newDeclarerId');
+  });
+
+  it('phase_changed after returned carries Declarer deciding', () => {
+    const { ws } = setupSellingBiddingGame();
+    sendMsg(ws[1], { type: 'sell_pass' });
+    sendMsg(ws[2], { type: 'sell_pass' });
+
+    for (const w of ws) {
+      const phaseMsg = w._sent.findLast((m) => m.type === 'phase_changed');
+      assert.equal(phaseMsg.phase, 'Declarer deciding');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T076 — US3: sell_bid then sell_pass → outcome 'sold'
+// ---------------------------------------------------------------------------
+
+describe('round-messages — sell_bid then sell_pass → outcome sold (US3)', () => {
+  it('sell_resolved with outcome:sold is broadcast when one opponent buys', () => {
+    const { ws, pids } = setupSellingBiddingGame();
+
+    sendMsg(ws[1], { type: 'sell_bid', amount: 105 }); // Bob bids → Carol's turn
+    ws.forEach((w) => { w._sent.length = 0; });
+    sendMsg(ws[2], { type: 'sell_pass' }); // Carol passes → Bob wins
+
+    for (const w of ws) {
+      const msg = w._sent.find((m) => m.type === 'sell_resolved');
+      assert.ok(msg, 'sell_resolved must be broadcast');
+      assert.equal(msg.outcome, 'sold');
+      assert.equal(msg.newDeclarerId, pids[1], 'Bob (pids[1]) must be the new declarer');
+    }
+  });
+
+  it('sell_resolved:sold carries oldDeclarerId', () => {
+    const { ws, pids } = setupSellingBiddingGame(); // Alice (pids[0]) is original declarer
+    sendMsg(ws[1], { type: 'sell_bid', amount: 105 });
+    ws.forEach((w) => { w._sent.length = 0; });
+    sendMsg(ws[2], { type: 'sell_pass' });
+
+    const msg = ws[0]._sent.find((m) => m.type === 'sell_resolved');
+    assert.equal(msg.oldDeclarerId, pids[0], 'oldDeclarerId must be Alice (original declarer)');
+  });
+
+  it('sell_resolved does not carry full card identities (client manages visibility drops per FR-023)', () => {
+    // sell_exposed already delivered rank/suit to all 3. sell_resolved only carries
+    // exposedIds (the card IDs), leaving the client to drop cardsById for non-owners.
+    const { ws } = setupSellingBiddingGame();
+    sendMsg(ws[1], { type: 'sell_bid', amount: 105 });
+    ws.forEach((w) => { w._sent.length = 0; });
+    sendMsg(ws[2], { type: 'sell_pass' });
+
+    for (const w of ws) {
+      const msg = w._sent.find((m) => m.type === 'sell_resolved');
+      assert.ok(Array.isArray(msg.exposedIds), 'exposedIds must be present');
+      assert.equal(msg.identities, undefined, 'sell_resolved must not re-send rank/suit identities');
+    }
+  });
+});

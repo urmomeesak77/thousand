@@ -248,3 +248,87 @@ describe('StatusBar — passed players chips (FR-025)', () => {
     assert.equal(sb._el.querySelector('.status-bar__passed-row'), null);
   });
 });
+
+// ---------------------------------------------------------------------------
+// T075 — FR-025: sellAttempt counter during Selling phase
+// ---------------------------------------------------------------------------
+
+describe('StatusBar — sellAttempt counter (FR-025)', () => {
+  it('renders "Attempt 1 of 3" when sellAttempt is 1', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 1 }));
+    assert.equal(text(sb, '.status-bar__attempt'), 'Attempt 1 of 3');
+  });
+
+  it('renders "Attempt 2 of 3" when sellAttempt is 2', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 2 }));
+    assert.equal(text(sb, '.status-bar__attempt'), 'Attempt 2 of 3');
+  });
+
+  it('renders "Attempt 3 of 3" when sellAttempt is 3', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 3 }));
+    assert.equal(text(sb, '.status-bar__attempt'), 'Attempt 3 of 3');
+  });
+
+  it('omits the attempt counter when sellAttempt is null', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Bidding', sellAttempt: null }));
+    assert.equal(sb._el.querySelector('.status-bar__attempt'), null);
+  });
+
+  it('shows attempt counter in Declarer deciding after a failed attempt', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Declarer deciding', sellAttempt: 2 }));
+    assert.equal(text(sb, '.status-bar__attempt'), 'Attempt 2 of 3');
+  });
+
+  it('omits attempt counter in Round ready to play when sellAttempt is null', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Round ready to play', sellAttempt: null }));
+    assert.equal(sb._el.querySelector('.status-bar__attempt'), null);
+  });
+
+  it('re-render clears the attempt counter when sellAttempt transitions to null', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 3 }));
+    assert.ok(sb._el.querySelector('.status-bar__attempt'), 'precondition: counter present');
+    sb.render(status({ phase: 'Round ready to play', sellAttempt: null }));
+    assert.equal(sb._el.querySelector('.status-bar__attempt'), null, 'counter must be gone after null');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T075 — FR-025: passed opponents chips during selling-bidding
+// ---------------------------------------------------------------------------
+
+describe('StatusBar — passed opponents during Selling phase (FR-025)', () => {
+  it('renders a chip for a sell opponent who passed', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 1, passedPlayers: ['Bob'] }));
+    const chips = all(sb, '.status-bar__passed-chip');
+    assert.equal(chips.length, 1);
+    assert.equal(chips[0].textContent, 'Bob');
+  });
+
+  it('renders chips for both sell opponents when both have passed', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 1, passedPlayers: ['Bob', 'Carol'] }));
+    const chips = all(sb, '.status-bar__passed-chip');
+    assert.equal(chips.length, 2);
+  });
+
+  it('omits the passed row when no sell opponents have passed', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 1, passedPlayers: [] }));
+    assert.equal(sb._el.querySelector('.status-bar__passed-row'), null);
+  });
+
+  it('passed row cleared on re-render when passedPlayers resets to empty', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Selling', sellAttempt: 1, passedPlayers: ['Bob'] }));
+    sb.render(status({ phase: 'Declarer deciding', sellAttempt: 2, passedPlayers: [] }));
+    assert.equal(sb._el.querySelector('.status-bar__passed-row'), null);
+  });
+});
