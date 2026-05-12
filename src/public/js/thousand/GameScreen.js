@@ -10,6 +10,8 @@ import TalonView from './TalonView.js';
 import DealAnimation from './DealAnimation.js';
 import BidControls from './BidControls.js';
 import DeclarerDecisionControls from './DeclarerDecisionControls.js';
+import SellSelectionControls from './SellSelectionControls.js';
+import SellBidControls from './SellBidControls.js';
 import RoundReadyScreen from './RoundReadyScreen.js';
 import CardSprite from './CardSprite.js';
 
@@ -24,6 +26,10 @@ class GameScreen {
     this._lastGameStatus = null;
     this._bidControls = null;
     this._declarerControls = null;
+    this._sellSelectionControls = null;
+    this._sellBidControls = null;
+    this._sellSubPhase = null;
+    this._exposedCardIds = [];
     this._roundReadyScreen = null;
     this._talonCardIds = [];
     this._viewerIsNewDeclarer = false;
@@ -48,7 +54,7 @@ class GameScreen {
 
     this._statusBar = new StatusBar(statusBarEl);
     this._cardTable = new CardTable(antlion, tableEl);
-    this._handView = new HandView(handEl);
+    this._handView = new HandView(handEl, antlion);
     this._leftOpponent = new OpponentView(leftEl);
     this._rightOpponent = new OpponentView(rightEl);
     this._talonView = new TalonView(talonEl);
@@ -152,6 +158,16 @@ class GameScreen {
 
     this._statusBar.render(msg.gameStatus);
     this._lastGameStatus = msg.gameStatus;
+
+    if (msg.gameStatus.phase === 'Selling') {
+      if (msg.exposed && msg.exposed.length > 0) {
+        this._sellSubPhase = 'bidding';
+        this._exposedCardIds = msg.exposedSellCardIds ?? msg.exposed.map(c => c.id);
+      } else {
+        this._sellSubPhase = 'selection';
+      }
+    }
+
     this._mountControlsForPhase(msg.gameStatus);
   }
 
@@ -284,6 +300,10 @@ class GameScreen {
     this._controlsEl.textContent = '';
     this._bidControls = null;
     this._declarerControls = null;
+    this._sellSelectionControls = null;
+    this._sellBidControls = null;
+    this._sellSubPhase = null;
+    this._handView.setSelectionMode(false);
 
     this._roundReadyScreen = new RoundReadyScreen(
       this._container,
@@ -353,21 +373,18 @@ class GameScreen {
         waitDiv.textContent = `Waiting for ${declarerNickname}…`;
       }
 
-    } else {
-      if (this._bidControls) {
-        this._controlsEl.textContent = '';
-        this._bidControls = null;
-      }
-      if (this._declarerControls) {
-        this._controlsEl.textContent = '';
-        this._declarerControls = null;
-      }
-      if (this._controlsEl.querySelector('.waiting')) {
-        this._controlsEl.textContent = '';
-      }
-    }
+    } else if (phase === 'Selling') {
+      if (this._bidControls) { this._controlsEl.textContent = ''; this._bidControls = null; }
+      if (this._declarerControls) { this._controlsEl.textContent = ''; this._declarerControls = null; }
+      if (this._sellSubPhase) this._mountControlsForSelling(gameStatus);
 
-    // TODO T069 (US3): mount SellSelectionControls / SellBidControls when phase === 'Selling'
+    } else {
+      if (this._bidControls) { this._controlsEl.textContent = ''; this._bidControls = null; }
+      if (this._declarerControls) { this._controlsEl.textContent = ''; this._declarerControls = null; }
+      if (this._sellSelectionControls) { this._controlsEl.textContent = ''; this._sellSelectionControls = null; }
+      if (this._sellBidControls) { this._controlsEl.textContent = ''; this._sellBidControls = null; }
+      if (this._controlsEl.querySelector('.waiting')) { this._controlsEl.textContent = ''; }
+    }
   }
 
   // Returns the correct mode for DeclarerDecisionControls based on game state.
@@ -376,6 +393,190 @@ class GameScreen {
     if (sellAttempt === 3) return 'sell-disabled';
     if (this._viewerIsNewDeclarer) return 'sell-hidden';
     return 'full';
+  }
+
+  // Called from ThousandApp on sell_started — puts the declarer into card-selection mode.
+  enterSellSelection(gameStatus) {
+    this._sellSubPhase = 'selection';
+    this._lastGameStatus = gameStatus;
+    this._statusBar.render(gameStatus);
+    if (!this._controlsLocked) this._mountControlsForPhase(gameStatus);
+  }
+
+  // Called from ThousandApp on sell_exposed — animates the 3 selected cards to the centre.
+  enterSellBidding(msg) {
+    const { declarerId, exposedIds, identities, gameStatus } = msg;
+
+    if (identities) {
+      for (const id of exposedIds) {
+        const ident = identities[String(id)];
+        if (ident) this._cardsById[id] = { id, ...ident };
+      }
+    }
+
+    this._exposedCardIds = [...exposedIds];
+    this._sellSubPhase = 'bidding';
+    this._statusBar.render(gameStatus);
+    this._lastGameStatus = gameStatus;
+    this._controlsLocked = true;
+
+    this._handView.setSelectionMode(false);
+    this._sellSelectionControls = null;
+    this._controlsEl.textContent = '';
+
+    const viewerSeat = this._seats?.self;
+    const declarerPlayer = this._seats?.players.find(p => p.playerId === declarerId);
+    const declarerSeat = declarerPlayer?.seat;
+    const viewerIsDeclarer = viewerSeat === declarerSeat;
+
+    if (viewerIsDeclarer) {
+      const exposed = new Set(exposedIds);
+      this._handView.setHand(Object.values(this._cardsById).filter(c => !exposed.has(c.id)));
+    } else {
+      if (declarerSeat === this._seats?.left) this._leftOpponent.setCardCount(7);
+      else if (declarerSeat === this._seats?.right) this._rightOpponent.setCardCount(7);
+    }
+
+    const slots = this._cardTable.slotsForSeat(viewerSeat);
+    const fromSlot = (declarerSeat !== undefined ? slots[declarerSeat] : null) ?? this._cardTable.getSlot('talon');
+    const toSlot = this._cardTable.getSlot('talon');
+
+    this._animateSprites(exposedIds, fromSlot, toSlot, () => {
+      const talonCards = exposedIds.map(id => this._cardsById[id]).filter(Boolean);
+      this._talonView.setCards(talonCards);
+      this._controlsLocked = false;
+      this._mountControlsForPhase(this._lastGameStatus);
+    });
+  }
+
+  // Called from ThousandApp on sell_resolved — animates the 3 centre cards to their destination.
+  exitSelling(msg) {
+    const { outcome, oldDeclarerId, newDeclarerId, exposedIds, gameStatus } = msg;
+    const viewerSeat = this._seats?.self;
+
+    this._statusBar.render(gameStatus);
+    this._lastGameStatus = gameStatus;
+    this._controlsLocked = true;
+
+    this._handView.setSelectionMode(false);
+    if (this._sellBidControls) { this._controlsEl.textContent = ''; this._sellBidControls = null; }
+    if (this._sellSelectionControls) { this._controlsEl.textContent = ''; this._sellSelectionControls = null; }
+
+    const oldDeclarerSeat = this._seats?.players.find(p => p.playerId === oldDeclarerId)?.seat;
+    const newDeclarerSeat = newDeclarerId
+      ? this._seats?.players.find(p => p.playerId === newDeclarerId)?.seat
+      : undefined;
+
+    const slots = this._cardTable.slotsForSeat(viewerSeat);
+    const talonSlot = this._cardTable.getSlot('talon');
+    const destSeat = outcome === 'sold' ? newDeclarerSeat : oldDeclarerSeat;
+    const destSlot = (destSeat !== undefined ? slots[destSeat] : null) ?? talonSlot;
+
+    this._talonView.clear();
+
+    this._animateSprites(exposedIds, talonSlot, destSlot, () => {
+      this._applySellResolved(outcome, exposedIds, oldDeclarerSeat, newDeclarerSeat, viewerSeat);
+      this._sellSubPhase = null;
+      this._exposedCardIds = [];
+      this._controlsLocked = false;
+      this._mountControlsForPhase(this._lastGameStatus);
+    });
+  }
+
+  _applySellResolved(outcome, exposedIds, oldDeclarerSeat, newDeclarerSeat, viewerSeat) {
+    if (outcome === 'returned') {
+      if (viewerSeat === oldDeclarerSeat) {
+        this._handView.setHand(Object.values(this._cardsById));
+      } else {
+        for (const id of exposedIds) delete this._cardsById[id];
+        if (oldDeclarerSeat === this._seats?.left) this._leftOpponent.setCardCount(10);
+        else if (oldDeclarerSeat === this._seats?.right) this._rightOpponent.setCardCount(10);
+      }
+    } else if (outcome === 'sold') {
+      this._viewerIsNewDeclarer = (viewerSeat === newDeclarerSeat);
+      if (viewerSeat === newDeclarerSeat) {
+        this._handView.setHand(Object.values(this._cardsById));
+      } else {
+        for (const id of exposedIds) delete this._cardsById[id];
+        if (viewerSeat === oldDeclarerSeat) {
+          this._handView.setHand(Object.values(this._cardsById));
+        }
+      }
+      if (newDeclarerSeat === this._seats?.left) this._leftOpponent.setCardCount(10);
+      else if (newDeclarerSeat === this._seats?.right) this._rightOpponent.setCardCount(10);
+      if (oldDeclarerSeat === this._seats?.left) this._leftOpponent.setCardCount(7);
+      else if (oldDeclarerSeat === this._seats?.right) this._rightOpponent.setCardCount(7);
+    }
+  }
+
+  // Mounts selling controls for selection or bidding sub-phase.
+  _mountControlsForSelling(gameStatus) {
+    const { viewerIsActive, passedPlayers } = gameStatus;
+
+    if (this._sellSubPhase === 'selection') {
+      if (viewerIsActive) {
+        if (this._sellSelectionControls) return;
+        this._controlsEl.textContent = '';
+        this._handView.setSelectionMode(true);
+        this._sellSelectionControls = new SellSelectionControls(
+          this._controlsEl, this._antlion, this._dispatcher,
+        );
+        this._sellSelectionControls.show();
+      } else {
+        if (this._controlsEl.querySelector('.waiting')) return;
+        this._controlsEl.textContent = '';
+        const w = document.createElement('div');
+        w.className = 'waiting';
+        w.textContent = `Waiting for ${gameStatus.declarer?.nickname ?? 'declarer'} to choose cards…`;
+        this._controlsEl.appendChild(w);
+      }
+    } else if (this._sellSubPhase === 'bidding') {
+      if (!this._sellBidControls) {
+        this._controlsEl.textContent = '';
+        this._sellBidControls = new SellBidControls(this._controlsEl, this._antlion, this._dispatcher);
+      }
+      this._sellBidControls.setCurrentHighBid(gameStatus.currentHighBid ?? 100);
+
+      const viewerPlayer = this._seats?.players.find(p => p.seat === this._seats.self);
+      const viewerNickname = viewerPlayer?.nickname;
+      const viewerIsOriginalDeclarer = viewerNickname === gameStatus.declarer?.nickname;
+      const viewerHasPassed = (passedPlayers ?? []).includes(viewerNickname);
+
+      this._sellBidControls.setActiveState({
+        isActiveSeller: viewerIsActive && !viewerIsOriginalDeclarer,
+        isEligible: !viewerIsOriginalDeclarer && !viewerHasPassed,
+      });
+    }
+  }
+
+  // Animate an array of card ids from one slot to another; calls onComplete when done.
+  _animateSprites(ids, fromSlot, toSlot, onComplete) {
+    const OFFSET = 18;
+    const ANIM_MS = 300;
+
+    const sprites = ids.map((id, i) => {
+      const sprite = new CardSprite(id);
+      sprite.setFace('up');
+      const identity = this._cardsById[id];
+      if (identity) sprite.setIdentity(identity);
+      sprite.setPosition(fromSlot.x + i * OFFSET, fromSlot.y);
+      this._tableEl.appendChild(sprite.element);
+      sprite.setPosition(toSlot.x + i * OFFSET, toSlot.y, ANIM_MS);
+      return sprite;
+    });
+
+    let running = true;
+    this._antlion.onTick(() => {
+      if (!running) return;
+      let anyAnimating = false;
+      for (const sprite of sprites) {
+        if (sprite.update()) anyAnimating = true;
+      }
+      if (anyAnimating) return;
+      running = false;
+      for (const sprite of sprites) sprite.element.remove();
+      onComplete();
+    });
   }
 }
 

@@ -250,9 +250,15 @@ class ThousandApp {
         this._showGameSubscreen('round');
         this._gameScreen.initFromSnapshot(msg);
         break;
-      // TODO T070 (US3): sell_started — GameScreen.updateStatus
-      // TODO T071 (US3): sell_exposed — animate exposed cards
-      // TODO T072 (US3): sell_resolved — animate sell resolution
+      case 'sell_started':
+        this._gameScreen.enterSellSelection(msg.gameStatus);
+        break;
+      case 'sell_exposed':
+        this._gameScreen.enterSellBidding(msg);
+        break;
+      case 'sell_resolved':
+        this._gameScreen.exitSelling(msg);
+        break;
     }
   }
 
