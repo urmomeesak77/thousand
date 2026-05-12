@@ -609,6 +609,7 @@ fieldset legend {
 
 /* Full-viewport grid: fixed status bar on top, table fills the rest */
 .round-screen {
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr auto;
   width: 100%;
@@ -796,6 +797,142 @@ fieldset legend {
   font-weight: 700;
   line-height: 1;
   pointer-events: none;
+}
+
+/* ============================================================
+   Opponent view — face-down opponent hand zone
+   ============================================================ */
+
+.opponent-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+}
+
+.opponent-view__nickname {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 8rem;
+}
+
+.opponent-view__count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--card-width);
+  height: var(--card-height);
+  border-radius: var(--card-radius);
+  background: linear-gradient(
+    135deg,
+    var(--color-surface) 0%,
+    #1e3828 50%,
+    var(--color-surface) 100%
+  );
+  border: 1px solid var(--color-border);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.opponent-view__disconnected {
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  text-align: center;
+}
+
+/* ============================================================
+   Hand view — viewer's own sorted face-up hand
+   ============================================================ */
+
+.hand-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  min-height: calc(var(--card-height) + 1rem);
+}
+
+/* Overrides card-sprite's position:absolute so cards flow in the flex row */
+.hand-view__card {
+  position: relative;
+  cursor: default;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.hand-view__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================
+   Talon view — central face-up card area
+   ============================================================ */
+
+.talon-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: var(--card-height);
+  position: relative;
+}
+
+/* ============================================================
+   Declarer controls and waiting message
+   ============================================================ */
+
+.declarer-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.waiting {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ============================================================
+   Round-ready / round-aborted full-screen take-over (FR-019, FR-021)
+   The status bar (z-index: 50) stays visible above this overlay.
+   ============================================================ */
+
+.round-ready-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: var(--color-surface);
+}
+
+.round-ready-screen__heading {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-primary-hover);
+}
+
+.round-ready-screen__body {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  max-width: 32rem;
 }
 
 /* ============================================================

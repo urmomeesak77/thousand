@@ -217,12 +217,39 @@ class ThousandApp {
         this._gameScreen.updateStatus(msg.gameStatus);
         this._gameScreen.flashPlayer(msg.playerId);
         break;
-      // TODO T050 (US2): talon_absorbed — animate talon absorption
-      // TODO T052 (US2): play_phase_ready — swap to RoundReadyScreen
-      // TODO T052 (US2): round_aborted — swap to RoundReadyScreen (aborted mode)
-      // TODO T053 (US2): player_disconnected — GameScreen.updateStatus
-      // TODO T053 (US2): player_reconnected — GameScreen.updateStatus
-      // TODO T054 (US2): round_state_snapshot — rebuild GameScreen from snapshot
+      case 'talon_absorbed':
+        this._gameScreen.absorbTalon(msg);
+        break;
+      case 'play_phase_ready':
+        this._gameScreen.updateStatus(msg.gameStatus);
+        this._gameScreen.showRoundReady(
+          'ready',
+          { declarerNickname: msg.gameStatus.declarer?.nickname, finalBid: msg.finalBid },
+          () => this._returnFromRound(),
+        );
+        break;
+      case 'round_aborted':
+        this._gameScreen.updateStatus(msg.gameStatus);
+        this._gameScreen.showRoundReady(
+          'aborted',
+          { disconnectedNickname: msg.disconnectedNickname },
+          () => this._returnFromRound(),
+        );
+        break;
+      case 'player_disconnected':
+        this._gameScreen.updateStatus(msg.gameStatus);
+        this._gameScreen.setPlayerDisconnected(msg.playerId, true);
+        break;
+      case 'player_reconnected':
+        this._gameScreen.updateStatus(msg.gameStatus);
+        this._gameScreen.setPlayerDisconnected(msg.playerId, false);
+        break;
+      case 'round_state_snapshot':
+        this._waitingRoom.stopTimer();
+        this._showScreen('game-screen');
+        this._showGameSubscreen('round');
+        this._gameScreen.initFromSnapshot(msg);
+        break;
       // TODO T070 (US3): sell_started — GameScreen.updateStatus
       // TODO T071 (US3): sell_exposed — animate exposed cards
       // TODO T072 (US3): sell_resolved — animate sell resolution
@@ -390,6 +417,13 @@ class ThousandApp {
       this._gameId = data.gameId;
       this._inviteCode = data.inviteCode;
     }
+  }
+
+  _returnFromRound() {
+    this._gameId = null;
+    this._inviteCode = null;
+    this._showScreen('lobby-screen');
+    this._gameList.startElapsedTimer();
   }
 
   async _joinWithCode(code) {

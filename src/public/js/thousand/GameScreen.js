@@ -9,6 +9,9 @@ import OpponentView from './OpponentView.js';
 import TalonView from './TalonView.js';
 import DealAnimation from './DealAnimation.js';
 import BidControls from './BidControls.js';
+import DeclarerDecisionControls from './DeclarerDecisionControls.js';
+import RoundReadyScreen from './RoundReadyScreen.js';
+import CardSprite from './CardSprite.js';
 
 class GameScreen {
   constructor(antlion, container, dispatcher) {
@@ -20,6 +23,10 @@ class GameScreen {
     this._controlsLocked = false;
     this._lastGameStatus = null;
     this._bidControls = null;
+    this._declarerControls = null;
+    this._roundReadyScreen = null;
+    this._talonCardIds = [];
+    this._viewerIsNewDeclarer = false;
 
     const statusBarEl = document.createElement('div');
     const tableEl = document.createElement('div');
@@ -51,6 +58,13 @@ class GameScreen {
   init(msg) {
     this._seats = msg.seats;
     this._cardsById = {};
+    this._viewerIsNewDeclarer = false;
+    this._talonCardIds = msg.dealSequence
+      .filter(step => step.to === 'talon')
+      .map(step => step.id);
+
+    this._tableEl.classList.remove('hidden');
+    this._controlsEl.classList.remove('hidden');
 
     for (const step of msg.dealSequence) {
       if (step.rank && step.suit) {
@@ -73,6 +87,18 @@ class GameScreen {
       msg.seats.self,
       this._cardTable,
       () => {
+        this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
+        // Show viewer's 7 hand cards as a sorted row
+        const selfCards = Object.values(this._cardsById)
+          .filter(c => !this._talonCardIds.includes(c.id));
+        this._handView.setHand(selfCards);
+        // Show talon cards in the centre
+        const talonCards = this._talonCardIds
+          .map(id => this._cardsById[id])
+          .filter(Boolean);
+        this._talonView.setCards(talonCards);
+        this._leftOpponent.setCardCount(7);
+        this._rightOpponent.setCardCount(7);
         this._controlsLocked = false;
         if (this._lastGameStatus) this._mountControlsForPhase(this._lastGameStatus);
       },
@@ -80,6 +106,53 @@ class GameScreen {
     animation.start(this._tableEl);
 
     this._statusBar.render(msg.gameStatus);
+  }
+
+  // Called on round_state_snapshot; rebuilds the layout immediately with no animation (FR-027).
+  initFromSnapshot(msg) {
+    this._seats = msg.seats;
+    this._cardsById = {};
+    this._controlsLocked = false;
+    this._viewerIsNewDeclarer = false;
+
+    this._tableEl.classList.remove('hidden');
+    this._controlsEl.classList.remove('hidden');
+
+    for (const card of msg.myHand) {
+      this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
+    }
+    if (msg.talon) {
+      for (const card of msg.talon) {
+        this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
+      }
+    }
+    if (msg.exposed) {
+      for (const card of msg.exposed) {
+        this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
+      }
+    }
+
+    const leftPlayer = msg.seats.players.find(p => p.seat === msg.seats.left);
+    const rightPlayer = msg.seats.players.find(p => p.seat === msg.seats.right);
+    if (leftPlayer) this._leftOpponent.setNickname(leftPlayer.nickname);
+    if (rightPlayer) this._rightOpponent.setNickname(rightPlayer.nickname);
+
+    this._leftOpponent.setCardCount(msg.opponentHandSizes[msg.seats.left] ?? 0);
+    this._rightOpponent.setCardCount(msg.opponentHandSizes[msg.seats.right] ?? 0);
+
+    this._handView.setHand(msg.myHand);
+
+    if (msg.exposed && msg.exposed.length > 0) {
+      this._talonView.setCards(msg.exposed);
+    } else if (msg.talon && msg.talon.length > 0) {
+      this._talonView.setCards(msg.talon);
+    } else {
+      this._talonView.clear();
+    }
+
+    this._statusBar.render(msg.gameStatus);
+    this._lastGameStatus = msg.gameStatus;
+    this._mountControlsForPhase(msg.gameStatus);
   }
 
   // Called on every phase_changed, bid_accepted, pass_accepted, etc.
@@ -91,7 +164,6 @@ class GameScreen {
     }
   }
 
-  // Exposes the cardsById map to animators and sub-controllers
   get cardsById() {
     return this._cardsById;
   }
@@ -123,10 +195,117 @@ class GameScreen {
     this._antlion.schedule(600, () => el.classList.remove('bid-flash'));
   }
 
+  // Animates the 3 talon cards flying into the declarer's hand (FR-023, FR-024).
+  absorbTalon(msg) {
+    const { declarerId, talonIds, identities, gameStatus } = msg;
+    const viewerSeat = this._seats?.self;
+    const declarerPlayer = this._seats?.players.find(p => p.playerId === declarerId);
+    const declarerSeat = declarerPlayer?.seat;
+    const viewerIsDeclarer = viewerSeat === declarerSeat;
+
+    this._statusBar.render(gameStatus);
+    this._lastGameStatus = gameStatus;
+    this._controlsLocked = true;
+
+    // Remove the static talon sprites so they don't stay visible during animation
+    this._talonView.clear();
+
+    const talonSlot = this._cardTable.getSlot('talon');
+    const slots = this._cardTable.slotsForSeat(viewerSeat);
+    const destSlot = slots[declarerSeat] ?? talonSlot;
+    const OFFSET = 18;
+    const ANIM_MS = 300;
+
+    const sprites = talonIds.map((id, i) => {
+      const sprite = new CardSprite(id);
+      sprite.setFace('up');
+      const known = this._cardsById[id];
+      if (known) sprite.setIdentity(known);
+      sprite.setPosition(talonSlot.x + i * OFFSET, talonSlot.y);
+      this._tableEl.appendChild(sprite.element);
+      sprite.setPosition(destSlot.x + i * OFFSET, destSlot.y, ANIM_MS);
+      return sprite;
+    });
+
+    let running = true;
+    this._antlion.onTick(() => {
+      if (!running) return;
+      let anyAnimating = false;
+      for (const sprite of sprites) {
+        if (sprite.update()) anyAnimating = true;
+      }
+      if (anyAnimating) return;
+
+      running = false;
+      for (const sprite of sprites) {
+        sprite.element.remove();
+      }
+
+      if (viewerIsDeclarer) {
+        if (identities) {
+          for (const id of talonIds) {
+            const identity = identities[String(id)];
+            if (identity) this._cardsById[id] = { id, ...identity };
+          }
+        }
+        this._handView.setHand(Object.values(this._cardsById));
+      } else {
+        for (const id of talonIds) {
+          delete this._cardsById[id];
+        }
+        if (declarerSeat === this._seats?.left) {
+          this._leftOpponent.setCardCount(10);
+        } else if (declarerSeat === this._seats?.right) {
+          this._rightOpponent.setCardCount(10);
+        }
+      }
+
+      this._controlsLocked = false;
+      this._mountControlsForPhase(this._lastGameStatus);
+    });
+  }
+
+  // Updates the "Connection lost…" indicator for an opponent (FR-021).
+  setPlayerDisconnected(playerId, disconnected) {
+    if (!this._seats) return;
+    const player = this._seats.players.find(p => p.playerId === playerId);
+    if (!player) return;
+    if (player.seat === this._seats.left) {
+      this._leftOpponent.setDisconnected(disconnected);
+    } else if (player.seat === this._seats.right) {
+      this._rightOpponent.setDisconnected(disconnected);
+    }
+  }
+
+  // Hides the table/controls and shows the round-ready (or aborted) screen.
+  showRoundReady(mode, context, onBack) {
+    this._tableEl.classList.add('hidden');
+    this._controlsEl.classList.add('hidden');
+    this._controlsEl.textContent = '';
+    this._bidControls = null;
+    this._declarerControls = null;
+
+    this._roundReadyScreen = new RoundReadyScreen(
+      this._container,
+      this._antlion,
+      { mode, context },
+      () => {
+        this._roundReadyScreen?.destroy();
+        this._roundReadyScreen = null;
+        onBack();
+      },
+    );
+  }
+
   _mountControlsForPhase(gameStatus) {
     const { phase, viewerIsActive, passedPlayers } = gameStatus;
 
     if (phase === 'Bidding') {
+      if (this._declarerControls) {
+        this._controlsEl.textContent = '';
+        this._declarerControls = null;
+      }
+
       if (!this._bidControls) {
         this._controlsEl.textContent = '';
         this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
@@ -143,14 +322,60 @@ class GameScreen {
         isActiveBidder: viewerIsActive,
         isEligible: !viewerHasPassed,
       });
-    } else if (this._bidControls) {
-      this._controlsEl.textContent = '';
-      this._bidControls = null;
+
+    } else if (phase === 'Declarer deciding') {
+      if (this._bidControls) {
+        this._controlsEl.textContent = '';
+        this._bidControls = null;
+      }
+
+      if (viewerIsActive) {
+        if (!this._declarerControls) {
+          this._controlsEl.textContent = '';
+          this._declarerControls = new DeclarerDecisionControls(
+            this._controlsEl, this._antlion, this._dispatcher,
+          );
+        }
+        this._declarerControls.setMode(this._declarerMode(gameStatus));
+      } else {
+        if (this._declarerControls) {
+          this._controlsEl.textContent = '';
+          this._declarerControls = null;
+        }
+        const declarerNickname = gameStatus.declarer?.nickname ?? 'declarer';
+        let waitDiv = this._controlsEl.querySelector('.waiting');
+        if (!waitDiv) {
+          this._controlsEl.textContent = '';
+          waitDiv = document.createElement('div');
+          waitDiv.className = 'waiting';
+          this._controlsEl.appendChild(waitDiv);
+        }
+        waitDiv.textContent = `Waiting for ${declarerNickname}…`;
+      }
+
+    } else {
+      if (this._bidControls) {
+        this._controlsEl.textContent = '';
+        this._bidControls = null;
+      }
+      if (this._declarerControls) {
+        this._controlsEl.textContent = '';
+        this._declarerControls = null;
+      }
+      if (this._controlsEl.querySelector('.waiting')) {
+        this._controlsEl.textContent = '';
+      }
     }
 
-    // TODO T051 (US2): mount DeclarerDecisionControls when phase === 'Declarer deciding'
     // TODO T069 (US3): mount SellSelectionControls / SellBidControls when phase === 'Selling'
-    // TODO T052 (US2): mount RoundReadyScreen when phase === 'Round ready to play' or 'Round aborted'
+  }
+
+  // Returns the correct mode for DeclarerDecisionControls based on game state.
+  _declarerMode(gameStatus) {
+    const { sellAttempt } = gameStatus;
+    if (sellAttempt === 3) return 'sell-disabled';
+    if (this._viewerIsNewDeclarer) return 'sell-hidden';
+    return 'full';
   }
 }
 
