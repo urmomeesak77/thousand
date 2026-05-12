@@ -23,7 +23,7 @@ class RoundActionHandler {
     this._store.sendToPlayer(playerId, { type: 'action_rejected', reason });
   }
 
-  // T027
+  // T027 + T044
   handleBid(playerId, amount) {
     if (!this._rateLimiter.isAllowed(playerId)) return;
     const game = this._gameOf(playerId);
@@ -33,15 +33,21 @@ class RoundActionHandler {
     const seat = this._seatOf(playerId);
     const result = round.submitBid(seat, amount);
     if (result.rejected) return this._reject(playerId, result.reason);
+    const declarerPid = result.resolved ? round.seatOrder[round.declarerSeat] : null;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
       this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
+      if (result.resolved) {
+        const msg = { type: 'talon_absorbed', declarerId: declarerPid, talonIds: result.talonIds, gameStatus };
+        if (pid === declarerPid) msg.identities = result.identities;
+        this._store.sendToPlayer(pid, msg);
+      }
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
   }
 
-  // T028
+  // T028 + T044
   handlePass(playerId) {
     if (!this._rateLimiter.isAllowed(playerId)) return;
     const game = this._gameOf(playerId);
@@ -51,10 +57,16 @@ class RoundActionHandler {
     const seat = this._seatOf(playerId);
     const result = round.submitPass(seat);
     if (result.rejected) return this._reject(playerId, result.reason);
+    const declarerPid = result.resolved ? round.seatOrder[round.declarerSeat] : null;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
       this._store.sendToPlayer(pid, { type: 'pass_accepted', playerId, gameStatus });
+      if (result.resolved) {
+        const msg = { type: 'talon_absorbed', declarerId: declarerPid, talonIds: result.talonIds, gameStatus };
+        if (pid === declarerPid) msg.identities = result.identities;
+        this._store.sendToPlayer(pid, msg);
+      }
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
   }
@@ -69,7 +81,25 @@ class RoundActionHandler {
 
   handleSellPass(_playerId) {}
 
-  handleStartGame(_playerId) {}
+  // T043
+  handleStartGame(playerId) {
+    if (!this._rateLimiter.isAllowed(playerId)) return;
+    const game = this._gameOf(playerId);
+    if (!game?.round) return this._reject(playerId, 'Not in a round');
+    const round = game.round;
+    const seat = this._seatOf(playerId);
+    const result = round.startGame(seat);
+    if (result.noop) return;
+    if (result.rejected) return this._reject(playerId, result.reason);
+    const { declarerId, finalBid } = result;
+    const gameId = game.id;
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      this._store.sendToPlayer(pid, { type: 'play_phase_ready', declarerId, finalBid, gameStatus });
+    }
+    this._store._cleanupRound(gameId);
+  }
 }
 
 module.exports = RoundActionHandler;

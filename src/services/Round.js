@@ -105,11 +105,11 @@ class Round {
     this.currentHighBid = amount;
 
     if (3 - this.passedBidders.size === 1) {
-      // The bidder is the only remaining non-passed bidder — they win the auction
       this.declarerSeat = seat;
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = seat;
-      // TODO T041: absorb talon into hands[declarerSeat] here
+      const { talonIds, identities } = this._absorbTalon();
+      return { rejected: false, resolved: true, talonIds, identities };
     } else {
       let next = (seat + 1) % 3;
       while (this.passedBidders.has(next)) {
@@ -132,20 +132,19 @@ class Round {
 
     const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
     if (remaining.length === 0) {
-      // All 3 passed — dealer becomes declarer at 100 (FR-011)
       this.declarerSeat = this.dealerSeat;
       this.currentHighBid = 100;
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = this.dealerSeat;
-      // TODO T041: absorb talon into hands[declarerSeat] here
+      const { talonIds, identities } = this._absorbTalon();
+      return { rejected: false, resolved: true, talonIds, identities };
     } else if (remaining.length === 1) {
-      // One non-passed bidder remains — they become the declarer (FR-010 / FR-011).
-      // FR-011: if no bid was ever accepted (all-pass scenario), the minimum bid is 100.
       this.declarerSeat = remaining[0];
       if (this.currentHighBid === null) this.currentHighBid = 100;
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = remaining[0];
-      // TODO T041: absorb talon into hands[declarerSeat] here
+      const { talonIds, identities } = this._absorbTalon();
+      return { rejected: false, resolved: true, talonIds, identities };
     } else {
       let next = (seat + 1) % 3;
       while (this.passedBidders.has(next)) next = (next + 1) % 3;
@@ -199,6 +198,30 @@ class Round {
 
   getSnapshotFor(_seat) {
     return null;
+  }
+
+  // T042
+  startGame(seat) {
+    if (this.phase === 'play-phase-ready') return { noop: true };
+    if (this.phase !== 'post-bid-decision') return { rejected: true, reason: 'Not in decision phase' };
+    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can start the game' };
+    this.phase = 'play-phase-ready';
+    return { noop: false, declarerId: this.seatOrder[this.declarerSeat], finalBid: this.currentHighBid };
+  }
+
+  // T041 helper — moves talon into declarerSeat's hand; called at every bidding resolution site
+  _absorbTalon() {
+    const talonIds = [...this.talon];
+    const identities = {};
+    for (const id of talonIds) {
+      const card = this.deck[id];
+      identities[id] = { rank: card.rank, suit: card.suit };
+    }
+    this.talon = [];
+    for (const id of talonIds) {
+      this.hands[this.declarerSeat].push(id);
+    }
+    return { talonIds, identities };
   }
 
   // Canonical 24-step deal destination for step index i (FR-002)
