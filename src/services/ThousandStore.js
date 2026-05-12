@@ -243,6 +243,24 @@ class ThousandStore {
     this.broadcastLobbyUpdate();
   }
 
+  _cleanupRound(gameId) {
+    const game = this.games.get(gameId);
+    if (!game) return;
+    for (const pid of game.players) {
+      const player = this.players.get(pid);
+      if (player) player.gameId = null;
+    }
+    if (game.waitingRoomTimer) {
+      clearTimeout(game.waitingRoomTimer);
+      game.waitingRoomTimer = null;
+    }
+    if (game.inviteCode) {
+      this.inviteCodes.delete(game.inviteCode);
+    }
+    this.games.delete(gameId);
+    this.broadcastLobbyUpdate();
+  }
+
   scheduleWaitingRoomTimeout(gameId) {
     const game = this.games.get(gameId);
     if (!game) return;

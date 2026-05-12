@@ -50,6 +50,11 @@ class GameController {
   }
 
   _admitPlayerToGame(game, gameId, playerId) {
+    if (game.status !== 'waiting') {
+      this.store.sendToPlayer(playerId, { type: 'game_join_failed', reason: 'Game is already in progress' });
+      return;
+    }
+
     game.players.add(playerId);
     this.store.players.get(playerId).gameId = gameId;
     this.store.broadcastLobbyUpdate();
@@ -75,6 +80,10 @@ class GameController {
           players: allPlayers,
         });
       }
+    }
+
+    if (game.players.size === game.requiredPlayers) {
+      this.store.startRound(game.id);
     }
   }
 
