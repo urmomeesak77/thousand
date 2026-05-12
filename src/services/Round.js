@@ -121,9 +121,36 @@ class Round {
     return { rejected: false };
   }
 
-  // T025 stub — body lands in T025
-  submitPass(_seat) {
-    return { rejected: true, reason: 'Not implemented yet' };
+  // T025
+  submitPass(seat) {
+    if (this.phase !== 'bidding') return { rejected: true, reason: 'Not in bidding phase' };
+    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
+    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
+
+    this.passedBidders.add(seat);
+    this.bidHistory.push({ seat, amount: null });
+
+    const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
+    if (remaining.length === 0) {
+      // All 3 passed — dealer becomes declarer at 100 (FR-011)
+      this.declarerSeat = this.dealerSeat;
+      this.currentHighBid = 100;
+      this.phase = 'post-bid-decision';
+      this.currentTurnSeat = this.dealerSeat;
+      // TODO T041: absorb talon into hands[declarerSeat] here
+    } else if (remaining.length === 1) {
+      // One non-passed bidder remains — they become the declarer (FR-010)
+      this.declarerSeat = remaining[0];
+      this.phase = 'post-bid-decision';
+      this.currentTurnSeat = remaining[0];
+      // TODO T041: absorb talon into hands[declarerSeat] here
+    } else {
+      let next = (seat + 1) % 3;
+      while (this.passedBidders.has(next)) next = (next + 1) % 3;
+      this.currentTurnSeat = next;
+    }
+
+    return { rejected: false };
   }
 
   // T026
