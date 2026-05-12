@@ -23,7 +23,7 @@ This is a single project (Node.js server + vanilla-JS frontend, no bundler) per 
 
 **Purpose**: Carve out the new feature's frontend directory. Backend folders already exist.
 
-- [ ] T001 Create the new frontend feature directory `src/public/js/thousand/` (empty — its contents land in subsequent tasks)
+- [X] T001 Create the new frontend feature directory `src/public/js/thousand/` (empty — its contents land in subsequent tasks)
 
 ---
 
