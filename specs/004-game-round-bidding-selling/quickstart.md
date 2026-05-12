@@ -186,11 +186,11 @@ node --test tests/HandView.test.js tests/GameScreen.gating.test.js tests/BidCont
 2. Open three browser tabs at `http://localhost:3000/`.
 3. Set three nicknames; from tab 1 host a public 3-player game; tabs 2 and 3 join.
 4. **Auto-start (FR-001, SC-001)**: within 2 s of tab 3 joining, all three tabs swap from the WaitingRoom to the GameScreen.
-5. **Deal animation (FR-002, FR-024)**: each tab plays the same 24-card deal, interleaved P1→P2→P3→Talon×3 then P1→P2→P3×4. Cards visibly fly from the central deck; opponents' cards are card-backs; talon cards land face-up; own cards land face-up.
+5. **Deal animation (FR-002, FR-024)**: each tab plays the same 24-card deal, interleaved P1→P2→Dealer→Talon×3 then P1→P2→Dealer×4. Cards visibly fly from the central deck; opponents' cards are card-backs; talon cards land face-up; own cards land face-up.
 6. **Hand sort (FR-005)**: at the end of dealing, the own-hand is sorted ♣→♠→♥→♦ left-to-right, ascending 9→A within each suit.
 7. **Seating (FR-005)**: the opponent who acts immediately after the viewer in clockwise order is on the viewer's left.
-8. **Status bar (FR-025)**: top bar shows `Dealing` → `Bidding`, the active bidder, "your turn"/"waiting for…" framing, and current high bid 100 before any accepted bid.
-9. **Bidding (FR-008, FR-009, FR-010, FR-011, FR-028)**: cycle through bids and passes. Try an invalid bid (107) — get a Toast and the turn doesn't advance. Try a too-low bid — same. Resolve to one declarer.
+8. **Status bar (FR-025)**: top bar shows `Dealing` → `Bidding`, the active bidder, "your turn"/"waiting for…" framing, and the high-bid label rendered as **100** before any accepted bid (the wire `currentHighBid` is `null` at that point; the client renders `currentHighBid ?? 100`).
+9. **Bidding (FR-008, FR-009, FR-010, FR-011, FR-028)**: cycle through bids and passes. The first bidder's BidControls field initialises to **100** (smallest legal bid when no bid is accepted yet); after a 100 bid is accepted, the next active bidder's field initialises to **105**. Try an invalid bid (107) — get a Toast and the turn doesn't advance. Try a too-low bid — same. Drive `currentHighBid` up to 300 — at that point the bid input is disabled and only Pass is operable. Resolve to one declarer.
 10. **Talon absorbed (FR-012)**: declarer's hand grows to 10; talon area clears; opponents see no identities for the 3 absorbed cards (open dev tools and check `cardsById` — those ids are no longer present).
 11. **Declarer decision (FR-013, FR-026)**: declarer sees Sell + Start. Opponents see "Waiting for declarer…" — no Sell/Start buttons at all.
 12. **Start the Game (FR-019, FR-032)**: declarer presses Start. All 3 tabs render the RoundReady screen with a Back-to-Lobby button. Server logs show the game record deleted. Each tab returns to the lobby individually when its Back-to-Lobby button is pressed.

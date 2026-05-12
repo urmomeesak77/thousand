@@ -26,7 +26,7 @@ Submitted by the active bidder during the main bidding phase.
 | Field  | Type    | Required | Notes |
 |--------|---------|----------|-------|
 | type   | string  | yes      | `"bid"` |
-| amount | integer | yes      | Multiple of 5, ≥ 100, > `currentHighBid`, ≤ 300 |
+| amount | integer | yes      | Multiple of 5, ≥ smallest legal bid for the moment, ≤ 300. Smallest legal bid is **100** when no bid has yet been accepted (`Round.currentHighBid === null`) and **`currentHighBid + 5`** thereafter — see FR-008 |
 
 **Server behaviour**: validate per FR-008; on accept, broadcast `bid_accepted` + `phase_changed`. On reject, send `action_rejected` to the actor only.
 
@@ -147,7 +147,7 @@ Sent once, immediately after the 3rd player is admitted. Carries the canonical 2
 | seats.self | integer 0–2 | This recipient's seat index |
 | seats.left | integer 0–2 | Per FR-005: the opponent who acts immediately after self in clockwise order |
 | seats.right | integer 0–2 | The other opponent |
-| seats.dealer | integer 0–2 | Per FR-003: the host (always seat 0 in this spec since dealer = host) |
+| seats.dealer | integer (always `0` in this spec) | Per FR-003 the host = 1st joiner = seat 0; in the single-round scope of this spec the Dealer is always the host, so this field is always `0`. The field remains an integer to leave room for future multi-round dealer rotation (out of scope). |
 | seats.players[].seat / playerId / nickname | | Public per-seat identity |
 | dealSequence[].id | integer 0–23 | Card id (stable for the round) |
 | dealSequence[].to | string | `"seat0"`, `"seat1"`, `"seat2"`, or `"talon"` |

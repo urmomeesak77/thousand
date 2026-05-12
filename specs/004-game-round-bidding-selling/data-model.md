@@ -7,15 +7,15 @@ Attached to each `Game` record as `game.round` (initially `null`; populated when
 ```js
 {
   phase: 'dealing' | 'bidding' | 'post-bid-decision' | 'selling-selection' | 'selling-bidding' | 'play-phase-ready' | 'aborted',
-  dealerSeat: 0 | 1 | 2,                       // host's seat
-  seatOrder: [playerId, playerId, playerId],   // index 0..2 — clockwise from a fixed origin
-  seatBySocket: Map<playerId, seatIdx>,
-  deck: [Card, ...],                           // 24 entries; full identities; server-only
-  hands: { [seatIdx]: number[] },              // card-id arrays per seat (7, 10, or 7 depending on phase)
-  talon: number[],                             // card-id array (3 cards until absorbed, then [])
-  exposedSellCards: number[],                  // card-id array (3 during selling, else [])
-  currentTurnSeat: 0 | 1 | 2 | null,           // who acts next (null during dealing/play-phase-ready/aborted)
-  currentHighBid: number,                      // integer ≥ 100, multiple of 5; starts at 100 (opening minimum)
+  dealerSeat: 0,                                // host's seat — always 0 in this spec (host = 1st joiner per FR-003); convention pinned for the single-round scope. Multi-round dealer rotation is deferred.
+  seatOrder: [playerId, playerId, playerId],    // index 0..2 — clockwise; seat 0 = Dealer (1st joiner), seat 1 = P1 (2nd joiner = first bidder), seat 2 = P2 (3rd joiner)
+  seatByPlayer: Map<playerId, seatIdx>,
+  deck: [Card, ...],                            // 24 entries; full identities; server-only
+  hands: { [seatIdx]: number[] },               // card-id arrays per seat (7, 10, or 7 depending on phase)
+  talon: number[],                              // card-id array (3 cards until absorbed, then [])
+  exposedSellCards: number[],                   // card-id array (3 during selling, else [])
+  currentTurnSeat: 0 | 1 | 2 | null,            // who acts next (null during dealing/play-phase-ready/aborted)
+  currentHighBid: number | null,                // null until any bid is accepted this round; thereafter the highest accepted bid value (integer ≥ 100, multiple of 5, ≤ 300). The view-model display value is `currentHighBid ?? 100` (i.e., the opening minimum is shown before any bid).
   bidHistory: [{ seat, amount: number | null }, ...],  // null = pass
   passedBidders: Set<seatIdx>,                 // who has passed in main bidding
   passedSellOpponents: Set<seatIdx>,           // who has passed in the current selling-bidding attempt; resets per attempt
@@ -41,7 +41,8 @@ Attached to each `Game` record as `game.round` (initially `null`; populated when
 ```
 [not-started]      --3rd player admitted-->                  [dealing]
 [dealing]          --first valid action message from the
-                     active bidder (P1) after the deal
+                     active bidder (seat P1, clockwise-
+                     left of Dealer) after the deal
                      animation has completed on their
                      client (FR-024 gates the client UI)--> [bidding]
 [bidding]          --one bidder remains (others passed)-->   [post-bid-decision]   (declarer = sole bidder)
@@ -71,7 +72,7 @@ Attached to each `Game` record as `game.round` (initially `null`; populated when
 ### Phase-end invariants
 
 - Leaving `dealing`: `hands[0/1/2].length === 7`, `talon.length === 3`, sum of all = 24, no duplicate ids.
-- Leaving `bidding`: `declarerSeat !== null`, `currentHighBid ∈ [100, 300]`, multiple of 5.
+- Leaving `bidding`: `declarerSeat !== null`, `currentHighBid ∈ [100, 300]`, multiple of 5. (Once bidding has resolved, `currentHighBid` is guaranteed non-null per FR-010 / FR-011.)
 - Entering `post-bid-decision` from `bidding`: `hands[declarerSeat].length === 10`, `talon.length === 0` (the talon was absorbed).
 - During `selling-selection`: `hands[declarerSeat].length === 10`, `exposedSellCards.length === 0`.
 - During `selling-bidding`: `hands[declarerSeat].length === 7`, `exposedSellCards.length === 3`, identities visible to all 3 viewers.
@@ -123,7 +124,7 @@ This is the canonical source-of-truth for what the server MAY send `{ rank, suit
 
 | Phase | Talon cards | Declarer's hand | Each opponent's hand | Exposed (selling) cards | Notes |
 |---|---|---|---|---|---|
-| `dealing` | visible to ALL | not yet defined | not yet defined | n/a | All clients receive talon identities during the deal. |
+| `dealing` | visible to ALL | identities visible ONLY to the seat that owns them (each viewer sees their own 7) | own-hand-only to that viewer | n/a | `Round.start()` populates hands and talon at phase entry; identities for the recipient's own seat and for the talon are delivered via `round_started` before the client begins animating. |
 | `bidding` | visible to ALL | hand size unknown until declarer determined; talon still visible | own-hand-only to that viewer | n/a | |
 | `post-bid-decision` (after absorption) | none (cards moved into declarer's hand) | identities visible ONLY to declarer; opponents see id-only face-backs | own-hand-only to that viewer | n/a | Identities of the 3 former-talon cards must be dropped client-side on opponents at the moment of the `talon_absorbed` message (FR-023). |
 | `selling-selection` | none | identities visible ONLY to declarer | own-hand-only to that viewer | n/a (selection happens inside declarer's hand UI; no center exposure yet) | |
@@ -155,7 +156,7 @@ Computed by the server. One field (`viewerIsActive`) differs per recipient; ever
   phase: 'Dealing' | 'Bidding' | 'Declarer deciding' | 'Selling' | 'Round ready to play' | 'Round aborted',
   activePlayer: { nickname: string, seat: 0|1|2 } | null,
   viewerIsActive: boolean,
-  currentHighBid: number,                  // opening minimum (100) before any accepted bid
+  currentHighBid: number | null,           // wire value mirrors the internal `Round.currentHighBid`: `null` until any bid is accepted this round, the highest accepted bid thereafter. The status bar renders `currentHighBid ?? 100` for display (the opening minimum is shown before any bid).
   declarer: { nickname: string, seat: 0|1|2 } | null,
   passedPlayers: string[],                 // nicknames who have passed in the current bidding or current selling-bidding attempt
   sellAttempt: 1 | 2 | 3 | null,           // null in phases where it doesn't apply (Dealing, Bidding, Round ready, Round aborted)
@@ -168,7 +169,7 @@ Computed by the server. One field (`viewerIsActive`) differs per recipient; ever
 - `phase`: server-controlled enum; client treats unknown values as an error and disconnects.
 - `activePlayer`: present iff `phase ∈ { Bidding, Declarer deciding, Selling }`.
 - `viewerIsActive` and `activePlayer`: always coherent on a given recipient (`viewerIsActive === (activePlayer?.seat === thisRecipient.seat)`).
-- `currentHighBid`: integer; multiple of 5; ≥ 100; ≤ 300.
+- `currentHighBid` (view-model field): `null` iff no bid has been accepted this round; otherwise an integer multiple of 5 in `[100, 300]`. The status bar renders `currentHighBid ?? 100` for the user-facing label. Bid controls (FR-028) derive the smallest legal bid from this field: `currentHighBid === null ? 100 : currentHighBid + 5`, capped at 300 (when `currentHighBid === 300` the bid input is disabled — see Edge Cases).
 - `sellAttempt`: integer in [1, 3] iff `phase === 'Selling'` or `phase === 'Declarer deciding'` after a failed selling attempt; else `null`.
 
 ---
