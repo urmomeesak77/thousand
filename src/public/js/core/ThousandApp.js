@@ -15,6 +15,8 @@ const $ = (id) => document.getElementById(id);
 // Defensive shape checks for server→client WS messages. Today renderers use
 // textContent so an unexpected shape can't trip XSS, but if a future renderer
 // switches to innerHTML this gate keeps the surface narrow.
+const isObj = (v) => v !== null && typeof v === 'object';
+
 const MESSAGE_VALIDATORS = {
   connected: (m) => typeof m.playerId === 'string' && typeof m.sessionToken === 'string' && typeof m.restored === 'boolean' && (m.nickname === null || typeof m.nickname === 'string'),
   session_replaced: () => true,
@@ -24,6 +26,20 @@ const MESSAGE_VALIDATORS = {
   player_left: (m) => Array.isArray(m.players) && (m.nickname === null || typeof m.nickname === 'string'),
   game_disbanded: () => true,
   error: (m) => m.message === undefined || typeof m.message === 'string',
+  round_started: (m) => isObj(m.seats) && typeof m.seats.self === 'number' && Array.isArray(m.seats.players) && Array.isArray(m.dealSequence) && isObj(m.gameStatus),
+  phase_changed: (m) => typeof m.phase === 'string' && isObj(m.gameStatus),
+  bid_accepted: (m) => typeof m.playerId === 'string' && typeof m.amount === 'number' && isObj(m.gameStatus),
+  pass_accepted: (m) => typeof m.playerId === 'string' && isObj(m.gameStatus),
+  talon_absorbed: (m) => typeof m.declarerId === 'string' && Array.isArray(m.talonIds) && isObj(m.gameStatus),
+  sell_started: (m) => isObj(m.gameStatus),
+  sell_exposed: (m) => typeof m.declarerId === 'string' && Array.isArray(m.exposedIds) && isObj(m.gameStatus),
+  sell_resolved: (m) => typeof m.outcome === 'string' && typeof m.oldDeclarerId === 'string' && Array.isArray(m.exposedIds) && isObj(m.gameStatus),
+  play_phase_ready: (m) => typeof m.declarerId === 'string' && typeof m.finalBid === 'number' && isObj(m.gameStatus),
+  round_aborted: (m) => typeof m.reason === 'string' && typeof m.disconnectedNickname === 'string' && isObj(m.gameStatus),
+  action_rejected: (m) => typeof m.reason === 'string',
+  round_state_snapshot: (m) => typeof m.phase === 'string' && isObj(m.gameStatus) && isObj(m.seats) && Array.isArray(m.myHand) && isObj(m.opponentHandSizes),
+  player_disconnected: (m) => typeof m.playerId === 'string' && isObj(m.gameStatus),
+  player_reconnected: (m) => typeof m.playerId === 'string' && isObj(m.gameStatus),
 };
 
 class ThousandApp {

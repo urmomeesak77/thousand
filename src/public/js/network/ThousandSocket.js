@@ -27,6 +27,12 @@ class ThousandSocket {
     this._attachHandlers(ws);
   }
 
+  send(msg) {
+    if (this._ws && this._ws.readyState === 1 /* OPEN */) {
+      this._ws.send(JSON.stringify(msg));
+    }
+  }
+
   disconnect() {
     this._stopped = true;
     if (this._reconnectId !== null) {
