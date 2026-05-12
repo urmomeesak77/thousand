@@ -115,12 +115,18 @@ class ConnectionManager {
       if (result.restored) {
         this._store.reconnectPlayer(result.playerId, ws);
       }
-      ws.send(JSON.stringify({ type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken, restored: result.restored, nickname: result.nickname }));
+      ws.send(JSON.stringify({ type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken, restored: result.restored, nickname: result.nickname, gameId: result.gameId }));
       ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
       if (result.restored && result.gameId) {
         const game = this._store.games.get(result.gameId);
         if (game) {
-          ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt, inviteCode: game.inviteCode ?? null, requiredPlayers: game.requiredPlayers }));
+          if (game.status === 'in-progress') {
+            const seat = game.round.seatByPlayer.get(result.playerId);
+            const snapshot = game.round.getSnapshotFor(seat);
+            if (snapshot) ws.send(JSON.stringify(snapshot));
+          } else {
+            ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt, inviteCode: game.inviteCode ?? null, requiredPlayers: game.requiredPlayers }));
+          }
         }
       }
       return;
