@@ -181,9 +181,23 @@ class Round {
         }
       : null;
 
-    const passedPlayers = [...this.passedBidders].map(s =>
-      this._store.players.get(this.seatOrder[s]).nickname
-    );
+    // During selling-bidding, passedPlayers reflects sell opponents who passed (not the bidding-phase passers)
+    const passedPlayers = (this.phase === 'selling-bidding'
+      ? [...this.passedSellOpponents]
+      : [...this.passedBidders]
+    ).map(s => this._store.players.get(this.seatOrder[s]).nickname);
+
+    // sellAttempt is 1-based: shown during selling phases and in post-bid-decision after a failed attempt
+    let sellAttempt = null;
+    if (this.phase === 'selling-selection' || this.phase === 'selling-bidding') {
+      sellAttempt = this.attemptCount + 1;
+    } else if (
+      this.phase === 'post-bid-decision' &&
+      this.attemptHistory.length > 0 &&
+      this.attemptHistory[this.attemptHistory.length - 1].outcome === 'returned'
+    ) {
+      sellAttempt = this.attemptCount + 1;
+    }
 
     return {
       phase: phaseLabel,
@@ -192,7 +206,7 @@ class Round {
       currentHighBid: this.currentHighBid,
       declarer,
       passedPlayers,
-      sellAttempt: null,
+      sellAttempt,
       disconnectedPlayers: [...this.disconnectedSeats].map(s =>
         this._store.players.get(this.seatOrder[s])?.nickname
       ).filter(Boolean),
@@ -337,7 +351,99 @@ class Round {
     // clockwise-left of declarer bids first (FR-015, parallels FR-004)
     this.currentTurnSeat = (this.declarerSeat + 1) % 3;
     this.passedSellOpponents = new Set();
+    this._lastSellBidderSeat = null;
     return { rejected: false };
+  }
+
+  // T062
+  submitSellBid(seat, amount) {
+    if (this.phase !== 'selling-bidding') return { rejected: true, reason: 'Not in selling-bidding phase' };
+    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
+    if (seat === this.declarerSeat) return { rejected: true, reason: 'The declarer cannot bid in the sell auction' };
+    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
+    if (!Number.isInteger(amount)) return { rejected: true, reason: 'Bid must be an integer' };
+    if (amount % 5 !== 0) return { rejected: true, reason: 'Bid must be a multiple of 5' };
+    if (amount > 300) return { rejected: true, reason: 'Bid cannot exceed 300' };
+    const smallest = this.currentHighBid === null ? 100 : this.currentHighBid + 5;
+    if (amount < smallest) return { rejected: true, reason: `Bid must be at least ${smallest}` };
+
+    this.currentHighBid = amount;
+    this._lastSellBidderSeat = seat;
+
+    const next = this._nextSellOpponent(seat);
+    if (next !== null) {
+      this.currentTurnSeat = next;
+      return { rejected: false };
+    }
+
+    // No remaining active opponents → the bidder wins immediately
+    return this._resolveSellSold();
+  }
+
+  // T063
+  submitSellPass(seat) {
+    if (this.phase !== 'selling-bidding') return { rejected: true, reason: 'Not in selling-bidding phase' };
+    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
+    if (seat === this.declarerSeat) return { rejected: true, reason: 'The declarer cannot pass in the sell auction' };
+    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
+
+    this.passedSellOpponents.add(seat);
+
+    const remaining = this._activeSellOpponents();
+
+    if (remaining.length === 0) {
+      // Both opponents passed without anyone bidding
+      return this._resolveSellReturned();
+    }
+
+    if (this._lastSellBidderSeat !== null) {
+      // One passed and the other has bid at least once (FR-016 / FR-017)
+      return this._resolveSellSold();
+    }
+
+    // Remaining opponent hasn't bid yet — continue
+    this.currentTurnSeat = remaining[0];
+    return { rejected: false };
+  }
+
+  // T062/T063 helpers — sell-phase resolution and opponent rotation
+
+  _nextSellOpponent(fromSeat) {
+    for (let i = 1; i <= 2; i++) {
+      const candidate = (fromSeat + i) % 3;
+      if (candidate !== this.declarerSeat && !this.passedSellOpponents.has(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  _activeSellOpponents() {
+    return [0, 1, 2].filter(s => s !== this.declarerSeat && !this.passedSellOpponents.has(s));
+  }
+
+  _resolveSellSold() {
+    const buyerSeat = this._lastSellBidderSeat;
+    const oldDeclarerSeat = this.declarerSeat;
+    const exposedIds = [...this.exposedSellCards];
+    this.hands[buyerSeat] = [...this.hands[buyerSeat], ...exposedIds];
+    this.exposedSellCards = [];
+    this.attemptHistory.push({ outcome: 'sold', exposedIds });
+    this.declarerSeat = buyerSeat;
+    this.currentTurnSeat = buyerSeat;
+    this.phase = 'post-bid-decision';
+    return { rejected: false, resolved: true, outcome: 'sold', buyerSeat, oldDeclarerSeat, exposedIds };
+  }
+
+  _resolveSellReturned() {
+    const exposedIds = [...this.exposedSellCards];
+    this.hands[this.declarerSeat] = [...this.hands[this.declarerSeat], ...exposedIds];
+    this.exposedSellCards = [];
+    this.attemptCount += 1;
+    this.attemptHistory.push({ outcome: 'returned', exposedIds });
+    this.currentTurnSeat = this.declarerSeat;
+    this.phase = 'post-bid-decision';
+    return { rejected: false, resolved: true, outcome: 'returned', exposedIds };
   }
 
   // T041 helper — moves talon into declarerSeat's hand; called at every bidding resolution site
