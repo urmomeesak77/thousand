@@ -40,6 +40,16 @@ Submitted by the active bidder during main bidding to pass for the rest of the r
 
 **Server behaviour**: lock the seat per FR-009 (main bidding) or per FR-015 (current selling attempt only). Resolve the phase if only one bidder remains. Broadcast `pass_accepted` + `phase_changed`. The same message type is used in both phases; the server disambiguates by `round.phase`.
 
+### `sell_start`
+
+Submitted by the declarer in `post-bid-decision` to enter the card-selection step.
+
+```json
+{ "type": "sell_start" }
+```
+
+**Server behaviour**: validate sender === `declarerSeat`, `phase === 'post-bid-decision'`, the sender is the **original** declarer (no prior `attemptHistory` entry with `outcome: 'sold'`), and `attemptCount < 3` (per FR-018). On accept, transition to `selling-selection`, broadcast `sell_started` + `phase_changed`. On reject, send `action_rejected` to the actor only.
+
 ### `sell_select`
 
 Submitted by the declarer during the `selling-selection` phase to commit a 3-card exposure.
@@ -53,7 +63,7 @@ Submitted by the declarer during the `selling-selection` phase to commit a 3-car
 | type    | string      | yes      | `"sell_select"` |
 | cardIds | int[3]      | yes      | Three distinct integers; each must be currently in the declarer's hand; the set must differ from every prior selling attempt this round |
 
-**Server behaviour**: validate per FR-029 (in-hand, distinct, differs-from-prior); on accept, transfer the 3 ids from `hands[declarerSeat]` to `exposedSellCards`, transition to `selling-bidding`, broadcast `sell_exposed` (with identities to all 3 viewers) + `phase_changed`. On reject, send `action_rejected`.
+**Server behaviour**: pre-condition `phase === 'selling-selection'`; validate per FR-029 (in-hand, distinct, differs-from-prior); on accept, transfer the 3 ids from `hands[declarerSeat]` to `exposedSellCards`, transition to `selling-bidding`, broadcast `sell_exposed` (with identities to all 3 viewers) + `phase_changed`. On reject, send `action_rejected`.
 
 ### `sell_cancel`
 
@@ -301,15 +311,22 @@ The server simultaneously deletes the game record (FR-032).
 
 ### `round_aborted`
 
-Sent when the active player's grace period expires without reconnection (FR-021).
+Sent when any player's grace period expires without reconnection — FR-021 (a) active-player disconnect or (b) non-active-player disconnect. Applied symmetrically.
 
 ```json
 {
   "type": "round_aborted",
-  "reason": "active_player_disconnected",
+  "reason": "player_grace_expired",
+  "disconnectedNickname": "Bob",
   "gameStatus": { /* phase: 'Round aborted' */ }
 }
 ```
+
+| Field                 | Type   | Notes |
+|-----------------------|--------|-------|
+| reason                | string | Enum. Currently only `"player_grace_expired"`; reserved for future causes (e.g., `"server_error"`). |
+| disconnectedNickname  | string | Nickname of the player whose grace expired — used by the abort screen message ("Round aborted — {nickname} did not reconnect"). |
+| gameStatus            | object | View-model with `phase: 'Round aborted'`. |
 
 The server simultaneously deletes the game record (FR-032).
 

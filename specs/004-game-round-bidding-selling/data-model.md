@@ -21,7 +21,7 @@ Attached to each `Game` record as `game.round` (initially `null`; populated when
   passedSellOpponents: Set<seatIdx>,           // who has passed in the current selling-bidding attempt; resets per attempt
   declarerSeat: seatIdx | null,                // null until bidding resolves
   attemptCount: 0 | 1 | 2 | 3,                 // selling attempts used so far
-  attemptHistory: [{ exposedIds: number[], outcome: 'sold' | 'all-passed' }, ...],
+  attemptHistory: [{ exposedIds: number[], outcome: 'sold' | 'returned' }, ...],
   pausedByDisconnect: boolean,                 // true while the currentTurnSeat player is in their grace period
 }
 ```
@@ -40,16 +40,16 @@ Attached to each `Game` record as `game.round` (initially `null`; populated when
 
 ```
 [not-started]      --3rd player admitted-->                  [dealing]
-[dealing]          --deal-animation duration elapsed
-                     (driven by client; server flips on
-                      first action arriving after the deal,
-                      or after deal_duration timeout)-->     [bidding]
+[dealing]          --first valid action message from the
+                     active bidder (P1) after the deal
+                     animation has completed on their
+                     client (FR-024 gates the client UI)--> [bidding]
 [bidding]          --one bidder remains (others passed)-->   [post-bid-decision]   (declarer = sole bidder)
 [bidding]          --all 3 passed-->                          [post-bid-decision]   (declarer = dealer @ 100)
-[post-bid-decision] --declarer: Start the Game-->            [play-phase-ready]    (emit + cleanup)
-[post-bid-decision] --declarer: Sell the Bid-->              [selling-selection]
-[selling-selection] --declarer: Cancel-->                     [post-bid-decision]   (attemptCount unchanged)
-[selling-selection] --declarer: Sell w/ valid 3 cards-->     [selling-bidding]     (cards exposed in centre)
+[post-bid-decision] --declarer: Start the Game (start_game)--> [play-phase-ready]  (emit + cleanup)
+[post-bid-decision] --declarer: Sell the Bid (sell_start)-->   [selling-selection]
+[selling-selection] --declarer: Cancel (sell_cancel)-->        [post-bid-decision] (attemptCount unchanged)
+[selling-selection] --declarer: Sell w/ valid 3 cards (sell_select)--> [selling-bidding] (cards exposed in centre)
 [selling-bidding]   --one opponent buys (other passed)-->     [post-bid-decision]   (declarer = buyer; bid raised; hands swapped)
 [selling-bidding]   --both opponents pass-->                  [post-bid-decision]   (attemptCount += 1; cards return)
 [post-bid-decision] --attemptCount = 3 (only Start)-->        [play-phase-ready]    (emit + cleanup)
