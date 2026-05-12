@@ -38,6 +38,13 @@ before(() => {
     path.join(publicDir, 'js', 'screens', 'GameList.js'),
     path.join(publicDir, 'js', 'overlays', 'PlayerTooltip.js'),
     path.join(publicDir, 'js', 'screens', 'WaitingRoom.js'),
+    path.join(publicDir, 'js', 'thousand', 'CardSprite.js'),
+    path.join(publicDir, 'js', 'thousand', 'CardTable.js'),
+    path.join(publicDir, 'js', 'thousand', 'StatusBar.js'),
+    path.join(publicDir, 'js', 'thousand', 'HandView.js'),
+    path.join(publicDir, 'js', 'thousand', 'OpponentView.js'),
+    path.join(publicDir, 'js', 'thousand', 'TalonView.js'),
+    path.join(publicDir, 'js', 'thousand', 'GameScreen.js'),
     path.join(publicDir, 'js', 'core', 'ThousandApp.js'),
     path.join(publicDir, 'js', 'index.js'),
   ];

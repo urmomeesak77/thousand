@@ -9,6 +9,7 @@ import Toast from '../overlays/Toast.js';
 import ThousandSocket from '../network/ThousandSocket.js';
 import GameApi from '../network/GameApi.js';
 import NewGameModal from '../overlays/NewGameModal.js';
+import GameScreen from '../thousand/GameScreen.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -78,7 +79,13 @@ class ThousandApp {
     this._gameContainer = HtmlContainer.adopt('game-screen', gameEl);
     this._gameList = new GameList($('game-list'));
     this._playerTooltip = new PlayerTooltip();
-    this._waitingRoom = new WaitingRoom(gameEl.querySelector('.card'));
+    this._waitingRoomCard = gameEl.querySelector('.card');
+    this._waitingRoom = new WaitingRoom(this._waitingRoomCard);
+
+    this._roundScreenEl = document.createElement('div');
+    this._roundScreenEl.className = 'round-screen hidden';
+    gameEl.appendChild(this._roundScreenEl);
+    this._gameScreen = new GameScreen(this._antlion, this._roundScreenEl);
 
     this._reconnectOverlay = new ReconnectOverlay($('reconnect-overlay'));
 
@@ -113,7 +120,15 @@ class ThousandApp {
       this._lobbyContainer.show();
     } else if (name === 'game-screen') {
       this._gameContainer.show();
+      this._showGameSubscreen('waiting');
     }
+  }
+
+  // Toggles between the waiting-room card and the in-round game view.
+  _showGameSubscreen(sub) {
+    const waiting = sub === 'waiting';
+    this._waitingRoomCard.classList.toggle('hidden', !waiting);
+    this._roundScreenEl.classList.toggle('hidden', waiting);
   }
 
   _handleMessage(msg) {
@@ -181,6 +196,28 @@ class ThousandApp {
       case 'error':
         this._toast.show(msg.message || 'An error occurred');
         break;
+      case 'round_started':
+        this._waitingRoom.stopTimer();
+        this._showGameSubscreen('round');
+        this._gameScreen.init(msg);
+        break;
+      case 'phase_changed':
+        this._gameScreen.updateStatus(msg.gameStatus);
+        break;
+      case 'action_rejected':
+        this._toast.show(msg.reason);
+        break;
+      // TODO T033 (US1): bid_accepted — forward gameStatus to GameScreen.updateStatus
+      // TODO T033 (US1): pass_accepted — forward gameStatus to GameScreen.updateStatus
+      // TODO T050 (US2): talon_absorbed — animate talon absorption
+      // TODO T052 (US2): play_phase_ready — swap to RoundReadyScreen
+      // TODO T052 (US2): round_aborted — swap to RoundReadyScreen (aborted mode)
+      // TODO T053 (US2): player_disconnected — GameScreen.updateStatus
+      // TODO T053 (US2): player_reconnected — GameScreen.updateStatus
+      // TODO T054 (US2): round_state_snapshot — rebuild GameScreen from snapshot
+      // TODO T070 (US3): sell_started — GameScreen.updateStatus
+      // TODO T071 (US3): sell_exposed — animate exposed cards
+      // TODO T072 (US3): sell_resolved — animate sell resolution
     }
   }
 
