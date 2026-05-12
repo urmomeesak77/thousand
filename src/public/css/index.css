@@ -705,6 +705,49 @@ fieldset legend {
   flex-wrap: wrap;
 }
 
+/* Bid controls: stepper row inside .game-controls */
+.bid-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bid-controls__input {
+  width: 5rem;
+  text-align: center;
+  font-size: 1rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+}
+
+.bid-controls__step {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.95rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.bid-controls__step:disabled,
+.bid-controls__input:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Flash ring on a seat element when that player bids or passes */
+.bid-flash {
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
 /* ============================================================
    Card sprite base styles
    ============================================================ */

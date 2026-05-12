@@ -10,6 +10,7 @@ import ThousandSocket from '../network/ThousandSocket.js';
 import GameApi from '../network/GameApi.js';
 import NewGameModal from '../overlays/NewGameModal.js';
 import GameScreen from '../thousand/GameScreen.js';
+import RoundActionDispatcher from '../thousand/RoundActionDispatcher.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -85,7 +86,8 @@ class ThousandApp {
     this._roundScreenEl = document.createElement('div');
     this._roundScreenEl.className = 'round-screen hidden';
     gameEl.appendChild(this._roundScreenEl);
-    this._gameScreen = new GameScreen(this._antlion, this._roundScreenEl);
+    this._dispatcher = new RoundActionDispatcher(this._socket);
+    this._gameScreen = new GameScreen(this._antlion, this._roundScreenEl, this._dispatcher);
 
     this._reconnectOverlay = new ReconnectOverlay($('reconnect-overlay'));
 
@@ -207,8 +209,14 @@ class ThousandApp {
       case 'action_rejected':
         this._toast.show(msg.reason);
         break;
-      // TODO T033 (US1): bid_accepted — forward gameStatus to GameScreen.updateStatus
-      // TODO T033 (US1): pass_accepted — forward gameStatus to GameScreen.updateStatus
+      case 'bid_accepted':
+        this._gameScreen.updateStatus(msg.gameStatus);
+        this._gameScreen.flashPlayer(msg.playerId);
+        break;
+      case 'pass_accepted':
+        this._gameScreen.updateStatus(msg.gameStatus);
+        this._gameScreen.flashPlayer(msg.playerId);
+        break;
       // TODO T050 (US2): talon_absorbed — animate talon absorption
       // TODO T052 (US2): play_phase_ready — swap to RoundReadyScreen
       // TODO T052 (US2): round_aborted — swap to RoundReadyScreen (aborted mode)

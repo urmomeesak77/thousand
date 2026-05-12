@@ -7,14 +7,19 @@ import CardTable from './CardTable.js';
 import HandView from './HandView.js';
 import OpponentView from './OpponentView.js';
 import TalonView from './TalonView.js';
+import DealAnimation from './DealAnimation.js';
+import BidControls from './BidControls.js';
 
 class GameScreen {
-  constructor(antlion, container) {
+  constructor(antlion, container, dispatcher) {
     this._antlion = antlion;
     this._container = container;
+    this._dispatcher = dispatcher;
     this._cardsById = {};
     this._seats = null;
     this._controlsLocked = false;
+    this._lastGameStatus = null;
+    this._bidControls = null;
 
     const statusBarEl = document.createElement('div');
     const tableEl = document.createElement('div');
@@ -29,6 +34,11 @@ class GameScreen {
     tableEl.append(leftEl, talonEl, rightEl, handEl);
     container.append(statusBarEl, tableEl, this._controlsEl);
 
+    this._tableEl = tableEl;
+    this._leftEl = leftEl;
+    this._rightEl = rightEl;
+    this._handEl = handEl;
+
     this._statusBar = new StatusBar(statusBarEl);
     this._cardTable = new CardTable(antlion, tableEl);
     this._handView = new HandView(handEl);
@@ -37,7 +47,7 @@ class GameScreen {
     this._talonView = new TalonView(talonEl);
   }
 
-  // Called on round_started; seeds cardsById and lays out seat assignments.
+  // Called on round_started; seeds cardsById, lays out seats, starts the deal animation.
   init(msg) {
     this._seats = msg.seats;
     this._cardsById = {};
@@ -53,13 +63,32 @@ class GameScreen {
     if (leftPlayer) this._leftOpponent.setNickname(leftPlayer.nickname);
     if (rightPlayer) this._rightOpponent.setNickname(rightPlayer.nickname);
 
-    this.updateStatus(msg.gameStatus);
+    this._controlsLocked = true;
+    this._lastGameStatus = msg.gameStatus;
+
+    const animation = new DealAnimation(
+      this._antlion,
+      msg.dealSequence,
+      this._cardsById,
+      msg.seats.self,
+      this._cardTable,
+      () => {
+        this._controlsLocked = false;
+        if (this._lastGameStatus) this._mountControlsForPhase(this._lastGameStatus);
+      },
+    );
+    animation.start(this._tableEl);
+
+    this._statusBar.render(msg.gameStatus);
   }
 
   // Called on every phase_changed, bid_accepted, pass_accepted, etc.
   updateStatus(gameStatus) {
+    this._lastGameStatus = gameStatus;
     this._statusBar.render(gameStatus);
-    this._mountControlsForPhase(gameStatus);
+    if (!this._controlsLocked) {
+      this._mountControlsForPhase(gameStatus);
+    }
   }
 
   // Exposes the cardsById map to animators and sub-controllers
@@ -67,7 +96,6 @@ class GameScreen {
     return this._cardsById;
   }
 
-  // Controls-locked flag: set true during DealAnimation (FR-024); cleared on complete
   get controlsLocked() {
     return this._controlsLocked;
   }
@@ -76,12 +104,53 @@ class GameScreen {
     this._controlsLocked = locked;
   }
 
+  // Adds a brief highlight ring to the seat that just bid or passed.
+  flashPlayer(playerId) {
+    if (!this._seats) return;
+    const player = this._seats.players.find((p) => p.playerId === playerId);
+    if (!player) return;
+
+    let el;
+    if (player.seat === this._seats.self) {
+      el = this._handEl;
+    } else if (player.seat === this._seats.left) {
+      el = this._leftEl;
+    } else {
+      el = this._rightEl;
+    }
+
+    el.classList.add('bid-flash');
+    this._antlion.schedule(600, () => el.classList.remove('bid-flash'));
+  }
+
   _mountControlsForPhase(gameStatus) {
-    // TODO T031/T032 (US1): mount BidControls when phase === 'Bidding'
+    const { phase, viewerIsActive, passedPlayers } = gameStatus;
+
+    if (phase === 'Bidding') {
+      if (!this._bidControls) {
+        this._controlsEl.textContent = '';
+        this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
+      }
+      this._bidControls.setCurrentHighBid(gameStatus.currentHighBid);
+
+      const viewerPlayer = this._seats?.players.find((p) => p.seat === this._seats.self);
+      const viewerNickname = viewerPlayer?.nickname;
+      const viewerHasPassed = viewerNickname
+        ? (passedPlayers ?? []).includes(viewerNickname)
+        : false;
+
+      this._bidControls.setActiveState({
+        isActiveBidder: viewerIsActive,
+        isEligible: !viewerHasPassed,
+      });
+    } else if (this._bidControls) {
+      this._controlsEl.textContent = '';
+      this._bidControls = null;
+    }
+
     // TODO T051 (US2): mount DeclarerDecisionControls when phase === 'Declarer deciding'
     // TODO T069 (US3): mount SellSelectionControls / SellBidControls when phase === 'Selling'
     // TODO T052 (US2): mount RoundReadyScreen when phase === 'Round ready to play' or 'Round aborted'
-    void gameStatus;
   }
 }
 
