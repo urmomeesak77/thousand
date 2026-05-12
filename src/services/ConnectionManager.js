@@ -1,6 +1,7 @@
 'use strict';
 
 const HttpUtil = require('../utils/HttpUtil');
+const RoundActionHandler = require('../controllers/RoundActionHandler');
 
 const MAX_CONNECTIONS_PER_IP = 10;
 const HELLO_TIMEOUT_MS = 5000;
@@ -14,6 +15,7 @@ class ConnectionManager {
     this._wsMessageCounts = new Map();   // ws -> { count, resetAt }
     this._clients = new Set();
     this._heartbeatTimer = null;
+    this._roundActionHandler = new RoundActionHandler({ store });
   }
 
   // T011 – WebSocket connection handler
@@ -124,9 +126,19 @@ class ConnectionManager {
       return;
     }
 
-    // Lobby flows are HTTP-driven; gameplay protocol over WS is not implemented yet.
-    // Until then, anything other than ping is rejected so a misbehaving client
-    // doesn't silently believe it sent a meaningful command.
+    if (ws._playerId) {
+      const h = this._roundActionHandler;
+      const pid = ws._playerId;
+      if (msg.type === 'bid') { h.handleBid(pid, msg.amount); return; }
+      if (msg.type === 'pass') { h.handlePass(pid); return; }
+      if (msg.type === 'sell_start') { h.handleSellStart(pid); return; }
+      if (msg.type === 'sell_select') { h.handleSellSelect(pid, msg.cardIds); return; }
+      if (msg.type === 'sell_cancel') { h.handleSellCancel(pid); return; }
+      if (msg.type === 'sell_bid') { h.handleSellBid(pid, msg.amount); return; }
+      if (msg.type === 'sell_pass') { h.handleSellPass(pid); return; }
+      if (msg.type === 'start_game') { h.handleStartGame(pid); return; }
+    }
+
     ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
   }
 
