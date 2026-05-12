@@ -26,6 +26,7 @@ class Round {
     this.attemptCount = 0;
     this.attemptHistory = [];
     this.pausedByDisconnect = false;
+    this.disconnectedSeats = new Set();
   }
 
   // T021
@@ -192,8 +193,25 @@ class Round {
       declarer,
       passedPlayers,
       sellAttempt: null,
-      disconnectedPlayers: [],
+      disconnectedPlayers: [...this.disconnectedSeats].map(s =>
+        this._store.players.get(this.seatOrder[s]).nickname
+      ),
     };
+  }
+
+  // T045
+  markDisconnected(seat) {
+    this.disconnectedSeats.add(seat);
+    if (seat === this.currentTurnSeat) this.pausedByDisconnect = true;
+  }
+
+  markReconnected(seat) {
+    this.disconnectedSeats.delete(seat);
+    if (seat === this.currentTurnSeat) this.pausedByDisconnect = false;
+  }
+
+  abort(_abortedByNickname) {
+    this.phase = 'aborted';
   }
 
   getSnapshotFor(_seat) {

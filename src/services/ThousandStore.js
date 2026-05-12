@@ -130,6 +130,23 @@ class ThousandStore {
     player.ws = null;
     player.disconnectedAt = Date.now();
     player.graceTimer = setTimeout(() => this._purgePlayer(playerId), this._gracePeriodMs);
+
+    if (player.gameId) {
+      const game = this.games.get(player.gameId);
+      if (game && game.status === 'in-progress' && game.round) {
+        const seat = game.round.seatByPlayer.get(playerId);
+        game.round.markDisconnected(seat);
+        for (const pid of game.players) {
+          if (pid === playerId) continue;
+          const recipientSeat = game.round.seatByPlayer.get(pid);
+          this.sendToPlayer(pid, {
+            type: 'player_disconnected',
+            playerId,
+            gameStatus: game.round.getViewModelFor(recipientSeat),
+          });
+        }
+      }
+    }
   }
 
   reconnectPlayer(playerId, ws) {
@@ -144,6 +161,23 @@ class ThousandStore {
     }
     player.ws = ws;
     ws._playerId = playerId;
+
+    if (player.gameId) {
+      const game = this.games.get(player.gameId);
+      if (game && game.status === 'in-progress' && game.round) {
+        const seat = game.round.seatByPlayer.get(playerId);
+        game.round.markReconnected(seat);
+        for (const pid of game.players) {
+          if (pid === playerId) continue;
+          const recipientSeat = game.round.seatByPlayer.get(pid);
+          this.sendToPlayer(pid, {
+            type: 'player_reconnected',
+            playerId,
+            gameStatus: game.round.getViewModelFor(recipientSeat),
+          });
+        }
+      }
+    }
   }
 
   _purgePlayer(playerId) {
@@ -155,6 +189,19 @@ class ThousandStore {
     if (!gameId) return;
     const game = this.games.get(gameId);
     if (!game) return;
+
+    if (game.status === 'in-progress' && game.round) {
+      game.round.abort(nickname);
+      const baseMsg = { type: 'round_aborted', reason: 'player_grace_expired', disconnectedNickname: nickname };
+      for (const pid of game.players) {
+        if (pid === playerId) continue;
+        const recipientSeat = game.round.seatByPlayer.get(pid);
+        this.sendToPlayer(pid, { ...baseMsg, gameStatus: game.round.getViewModelFor(recipientSeat) });
+      }
+      this._cleanupRound(gameId);
+      return;
+    }
+
     game.players.delete(playerId);
     this._resolveGameAfterExit(gameId, game, playerId, nickname);
   }
