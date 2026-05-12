@@ -1,5 +1,7 @@
 'use strict';
 
+const { makeDeck, shuffle } = require('./Deck');
+
 class Round {
   constructor({ game, store }) {
     this._game = game;
@@ -26,20 +28,165 @@ class Round {
     this.pausedByDisconnect = false;
   }
 
+  // T021
   start() {
-    return null;
+    const shuffled = shuffle(makeDeck());
+    this.deck = shuffled.map((card, i) => ({ id: i, rank: card.rank, suit: card.suit }));
+
+    for (let i = 0; i < 24; i++) {
+      const to = this._stepDest(i);
+      if (to === 'talon') {
+        this.talon.push(i);
+      } else {
+        this.hands[Number(to[4])].push(i);
+      }
+    }
+
+    this.phase = 'dealing';
+    this.currentTurnSeat = null;
+    this.currentHighBid = null;
   }
 
-  getRoundStartedPayloadFor(_playerId) {
-    return null;
+  // T022
+  getRoundStartedPayloadFor(playerId) {
+    const selfSeat = this.seatByPlayer.get(playerId);
+    const leftSeat = (selfSeat + 1) % 3;
+    const rightSeat = (selfSeat + 2) % 3;
+
+    const players = this.seatOrder.map((pid, seat) => ({
+      seat,
+      playerId: pid,
+      nickname: this._store.players.get(pid).nickname,
+    }));
+
+    const dealSequence = this.deck.map((card, i) => {
+      const to = this._stepDest(i);
+      const step = { id: i, to };
+      if (to === 'talon' || to === `seat${selfSeat}`) {
+        step.rank = card.rank;
+        step.suit = card.suit;
+      }
+      return step;
+    });
+
+    return {
+      type: 'round_started',
+      seats: {
+        self: selfSeat,
+        left: leftSeat,
+        right: rightSeat,
+        dealer: 0,
+        players,
+      },
+      dealSequence,
+      gameStatus: this.getViewModelFor(selfSeat),
+    };
   }
 
-  getViewModelFor(_seat) {
-    return null;
+  // T023
+  advanceFromDealingToBidding() {
+    if (this.phase !== 'dealing') return;
+    this.phase = 'bidding';
+    this.currentTurnSeat = 1; // P1 (clockwise-left of Dealer) bids first per FR-004
+  }
+
+  // T024
+  submitBid(seat, amount) {
+    if (this.phase !== 'bidding') return { rejected: true, reason: 'Not in bidding phase' };
+    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
+    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
+    if (!Number.isInteger(amount)) return { rejected: true, reason: 'Bid must be an integer' };
+    if (amount % 5 !== 0) return { rejected: true, reason: 'Bid must be a multiple of 5' };
+    if (amount > 300) return { rejected: true, reason: 'Bid cannot exceed 300' };
+    const smallest = this.currentHighBid === null ? 100 : this.currentHighBid + 5;
+    if (amount < smallest) return { rejected: true, reason: `Bid must be at least ${smallest}` };
+
+    this.bidHistory.push({ seat, amount });
+    this.currentHighBid = amount;
+
+    if (3 - this.passedBidders.size === 1) {
+      // The bidder is the only remaining non-passed bidder — they win the auction
+      this.declarerSeat = seat;
+      this.phase = 'post-bid-decision';
+      this.currentTurnSeat = seat;
+      // TODO T041: absorb talon into hands[declarerSeat] here
+    } else {
+      let next = (seat + 1) % 3;
+      while (this.passedBidders.has(next)) {
+        next = (next + 1) % 3;
+      }
+      this.currentTurnSeat = next;
+    }
+
+    return { rejected: false };
+  }
+
+  // T025 stub — body lands in T025
+  submitPass(_seat) {
+    return { rejected: true, reason: 'Not implemented yet' };
+  }
+
+  // T026
+  getViewModelFor(seat) {
+    const phaseLabel = {
+      'dealing': 'Dealing',
+      'bidding': 'Bidding',
+      'post-bid-decision': 'Declarer deciding',
+      'selling-selection': 'Selling',
+      'selling-bidding': 'Selling',
+      'play-phase-ready': 'Round ready to play',
+      'aborted': 'Round aborted',
+    }[this.phase] ?? this.phase;
+
+    const activePlayer = this.currentTurnSeat !== null
+      ? {
+          seat: this.currentTurnSeat,
+          nickname: this._store.players.get(this.seatOrder[this.currentTurnSeat]).nickname,
+        }
+      : null;
+
+    const declarer = this.declarerSeat !== null
+      ? {
+          seat: this.declarerSeat,
+          nickname: this._store.players.get(this.seatOrder[this.declarerSeat]).nickname,
+        }
+      : null;
+
+    const passedPlayers = [...this.passedBidders].map(s =>
+      this._store.players.get(this.seatOrder[s]).nickname
+    );
+
+    return {
+      phase: phaseLabel,
+      activePlayer,
+      viewerIsActive: this.currentTurnSeat === seat,
+      currentHighBid: this.currentHighBid,
+      declarer,
+      passedPlayers,
+      sellAttempt: null,
+      disconnectedPlayers: [],
+    };
   }
 
   getSnapshotFor(_seat) {
     return null;
+  }
+
+  // Canonical 24-step deal destination for step index i (FR-002)
+  // Rounds 1-3 (i 0-11): seat1, seat2, seat0, talon (4-step pattern)
+  // Rounds 4-7 (i 12-23): seat1, seat2, seat0 (3-step pattern)
+  _stepDest(i) {
+    if (i < 12) {
+      const pos = i % 4;
+      if (pos === 0) return 'seat1';
+      if (pos === 1) return 'seat2';
+      if (pos === 2) return 'seat0';
+      return 'talon';
+    }
+    const pos = (i - 12) % 3;
+    if (pos === 0) return 'seat1';
+    if (pos === 1) return 'seat2';
+    return 'seat0';
   }
 }
 
