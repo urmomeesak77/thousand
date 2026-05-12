@@ -139,8 +139,10 @@ class Round {
       this.currentTurnSeat = this.dealerSeat;
       // TODO T041: absorb talon into hands[declarerSeat] here
     } else if (remaining.length === 1) {
-      // One non-passed bidder remains — they become the declarer (FR-010)
+      // One non-passed bidder remains — they become the declarer (FR-010 / FR-011).
+      // FR-011: if no bid was ever accepted (all-pass scenario), the minimum bid is 100.
       this.declarerSeat = remaining[0];
+      if (this.currentHighBid === null) this.currentHighBid = 100;
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = remaining[0];
       // TODO T041: absorb talon into hands[declarerSeat] here
