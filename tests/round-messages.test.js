@@ -325,3 +325,171 @@ describe('round-messages — synchrony assertions', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Helpers for US2 tests
+// ---------------------------------------------------------------------------
+
+// Drives all 3 players to pass so the round reaches post-bid-decision with
+// seat 0 (Alice/Dealer) as the declarer at bid 100 (FR-011 all-pass rule).
+function setupPostBidGame() {
+  const { store, cm, ws, pids, gameId } = setupInProgressGame();
+  const game = store.games.get(gameId);
+  const round = game.round;
+
+  // Drive to post-bid-decision directly — bypasses CM/rate-limiter so subsequent
+  // test messages are not rate-limited (all-pass: dealer seat 0 = Alice is declarer)
+  round.passedBidders.add(1);
+  round.passedBidders.add(2);
+  round.declarerSeat = 0;
+  round.currentHighBid = 100;
+  round.phase = 'post-bid-decision';
+  round.currentTurnSeat = 0;
+  const talonIds = [...round.talon];
+  for (const id of talonIds) round.hands[0].push(id);
+  round.talon = [];
+
+  ws.forEach((w) => { w._sent.length = 0; });
+  return { store, cm, ws, pids, gameId };
+}
+
+// ---------------------------------------------------------------------------
+// T056 — US2: talon_absorbed broadcast with declarer-only identities
+// ---------------------------------------------------------------------------
+
+describe('round-messages — talon_absorbed on bidding resolution (US2)', () => {
+  it('talon_absorbed is broadcast to all 3 players when bidding resolves', () => {
+    const { store, ws, pids, gameId } = setupInProgressGame();
+    const game = store.games.get(gameId);
+    game.round.advanceFromDealingToBidding();
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    // All-pass resolution: seat 1 → seat 2 → seat 0
+    sendMsg(ws[1], { type: 'pass' });
+    sendMsg(ws[2], { type: 'pass' });
+    sendMsg(ws[0], { type: 'pass' });
+
+    for (const w of ws) {
+      const msg = w._sent.find((m) => m.type === 'talon_absorbed');
+      assert.ok(msg, 'every player must receive talon_absorbed');
+      assert.ok(Array.isArray(msg.talonIds) && msg.talonIds.length === 3, 'talonIds must be an array of 3');
+    }
+  });
+
+  it('talon_absorbed includes identities only for the declarer recipient (FR-022)', () => {
+    const { store, ws, pids, gameId } = setupInProgressGame();
+    const game = store.games.get(gameId);
+    game.round.advanceFromDealingToBidding();
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[1], { type: 'pass' });
+    sendMsg(ws[2], { type: 'pass' });
+    sendMsg(ws[0], { type: 'pass' }); // seat 0 (Alice) is declarer after all-pass
+
+    // ws[0] = declarer (Alice, seat 0) — must have identities
+    const declarerMsg = ws[0]._sent.find((m) => m.type === 'talon_absorbed');
+    assert.ok(declarerMsg.identities, 'declarer must receive identities');
+    for (const id of declarerMsg.talonIds) {
+      assert.ok(declarerMsg.identities[String(id)], `identity for card ${id} must be present`);
+    }
+
+    // ws[1] and ws[2] are non-declarers — must NOT have identities
+    for (const w of [ws[1], ws[2]]) {
+      const msg = w._sent.find((m) => m.type === 'talon_absorbed');
+      assert.equal(msg.identities, undefined, 'non-declarer must not receive card identities');
+    }
+  });
+
+  it('phase_changed after bidding resolution carries Declarer deciding phase', () => {
+    const { store, ws, pids, gameId } = setupInProgressGame();
+    const game = store.games.get(gameId);
+    game.round.advanceFromDealingToBidding();
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    sendMsg(ws[1], { type: 'pass' });
+    sendMsg(ws[2], { type: 'pass' });
+    sendMsg(ws[0], { type: 'pass' });
+
+    for (const w of ws) {
+      // handlePass broadcasts phase_changed after every pass; use findLast to get the
+      // one from the resolving pass (the only one that carries 'Declarer deciding')
+      const phaseMsg = w._sent.findLast((m) => m.type === 'phase_changed');
+      assert.ok(phaseMsg, 'phase_changed must be broadcast after bidding resolves');
+      assert.equal(phaseMsg.phase, 'Declarer deciding');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T056 — US2: start_game from declarer produces play_phase_ready + cleanup
+// ---------------------------------------------------------------------------
+
+describe('round-messages — start_game from declarer (US2)', () => {
+  it('start_game from the declarer sends play_phase_ready to all 3 players', () => {
+    const { ws, pids } = setupPostBidGame(); // Alice (ws[0], seat 0) is declarer
+
+    sendMsg(ws[0], { type: 'start_game' });
+
+    for (const w of ws) {
+      const msg = w._sent.find((m) => m.type === 'play_phase_ready');
+      assert.ok(msg, 'every player must receive play_phase_ready');
+      assert.equal(msg.finalBid, 100, 'finalBid must be 100 (all-pass result)');
+    }
+  });
+
+  it('start_game cleans up the game record (FR-032)', () => {
+    const { store, ws, pids, gameId } = setupPostBidGame();
+
+    sendMsg(ws[0], { type: 'start_game' });
+
+    assert.equal(store.games.has(gameId), false, 'game record must be deleted after start_game');
+  });
+
+  it('start_game nulls out every player gameId (FR-032)', () => {
+    const { store, ws, pids, gameId } = setupPostBidGame();
+
+    sendMsg(ws[0], { type: 'start_game' });
+
+    for (const pid of pids) {
+      const player = store.players.get(pid);
+      assert.equal(player?.gameId, null, `${pid} gameId must be null after cleanup`);
+    }
+  });
+
+  it('start_game triggers a lobby_update broadcast (FR-020)', () => {
+    const { store, ws, pids, gameId } = setupPostBidGame();
+
+    // A 4th player watching the lobby needs to receive lobby_update.
+    // The store broadcasts to players with gameId=null; none of the 3 game
+    // players qualify before cleanup but they do after. Any lobby_update after
+    // start_game confirms the broadcast ran.
+    const ws4 = makeWs();
+    store.players.set('p-lobby', { id: 'p-lobby', nickname: 'Watcher', gameId: null, ws: ws4, sessionToken: 'tok4', disconnectedAt: null, graceTimer: null });
+
+    sendMsg(ws[0], { type: 'start_game' });
+
+    const lobbyUpdate = ws4._sent.find((m) => m.type === 'lobby_update');
+    assert.ok(lobbyUpdate, 'lobby watcher must receive lobby_update after cleanup');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T056 — US2: start_game from non-declarer is rejected (FR-031)
+// ---------------------------------------------------------------------------
+
+describe('round-messages — start_game from non-declarer is rejected (US2)', () => {
+  it('start_game from a non-declarer sends action_rejected to sender only', () => {
+    const { ws, pids } = setupPostBidGame(); // Alice (ws[0]) is declarer
+
+    // Bob (ws[1], seat 1) is not the declarer — his start_game must be rejected
+    sendMsg(ws[1], { type: 'start_game' });
+
+    const rejection = ws[1]._sent.find((m) => m.type === 'action_rejected');
+    assert.ok(rejection, 'non-declarer must receive action_rejected');
+    assert.ok(rejection.reason);
+
+    // Alice and Carol must not receive anything
+    assert.equal(ws[0]._sent.length, 0, 'declarer must not receive any message');
+    assert.equal(ws[2]._sent.length, 0, 'carol must not receive any message');
+  });
+});

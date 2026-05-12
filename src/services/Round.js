@@ -194,8 +194,8 @@ class Round {
       passedPlayers,
       sellAttempt: null,
       disconnectedPlayers: [...this.disconnectedSeats].map(s =>
-        this._store.players.get(this.seatOrder[s]).nickname
-      ),
+        this._store.players.get(this.seatOrder[s])?.nickname
+      ).filter(Boolean),
     };
   }
 
@@ -212,6 +212,7 @@ class Round {
 
   abort(_abortedByNickname) {
     this.phase = 'aborted';
+    this.currentTurnSeat = null;
   }
 
   // T047
