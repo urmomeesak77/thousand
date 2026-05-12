@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const Round = require('./Round');
 
 const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -223,6 +224,23 @@ class ThousandStore {
       this.sendToPlayer(pid, disbandMsg);
     }
     this._deleteGame(gameId, game);
+  }
+
+  startRound(gameId) {
+    const game = this.games.get(gameId);
+    if (!game) return;
+    if (game.waitingRoomTimer) {
+      clearTimeout(game.waitingRoomTimer);
+      game.waitingRoomTimer = null;
+    }
+    game.status = 'in-progress';
+    game.round = new Round({ game, store: this });
+    game.round.start();
+    for (const pid of game.players) {
+      const payload = game.round.getRoundStartedPayloadFor(pid);
+      if (payload) this.sendToPlayer(pid, payload);
+    }
+    this.broadcastLobbyUpdate();
   }
 
   scheduleWaitingRoomTimeout(gameId) {

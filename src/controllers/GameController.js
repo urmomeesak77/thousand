@@ -162,7 +162,7 @@ class GameController {
       id: gameId, type, hostId: playerId,
       players: new Set([playerId]), requiredPlayers,
       status: 'waiting', inviteCode,
-      createdAt: Date.now(),
+      createdAt: Date.now(), round: null,
     };
 
     this.store.games.set(gameId, game);
