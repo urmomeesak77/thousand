@@ -1,13 +1,10 @@
 ﻿# thousand Development Guidelines
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
 
 ## Active Technologies
-- Node.js v18+ (CommonJS server) / Vanilla JS ES6+ ES modules (browser) + `ws` ^8 (already in use), Node.js built-in `crypto` (for deck shuffle entropy); reuses existing `Antlion`, `Toast`, `RateLimiter`, `IdentityStore`, `ReconnectOverlay` (004-game-round-bidding-selling)
-- In-memory only (`ThousandStore` already in-memory; round state attached as `game.round`); server restart aborts in-flight rounds (consistent with feature 003) (004-game-round-bidding-selling)
-
 - **Runtime**: Node.js v18+ (CommonJS backend) / Vanilla JS ES6+ (frontend, ES modules)
 - **Dependencies**: `ws` ^8 (WebSocket), Node.js built-in `crypto` (session tokens)
 - **State**: In-memory server state (`ThousandStore`) + browser `localStorage` (client identity)
@@ -20,9 +17,14 @@ src/server.js                          # HTTP + WebSocket server entry point
 src/services/
   ThousandStore.js                     # game/player state (in-memory)
   ConnectionManager.js                 # WebSocket connection lifecycle + message dispatch
+  Round.js                             # round lifecycle: deal → bid → declarer → sell → play
+  RoundPhases.js                       # phase constants
+  Deck.js                              # deck creation and shuffle
+  DealSequencer.js                     # async deal animation sequencing
 src/controllers/
   RequestHandler.js                    # HTTP routing
   GameController.js                    # game CRUD handlers
+  RoundActionHandler.js                # in-round action dispatch (bid, pass, sell, etc.)
   validators.js                        # input validation
 src/utils/
   HttpUtil.js                          # HTTP helpers
@@ -42,14 +44,29 @@ src/public/
       GameList.js                      # game list component
       WaitingRoom.js                   # waiting room screen
     overlays/
-      ModalController.js               # modal dialogs
+      NewGameModal.js                  # new game creation modal
       PlayerTooltip.js                 # player hover tooltip
       Toast.js                         # notification utility
-      ReconnectOverlay.js              # reconnect overlay (branch 003)
+      ReconnectOverlay.js              # reconnect overlay
     storage/
-      IdentityStore.js                 # session token storage (branch 003)
+      IdentityStore.js                 # session token storage
     utils/HtmlUtil.js                  # DOM helpers
     antlion/                           # engine layer — generic, game-agnostic
+    thousand/                          # game-specific UI components
+      GameScreen.js                    # root game screen; owns all sub-views
+      CardTable.js                     # shared card table layout
+      CardSprite.js                    # individual card rendering
+      HandView.js                      # player's hand of cards
+      OpponentView.js                  # opponent hand stubs
+      TalonView.js                     # talon/widow card display
+      StatusBar.js                     # round status line
+      BidControls.js                   # bidding-phase action buttons
+      DeclarerDecisionControls.js      # declarer take/give controls
+      RoundReadyScreen.js              # waiting screen before play starts
+      SellBidControls.js               # sell-phase bid entry
+      SellSelectionControls.js         # sell-phase card selection
+      DealAnimation.js                 # deal card animation sequencer
+      RoundActionDispatcher.js         # client-side round action dispatch
 tests/                                 # Node.js built-in test runner (*.test.js)
 specs/                                 # feature specs, plans, and contracts (read-only at runtime)
 docs/                                  # developer documentation
@@ -89,11 +106,11 @@ See `docs/CODING_CONVENTIONS.md` for the full reference. Key points:
 ### Feature modules (`src/public/js/`)
 - Register into Antlion via the API above — no direct DOM listeners, no raw `setInterval`.
 - `core/ThousandApp.js` is the app coordinator; `network/ThousandSocket.js` wraps the WebSocket connection.
-- Game-specific logic will live under `src/public/js/thousand/` (not yet created).
+- Game-specific UI lives under `src/public/js/thousand/`; `GameScreen.js` is the root component.
 
 ## Active Feature Branch
 
-**003-persistent-player-identity** (in progress): Adds session tokens + `localStorage` so players survive page refreshes and short network disconnects. New files: `storage/IdentityStore.js`, `overlays/ReconnectOverlay.js`. Extends `ThousandStore`, `ConnectionManager`, `core/ThousandApp.js`, `network/ThousandSocket.js`. Grace period (default 30 s) keeps player records alive during disconnect.
+**004-game-round-bidding-selling** (complete through selling phase): Implements the full round lifecycle — dealing, bidding, declarer decision, selling — with server-side `Round.js` driving phase transitions and a full frontend UI under `src/public/js/thousand/`. Branch 003 (persistent player identity) is fully merged in.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
