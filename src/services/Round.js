@@ -214,8 +214,69 @@ class Round {
     this.phase = 'aborted';
   }
 
-  getSnapshotFor(_seat) {
-    return null;
+  // T047
+  getSnapshotFor(seat) {
+    const leftSeat = (seat + 1) % 3;
+    const rightSeat = (seat + 2) % 3;
+
+    const players = this.seatOrder.map((pid, s) => ({
+      seat: s,
+      playerId: pid,
+      nickname: this._store.players.get(pid).nickname,
+    }));
+
+    const myHand = this.hands[seat].map(id => {
+      const card = this.deck[id];
+      return { id, rank: card.rank, suit: card.suit };
+    });
+
+    const opponentHandSizes = {};
+    for (const s of [0, 1, 2]) {
+      if (s !== seat) opponentHandSizes[s] = this.hands[s].length;
+    }
+
+    const gameStatus = this.getViewModelFor(seat);
+
+    const payload = {
+      type: 'round_state_snapshot',
+      phase: gameStatus.phase,
+      gameStatus,
+      seats: {
+        self: seat,
+        left: leftSeat,
+        right: rightSeat,
+        dealer: this.dealerSeat,
+        players,
+      },
+      myHand,
+      opponentHandSizes,
+    };
+
+    // Talon identities visible to all during dealing and bidding
+    if (this.phase === 'dealing' || this.phase === 'bidding') {
+      payload.talon = this.talon.map(id => {
+        const card = this.deck[id];
+        return { id, rank: card.rank, suit: card.suit };
+      });
+    }
+
+    if (this.talon.length > 0) {
+      payload.talonIds = [...this.talon];
+    }
+
+    // Exposed sell card identities visible to all during selling-bidding
+    if (this.phase === 'selling-bidding') {
+      payload.exposed = this.exposedSellCards.map(id => {
+        const card = this.deck[id];
+        return { id, rank: card.rank, suit: card.suit };
+      });
+    }
+
+    if (this.exposedSellCards.length > 0) {
+      payload.exposedSellCardIds = [...this.exposedSellCards];
+    }
+
+    return payload;
   }
 
   // T042
