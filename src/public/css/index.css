@@ -775,9 +775,10 @@ fieldset legend {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
-/* Face-up: light surface so rank/suit labels are legible */
+/* Face-up: white surface; card image classes in cards.css override background-image */
 .card-sprite--up {
-  background: #f0ede8;
+  background-color: #f0ede8;
+  background-image: none;
   border: 1px solid #bbb;
 }
 
@@ -792,12 +793,6 @@ fieldset legend {
   border: 1px solid var(--color-border);
 }
 
-.card-sprite__label {
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
-  pointer-events: none;
-}
 
 /* ============================================================
    Opponent view — face-down opponent hand zone

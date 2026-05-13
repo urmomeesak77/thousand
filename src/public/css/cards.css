@@ -1,0 +1,58 @@
+/* ============================================================
+   Card sprite-sheet image classes
+   Sprite: src/public/gfx/cards.gif  1500×670
+   Each card: 106×159px, gap: 10px, edge border: 1px
+   Origin formula: ox = 1 + col*116, oy = 1 + row*169
+   Columns: A=0, 9=8, 10=9, J=10, Q=11, K=12
+   Rows: ♠=0, ♥=1, ♦=2, ♣=3
+   background-size scales the full sheet so one card = one div
+   ============================================================ */
+
+.card--AS, .card--7S, .card--8S, .card--9S, .card--10S, .card--JS, .card--QS, .card--KS,
+.card--AH, .card--7H, .card--8H, .card--9H, .card--10H, .card--JH, .card--QH, .card--KH,
+.card--AD, .card--7D, .card--8D, .card--9D, .card--10D, .card--JD, .card--QD, .card--KD,
+.card--AC, .card--7C, .card--8C, .card--9C, .card--10C, .card--JC, .card--QC, .card--KC {
+  background-image: url('../gfx/cards.gif');
+  background-size: calc(var(--card-width) * 1500 / 106) calc(var(--card-height) * 670 / 159);
+  background-color: transparent;
+}
+
+/* ♠  row 0  oy = 1 */
+.card--AS  { background-position: calc(var(--card-width) * -1    / 106) calc(var(--card-height) * -1 / 159); }
+.card--7S  { background-position: calc(var(--card-width) * -697  / 106) calc(var(--card-height) * -1 / 159); }
+.card--8S  { background-position: calc(var(--card-width) * -813  / 106) calc(var(--card-height) * -1 / 159); }
+.card--9S  { background-position: calc(var(--card-width) * -929  / 106) calc(var(--card-height) * -1 / 159); }
+.card--10S { background-position: calc(var(--card-width) * -1045 / 106) calc(var(--card-height) * -1 / 159); }
+.card--JS  { background-position: calc(var(--card-width) * -1161 / 106) calc(var(--card-height) * -1 / 159); }
+.card--QS  { background-position: calc(var(--card-width) * -1277 / 106) calc(var(--card-height) * -1 / 159); }
+.card--KS  { background-position: calc(var(--card-width) * -1393 / 106) calc(var(--card-height) * -1 / 159); }
+
+/* ♥  row 1  oy = 170 */
+.card--AH  { background-position: calc(var(--card-width) * -1    / 106) calc(var(--card-height) * -170 / 159); }
+.card--7H  { background-position: calc(var(--card-width) * -697  / 106) calc(var(--card-height) * -170 / 159); }
+.card--8H  { background-position: calc(var(--card-width) * -813  / 106) calc(var(--card-height) * -170 / 159); }
+.card--9H  { background-position: calc(var(--card-width) * -929  / 106) calc(var(--card-height) * -170 / 159); }
+.card--10H { background-position: calc(var(--card-width) * -1045 / 106) calc(var(--card-height) * -170 / 159); }
+.card--JH  { background-position: calc(var(--card-width) * -1161 / 106) calc(var(--card-height) * -170 / 159); }
+.card--QH  { background-position: calc(var(--card-width) * -1277 / 106) calc(var(--card-height) * -170 / 159); }
+.card--KH  { background-position: calc(var(--card-width) * -1393 / 106) calc(var(--card-height) * -170 / 159); }
+
+/* ♦  row 2  oy = 339 */
+.card--AD  { background-position: calc(var(--card-width) * -1    / 106) calc(var(--card-height) * -339 / 159); }
+.card--7D  { background-position: calc(var(--card-width) * -697  / 106) calc(var(--card-height) * -339 / 159); }
+.card--8D  { background-position: calc(var(--card-width) * -813  / 106) calc(var(--card-height) * -339 / 159); }
+.card--9D  { background-position: calc(var(--card-width) * -929  / 106) calc(var(--card-height) * -339 / 159); }
+.card--10D { background-position: calc(var(--card-width) * -1045 / 106) calc(var(--card-height) * -339 / 159); }
+.card--JD  { background-position: calc(var(--card-width) * -1161 / 106) calc(var(--card-height) * -339 / 159); }
+.card--QD  { background-position: calc(var(--card-width) * -1277 / 106) calc(var(--card-height) * -339 / 159); }
+.card--KD  { background-position: calc(var(--card-width) * -1393 / 106) calc(var(--card-height) * -339 / 159); }
+
+/* ♣  row 3  oy = 508 */
+.card--AC  { background-position: calc(var(--card-width) * -1    / 106) calc(var(--card-height) * -508 / 159); }
+.card--7C  { background-position: calc(var(--card-width) * -697  / 106) calc(var(--card-height) * -508 / 159); }
+.card--8C  { background-position: calc(var(--card-width) * -813  / 106) calc(var(--card-height) * -508 / 159); }
+.card--9C  { background-position: calc(var(--card-width) * -929  / 106) calc(var(--card-height) * -508 / 159); }
+.card--10C { background-position: calc(var(--card-width) * -1045 / 106) calc(var(--card-height) * -508 / 159); }
+.card--JC  { background-position: calc(var(--card-width) * -1161 / 106) calc(var(--card-height) * -508 / 159); }
+.card--QC  { background-position: calc(var(--card-width) * -1277 / 106) calc(var(--card-height) * -508 / 159); }
+.card--KC  { background-position: calc(var(--card-width) * -1393 / 106) calc(var(--card-height) * -508 / 159); }

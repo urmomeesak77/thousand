@@ -2,7 +2,7 @@
 // CardSprite — single card visual, absolutely-positioned DOM node
 // ============================================================
 
-const SUIT_COLOR = { '♥': 'red', '♦': 'red', '♣': 'black', '♠': 'black' };
+const SUIT_LETTER = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' };
 
 class CardSprite {
   constructor(id) {
@@ -55,13 +55,12 @@ class CardSprite {
 
   setFace(face) {
     this._face = face;
-    this._el.className = `card-sprite card-sprite--${face}`;
-    this._renderContent();
+    this._el.className = this._buildClassName();
   }
 
   setIdentity(identity) {
     this._identity = identity;
-    this._renderContent();
+    this._el.className = this._buildClassName();
   }
 
   // Returns true while animation is in progress; call each tick from the owning animator
@@ -88,16 +87,13 @@ class CardSprite {
     this._el.style.top = `${Math.round(y)}px`;
   }
 
-  _renderContent() {
-    this._el.textContent = '';
-    if (this._face !== 'up' || !this._identity) return;
-
-    const { rank, suit } = this._identity;
-    const label = document.createElement('span');
-    label.className = 'card-sprite__label';
-    label.style.color = SUIT_COLOR[suit] === 'red' ? 'var(--card-color-red)' : 'var(--card-color-black)';
-    label.textContent = `${rank}${suit}`;
-    this._el.appendChild(label);
+  _buildClassName() {
+    let cls = `card-sprite card-sprite--${this._face}`;
+    if (this._face === 'up' && this._identity) {
+      const { rank, suit } = this._identity;
+      cls += ` card--${rank}${SUIT_LETTER[suit]}`;
+    }
+    return cls;
   }
 }
 

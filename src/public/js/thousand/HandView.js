@@ -6,6 +6,7 @@
 const SUIT_ORDER = { '♣': 0, '♠': 1, '♥': 2, '♦': 3 };
 const RANK_ORDER = { '9': 0, '10': 1, 'J': 2, 'Q': 3, 'K': 4, 'A': 5 };
 const SUIT_COLOR = { '♥': 'red', '♦': 'red', '♣': 'black', '♠': 'black' };
+const SUIT_LETTER = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' };
 
 class HandView {
   constructor(container, antlion = null) {
@@ -72,19 +73,11 @@ class HandView {
     this._container.textContent = '';
     for (const card of this._cards) {
       const el = document.createElement('div');
-      el.className = 'hand-view__card card-sprite card-sprite--up';
+      el.className = `hand-view__card card-sprite card-sprite--up card--${card.rank}${SUIT_LETTER[card.suit]}`;
       if (this._selectedIds.includes(card.id)) {
         el.classList.add('hand-view__card--selected');
       }
       el.dataset.cardId = card.id;
-      const label = document.createElement('span');
-      label.className = 'card-sprite__label';
-      label.style.color =
-        SUIT_COLOR[card.suit] === 'red'
-          ? 'var(--card-color-red)'
-          : 'var(--card-color-black)';
-      label.textContent = `${card.rank}${card.suit}`;
-      el.appendChild(label);
       this._container.appendChild(el);
     }
   }
