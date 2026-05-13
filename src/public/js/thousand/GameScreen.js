@@ -76,6 +76,11 @@ class GameScreen {
       .filter(step => step.to === 'talon')
       .map(step => step.id);
 
+    this._handView.setHand([]);
+    this._talonView.clear();
+    this._leftOpponent.setCardCount(0);
+    this._rightOpponent.setCardCount(0);
+
     this._tableEl.classList.remove('hidden');
     this._controlsEl.classList.remove('hidden');
 
