@@ -5,7 +5,6 @@
 // Suit order: ♣(100) → ♠(80) → ♥(60) → ♦(40), descending by marriage value
 const SUIT_ORDER = { '♣': 0, '♠': 1, '♥': 2, '♦': 3 };
 const RANK_ORDER = { '9': 0, '10': 1, 'J': 2, 'Q': 3, 'K': 4, 'A': 5 };
-const SUIT_COLOR = { '♥': 'red', '♦': 'red', '♣': 'black', '♠': 'black' };
 const SUIT_LETTER = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' };
 
 class HandView {
