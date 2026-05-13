@@ -37,14 +37,20 @@ class OpponentView {
 
     const stackEl = document.createElement('div');
     stackEl.className = 'opponent-view__stack';
-    const visible = Math.min(this._cardCount, 3);
-    for (let i = 0; i < visible; i++) {
+    const OFFSET = 14;
+    const count = this._cardCount;
+    stackEl.style.width = count > 0
+      ? `calc(var(--card-width) + ${(count - 1) * OFFSET}px)`
+      : `var(--card-width)`;
+    for (let i = 0; i < count; i++) {
       const card = document.createElement('div');
       card.className = 'opponent-view__stack-card';
-      if (i === visible - 1) {
+      card.style.left = `${i * OFFSET}px`;
+      card.style.zIndex = i + 1;
+      if (i === count - 1) {
         const badge = document.createElement('span');
         badge.className = 'opponent-view__count';
-        badge.textContent = String(this._cardCount);
+        badge.textContent = String(count);
         card.appendChild(badge);
       }
       stackEl.appendChild(card);

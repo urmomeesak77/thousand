@@ -820,7 +820,6 @@ fieldset legend {
 
 .opponent-view__stack {
   position: relative;
-  width: calc(var(--card-width) + 2 * 14px);
   height: var(--card-height);
 }
 
@@ -841,11 +840,9 @@ fieldset legend {
   justify-content: center;
 }
 
-.opponent-view__stack-card:nth-child(1) { left: 0;    top: 0; z-index: 1; }
-.opponent-view__stack-card:nth-child(2) { left: 14px; top: 0; z-index: 2; }
-.opponent-view__stack-card:nth-child(3) { left: 28px; top: 0; z-index: 3; }
 
 .opponent-view__count {
+  display: none;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-text-muted);
@@ -978,8 +975,8 @@ fieldset legend {
     display: none;
   }
 
-  .opponent-view__stack {
-    width: var(--card-width);
+  .opponent-view__count {
+    display: inline;
   }
 }
 
