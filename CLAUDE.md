@@ -17,10 +17,10 @@ src/server.js                          # HTTP + WebSocket server entry point
 src/services/
   ThousandStore.js                     # game/player state (in-memory)
   ConnectionManager.js                 # WebSocket connection lifecycle + message dispatch
-  Round.js                             # round lifecycle: deal → bid → declarer → sell → play
-  RoundPhases.js                       # phase constants
+  Round.js                             # round state machine & action methods
+  RoundPhases.js                       # phase-transition helpers (extracted from Round for size)
+  DealSequencer.js                     # deal-sequence computation (extracted from Round for size)
   Deck.js                              # deck creation and shuffle
-  DealSequencer.js                     # async deal animation sequencing
 src/controllers/
   RequestHandler.js                    # HTTP routing
   GameController.js                    # game CRUD handlers
