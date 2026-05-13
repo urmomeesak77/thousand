@@ -755,11 +755,11 @@ fieldset legend {
 
 /* CSS custom properties for card colours */
 :root {
-  --card-width: 4rem;
-  --card-height: 5.5rem;
+  --card-width: clamp(3.5rem, 5vw, 5.5rem);
+  --card-height: clamp(4.9rem, 7vw, 7.7rem);
   --card-radius: 0.375rem;
   --card-color-red: #e94560;
-  --card-color-black: #ececec;
+  --card-color-black: #1a1a1a;
 }
 
 .card-sprite {
@@ -823,10 +823,14 @@ fieldset legend {
   max-width: 8rem;
 }
 
-.opponent-view__count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.opponent-view__stack {
+  position: relative;
+  width: calc(var(--card-width) + 2 * 14px);
+  height: var(--card-height);
+}
+
+.opponent-view__stack-card {
+  position: absolute;
   width: var(--card-width);
   height: var(--card-height);
   border-radius: var(--card-radius);
@@ -837,6 +841,16 @@ fieldset legend {
     var(--color-surface) 100%
   );
   border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.opponent-view__stack-card:nth-child(1) { left: 0;    top: 0; z-index: 1; }
+.opponent-view__stack-card:nth-child(2) { left: 14px; top: 0; z-index: 2; }
+.opponent-view__stack-card:nth-child(3) { left: 28px; top: 0; z-index: 3; }
+
+.opponent-view__count {
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-text-muted);
@@ -851,6 +865,11 @@ fieldset legend {
 /* ============================================================
    Hand view — viewer's own sorted face-up hand
    ============================================================ */
+
+/* Span all 3 grid columns so the hand centres across the full table width */
+.game-table > .hand-view {
+  grid-column: 1 / -1;
+}
 
 .hand-view {
   display: flex;
@@ -882,8 +901,11 @@ fieldset legend {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   min-height: var(--card-height);
+}
+
+.talon-view .card-sprite {
   position: relative;
 }
 
@@ -951,14 +973,31 @@ fieldset legend {
     font-size: 1.4rem;
   }
 
-  :root {
-    --card-width: 3rem;
-    --card-height: 4.2rem;
-  }
-
   .status-bar {
     font-size: 0.8rem;
     padding: 0.4rem 0.75rem;
+  }
+
+  /* Opponent: collapse stack to single card */
+  .opponent-view__stack-card:not(:last-child) {
+    display: none;
+  }
+
+  .opponent-view__stack {
+    width: var(--card-width);
+  }
+}
+
+/* 640px — hand fan-stack */
+@media (max-width: 640px) {
+  .hand-view {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding-left: 1rem;
+  }
+
+  .hand-view__card + .hand-view__card {
+    margin-left: calc(-1 * var(--card-width) * 0.55);
   }
 }
 
@@ -979,10 +1018,5 @@ fieldset legend {
 
   #game-list li .btn {
     width: 100%;
-  }
-
-  :root {
-    --card-width: 3.5rem;
-    --card-height: 4.9rem;
   }
 }

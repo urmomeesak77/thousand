@@ -35,10 +35,21 @@ class OpponentView {
     nick.textContent = this._nickname;
     this._container.appendChild(nick);
 
-    const badge = document.createElement('div');
-    badge.className = 'opponent-view__count';
-    badge.textContent = String(this._cardCount);
-    this._container.appendChild(badge);
+    const stackEl = document.createElement('div');
+    stackEl.className = 'opponent-view__stack';
+    const visible = Math.min(this._cardCount, 3);
+    for (let i = 0; i < visible; i++) {
+      const card = document.createElement('div');
+      card.className = 'opponent-view__stack-card';
+      if (i === visible - 1) {
+        const badge = document.createElement('span');
+        badge.className = 'opponent-view__count';
+        badge.textContent = String(this._cardCount);
+        card.appendChild(badge);
+      }
+      stackEl.appendChild(card);
+    }
+    this._container.appendChild(stackEl);
 
     if (this._disconnected) {
       const lost = document.createElement('div');

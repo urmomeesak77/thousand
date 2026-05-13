@@ -2,10 +2,6 @@
 // CardTable — viewport-relative slot coordinates for the 3-player table
 // ============================================================
 
-// Card dimensions (kept in sync with .card-sprite CSS)
-const CARD_W = 60;
-const CARD_H = 90;
-
 class CardTable {
   constructor(antlion, container) {
     this._container = container;
@@ -41,12 +37,16 @@ class CardTable {
     const cx = Math.round(w / 2);
     const cy = Math.round(h / 2);
 
+    // Mirror CSS clamp(3.5rem≈56px, 5vw, 5.5rem≈88px) × 1.4 aspect ratio
+    const cardW = Math.max(56, Math.min(88, Math.round(w * 0.05)));
+    const cardH = Math.round(cardW * 1.4);
+
     this._slots = {
-      self:       { x: cx - Math.round(CARD_W / 2), y: h - 120 },
-      left:       { x: 24,                           y: cy - Math.round(CARD_H / 2) },
-      right:      { x: w - 24 - CARD_W,              y: cy - Math.round(CARD_H / 2) },
-      talon:      { x: cx - Math.round(CARD_W / 2),  y: cy - Math.round(CARD_H / 2) },
-      deckOrigin: { x: cx - Math.round(CARD_W / 2) - 40, y: cy - Math.round(CARD_H / 2) },
+      self:       { x: cx - Math.round(cardW / 2), y: h - 120 },
+      left:       { x: 24,                          y: cy - Math.round(cardH / 2) },
+      right:      { x: w - 24 - cardW,              y: cy - Math.round(cardH / 2) },
+      talon:      { x: cx - Math.round(cardW / 2),  y: cy - Math.round(cardH / 2) },
+      deckOrigin: { x: cx - Math.round(cardW / 2) - 40, y: cy - Math.round(cardH / 2) },
     };
   }
 }
