@@ -42,6 +42,7 @@ class ThousandApp {
       (msg) => this._router.handle(msg),
       (err) => this._toast.show(err),
       () => this._reconnectOverlay?.show(),
+      () => this._reconnectOverlay?.hide(),
     );
   }
 

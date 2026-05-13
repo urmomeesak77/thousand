@@ -6,14 +6,19 @@ import { IdentityStore } from '../storage/IdentityStore.js';
 
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
+const CONNECT_TIMEOUT_MS = 10000;
+const WS_CONNECTING = 0;
+const WS_OPEN = 1;
 
 class ThousandSocket {
-  constructor(antlion, onMessage, onError, onDisconnect) {
+  constructor(antlion, onMessage, onError, onDisconnect, onConnect) {
     this._antlion = antlion;
     this._onMessage = onMessage;
     this._onError = onError;
     this._onDisconnect = onDisconnect ?? null;
+    this._onConnect = onConnect ?? null;
     this._reconnectId = null;
+    this._connectTimeoutId = null;
     this._ws = null;
     this._isStopped = false;
     this._attempts = 0;
@@ -21,9 +26,20 @@ class ThousandSocket {
 
   connect() {
     if (this._isStopped) {return;}
+    const prev = this._ws;
+    if (prev && (prev.readyState === WS_CONNECTING || prev.readyState === WS_OPEN)) {
+      prev.close();
+    }
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
     this._ws = ws;
+    this._connectTimeoutId = this._antlion.schedule(CONNECT_TIMEOUT_MS, () => {
+      this._connectTimeoutId = null;
+      // Browser TCP timeout can be ~75s — force a close so the backoff loop progresses.
+      if (this._ws === ws && ws.readyState !== WS_OPEN) {
+        ws.close();
+      }
+    });
     this._attachHandlers(ws);
   }
 
@@ -39,6 +55,10 @@ class ThousandSocket {
       this._antlion.cancelScheduled(this._reconnectId);
       this._reconnectId = null;
     }
+    if (this._connectTimeoutId !== null) {
+      this._antlion.cancelScheduled(this._connectTimeoutId);
+      this._connectTimeoutId = null;
+    }
     if (this._ws && this._ws.readyState !== 2 /* CLOSING */ && this._ws.readyState !== 3 /* CLOSED */) {
       this._ws.close();
     }
@@ -46,8 +66,10 @@ class ThousandSocket {
 
   _attachHandlers(ws) {
     ws.onopen = () => {
+      this._clearConnectTimeout();
       ws.send(JSON.stringify({ type: 'hello', ...IdentityStore.load() }));
       this._attempts = 0;
+      this._onConnect?.();
     };
     ws.onmessage = (event) => {
       let msg;
@@ -61,6 +83,10 @@ class ThousandSocket {
     };
     ws.onerror = () => this._onError('Connection error.');
     ws.onclose = () => {
+      // A prior socket's stale close can arrive after connect() has replaced this._ws —
+      // ignore it so we don't re-show the overlay or double-schedule reconnects.
+      if (ws !== this._ws) {return;}
+      this._clearConnectTimeout();
       if (this._isStopped) {return;}
       this._onDisconnect?.();
       if (this._reconnectId !== null) {
@@ -75,6 +101,13 @@ class ThousandSocket {
         this.connect();
       });
     };
+  }
+
+  _clearConnectTimeout() {
+    if (this._connectTimeoutId !== null) {
+      this._antlion.cancelScheduled(this._connectTimeoutId);
+      this._connectTimeoutId = null;
+    }
   }
 }
 

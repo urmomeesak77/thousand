@@ -51,8 +51,10 @@ body {
 /* ============================================================
    Utility
    ============================================================ */
+/* !important so this beats higher-specificity rules (ID selectors,
+   .modal-overlay) that set display: flex. */
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* ============================================================
