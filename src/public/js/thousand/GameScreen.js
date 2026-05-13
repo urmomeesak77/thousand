@@ -115,7 +115,8 @@ class GameScreen {
     this._statusBar.render(msg.gameStatus);
   }
 
-  // Called on round_state_snapshot; rebuilds the layout immediately with no animation (FR-027).
+  // Called on round_state_snapshot; rebuilds the layout, playing the deal animation if no
+  // bids have been placed yet (server includes dealSequence in that case).
   initFromSnapshot(msg) {
     this._cardTable.refresh();
     this._seats = msg.seats;
@@ -145,6 +146,38 @@ class GameScreen {
     if (leftPlayer) this._leftOpponent.setNickname(leftPlayer.nickname);
     if (rightPlayer) this._rightOpponent.setNickname(rightPlayer.nickname);
 
+    this._statusBar.render(msg.gameStatus);
+    this._lastGameStatus = msg.gameStatus;
+
+    if (msg.dealSequence) {
+      this._talonCardIds = msg.dealSequence
+        .filter(step => step.to === 'talon')
+        .map(step => step.id);
+      this._controlsLocked = true;
+
+      const animation = new DealAnimation(
+        this._antlion,
+        msg.dealSequence,
+        this._cardsById,
+        msg.seats.self,
+        this._cardTable,
+        () => {
+          this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
+          const selfCards = Object.values(this._cardsById)
+            .filter(c => !this._talonCardIds.includes(c.id));
+          this._handView.setHand(selfCards);
+          const talonCards = this._talonCardIds.map(id => this._cardsById[id]).filter(Boolean);
+          this._talonView.setCards(talonCards);
+          this._leftOpponent.setCardCount(msg.opponentHandSizes[msg.seats.left] ?? 7);
+          this._rightOpponent.setCardCount(msg.opponentHandSizes[msg.seats.right] ?? 7);
+          this._controlsLocked = false;
+          if (this._lastGameStatus) this._mountControlsForPhase(this._lastGameStatus);
+        },
+      );
+      animation.start(this._tableEl);
+      return;
+    }
+
     this._leftOpponent.setCardCount(msg.opponentHandSizes[msg.seats.left] ?? 0);
     this._rightOpponent.setCardCount(msg.opponentHandSizes[msg.seats.right] ?? 0);
 
@@ -157,9 +190,6 @@ class GameScreen {
     } else {
       this._talonView.clear();
     }
-
-    this._statusBar.render(msg.gameStatus);
-    this._lastGameStatus = msg.gameStatus;
 
     if (msg.gameStatus.phase === 'Selling') {
       if (msg.exposed && msg.exposed.length > 0) {

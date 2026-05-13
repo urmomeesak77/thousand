@@ -260,6 +260,20 @@ class Round {
       payload.talonIds = [...this.talon];
     }
 
+    // Deal sequence included so the client can replay the animation on reconnect
+    // (only needed when no bids have been placed yet — after that, animating would be jarring)
+    if (this.phase === 'bidding' && this.currentHighBid === null) {
+      payload.dealSequence = this.deck.map((card, i) => {
+        const to = stepDest(i);
+        const step = { id: i, to };
+        if (to === 'talon' || to === `seat${seat}`) {
+          step.rank = card.rank;
+          step.suit = card.suit;
+        }
+        return step;
+      });
+    }
+
     // Exposed sell card identities visible to all during selling-bidding
     if (this.phase === 'selling-bidding') {
       payload.exposed = this.exposedSellCards.map(id => {

@@ -283,6 +283,7 @@ class ThousandStore {
     game.status = 'in-progress';
     game.round = new Round({ game, store: this });
     game.round.start();
+    game.round.advanceFromDealingToBidding();
     for (const pid of game.players) {
       const payload = game.round.getRoundStartedPayloadFor(pid);
       if (payload) this.sendToPlayer(pid, payload);

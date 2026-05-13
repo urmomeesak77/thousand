@@ -111,12 +111,12 @@ describe('round-messages — round_started on startRound', () => {
     }
   });
 
-  it('gameStatus in round_started has phase Dealing and null currentHighBid', () => {
+  it('gameStatus in round_started has phase Bidding and null currentHighBid', () => {
     const { ws } = setupInProgressGame();
     const msg = ws[0]._sent.find((m) => m.type === 'round_started');
-    assert.equal(msg.gameStatus.phase, 'Dealing');
+    assert.equal(msg.gameStatus.phase, 'Bidding');
     assert.equal(msg.gameStatus.currentHighBid, null);
-    assert.equal(msg.gameStatus.activePlayer, null);
+    assert.notEqual(msg.gameStatus.activePlayer, null); // P1 is active
   });
 });
 
@@ -845,6 +845,71 @@ describe('round-messages — reconnect to in-progress game (T009)', () => {
       'dealing-phase snapshot must include talon identities');
     assert.ok(Array.isArray(snapshot.talonIds) && snapshot.talonIds.length === 3,
       'snapshot must include talonIds');
+  });
+
+  it('round_state_snapshot for bidding phase with no bids includes dealSequence for animation replay', () => {
+    const store = new ThousandStore();
+    const cm = new ConnectionManager(store);
+
+    const ws = [makeWs(), makeWs(), makeWs()];
+    ws.forEach((w) => { cm.handleConnection(w); sendMsg(w, { type: 'hello' }); });
+    const pids = ws.map((w) => w._sent.find((m) => m.type === 'connected').playerId);
+    const tokens = ws.map((w) => w._sent.find((m) => m.type === 'connected').sessionToken);
+    pids.forEach((pid, i) => { store.players.get(pid).nickname = ['A', 'B', 'C'][i]; });
+
+    const gameId = 'snap-deal-anim-game';
+    store.games.set(gameId, {
+      id: gameId, players: new Set(pids), hostId: pids[0], type: 'public',
+      status: 'waiting', requiredPlayers: 3, createdAt: Date.now(),
+      inviteCode: null, round: null, waitingRoomTimer: null,
+    });
+    pids.forEach((pid) => { store.players.get(pid).gameId = gameId; });
+    store.startRound(gameId); // phase = bidding, no bids yet
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    const newWs = makeWs();
+    cm.handleConnection(newWs);
+    sendMsg(newWs, { type: 'hello', playerId: pids[0], sessionToken: tokens[0] });
+
+    const snapshot = newWs._sent.find((m) => m.type === 'round_state_snapshot');
+    assert.ok(Array.isArray(snapshot.dealSequence) && snapshot.dealSequence.length === 24,
+      'bidding-phase snapshot with no bids must include dealSequence (24 steps)');
+    const talonSteps = snapshot.dealSequence.filter(s => s.to === 'talon');
+    assert.equal(talonSteps.length, 3, 'dealSequence must have 3 talon steps');
+    talonSteps.forEach((s) => {
+      assert.ok('rank' in s && 'suit' in s, 'talon steps must carry rank+suit');
+    });
+  });
+
+  it('round_state_snapshot for bidding phase after a bid has been placed omits dealSequence', () => {
+    const store = new ThousandStore();
+    const cm = new ConnectionManager(store);
+
+    const ws = [makeWs(), makeWs(), makeWs()];
+    ws.forEach((w) => { cm.handleConnection(w); sendMsg(w, { type: 'hello' }); });
+    const pids = ws.map((w) => w._sent.find((m) => m.type === 'connected').playerId);
+    const tokens = ws.map((w) => w._sent.find((m) => m.type === 'connected').sessionToken);
+    pids.forEach((pid, i) => { store.players.get(pid).nickname = ['A', 'B', 'C'][i]; });
+
+    const gameId = 'snap-no-deal-anim-game';
+    store.games.set(gameId, {
+      id: gameId, players: new Set(pids), hostId: pids[0], type: 'public',
+      status: 'waiting', requiredPlayers: 3, createdAt: Date.now(),
+      inviteCode: null, round: null, waitingRoomTimer: null,
+    });
+    pids.forEach((pid) => { store.players.get(pid).gameId = gameId; });
+    store.startRound(gameId);
+    // Seat 1 bids first per FR-004; submit a bid to advance currentHighBid past null
+    store.games.get(gameId).round.submitBid(1, 100);
+    ws.forEach((w) => { w._sent.length = 0; });
+
+    const newWs = makeWs();
+    cm.handleConnection(newWs);
+    sendMsg(newWs, { type: 'hello', playerId: pids[0], sessionToken: tokens[0] });
+
+    const snapshot = newWs._sent.find((m) => m.type === 'round_state_snapshot');
+    assert.equal(snapshot.dealSequence, undefined,
+      'bidding-phase snapshot after a bid must not include dealSequence');
   });
 
   it('round_state_snapshot for selling-bidding phase includes exposed card identities', () => {
