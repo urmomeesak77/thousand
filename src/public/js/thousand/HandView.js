@@ -54,6 +54,7 @@ class HandView {
   // Disabling clears all selections and emits an empty event.
   setSelectionMode(enabled) {
     this._selectionEnabled = enabled;
+    this._container.classList.toggle('hand-view--selectable', enabled);
     if (!enabled) {
       this._selectedIds = [];
       this._container.querySelectorAll('.hand-view__card--selected')

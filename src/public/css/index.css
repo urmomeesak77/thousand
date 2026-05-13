@@ -136,13 +136,15 @@ h3 {
   background: var(--color-primary-hover);
 }
 
-.btn-secondary {
+.btn-secondary,
+.btn--secondary {
   background: var(--color-surface-alt);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
 
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled),
+.btn--secondary:hover:not(:disabled) {
   border-color: var(--color-primary);
   color: var(--color-primary-hover);
 }
@@ -723,6 +725,25 @@ fieldset legend {
   justify-content: center;
 }
 
+/* Sell selection controls: counter + action buttons inside .game-controls */
+.sell-selection-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sell-selection-controls__counter {
+  padding-right: 1rem;
+  margin-right: 0.5rem;
+  border-right: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  min-width: 7rem;
+  text-align: center;
+}
+
 .bid-controls__input {
   width: 5rem;
   text-align: center;
@@ -897,6 +918,20 @@ fieldset legend {
 .hand-view__card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+.hand-view__card--selected {
+  transform: translateY(-18px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--color-primary);
+  z-index: 1;
+}
+
+.hand-view__card--selected:hover {
+  transform: translateY(-20px);
+}
+
+.hand-view--selectable .hand-view__card {
+  cursor: pointer;
 }
 
 /* ============================================================
