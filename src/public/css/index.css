@@ -901,10 +901,10 @@ fieldset legend {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1.25rem;
 }
 
-/* push group to 1/4 from top — free space ratio 1:3 (top:bottom) */
+/* center the group vertically so talon cards align with opponent stacks */
 .talon-col::before {
   content: '';
   flex: 1;
@@ -912,7 +912,7 @@ fieldset legend {
 
 .talon-col::after {
   content: '';
-  flex: 3;
+  flex: 1;
 }
 
 /* ============================================================
