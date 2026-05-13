@@ -616,7 +616,7 @@ fieldset legend {
   display: grid;
   grid-template-rows: auto 1fr auto;
   background: var(--color-bg);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .status-bar {
@@ -691,6 +691,7 @@ fieldset legend {
   grid-template-rows: 1fr auto;
   gap: 0.5rem;
   padding: 1rem;
+  min-height: 300px;
   overflow: hidden;
 }
 
@@ -1005,6 +1006,17 @@ fieldset legend {
 
   .hand-view__card + .hand-view__card {
     margin-left: calc(-1 * var(--card-width) * 0.55);
+  }
+}
+
+/* 600px — talon fan-stack (3 cards no longer fit side-by-side in center column) */
+@media (max-width: 600px) {
+  .talon-view {
+    gap: 0;
+  }
+
+  .talon-view .card-sprite + .card-sprite {
+    margin-left: calc(-1 * var(--card-width) * 0.5);
   }
 }
 
