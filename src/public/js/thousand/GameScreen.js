@@ -36,6 +36,10 @@ class GameScreen {
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
 
+    this._buildDom(antlion, container);
+  }
+
+  _buildDom(antlion, container) {
     const statusBarEl = document.createElement('div');
     const tableEl = document.createElement('div');
     tableEl.className = 'game-table';
@@ -146,19 +150,8 @@ class GameScreen {
     this._tableEl.classList.remove('hidden');
     this._controlsEl.classList.remove('hidden');
 
-    for (const card of msg.myHand) {
-      this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
-    }
-    if (msg.exposed) {
-      for (const card of msg.exposed) {
-        this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
-      }
-    }
-
-    const leftPlayer = msg.seats.players.find(p => p.seat === msg.seats.left);
-    const rightPlayer = msg.seats.players.find(p => p.seat === msg.seats.right);
-    if (leftPlayer) {this._leftOpponent.setNickname(leftPlayer.nickname);}
-    if (rightPlayer) {this._rightOpponent.setNickname(rightPlayer.nickname);}
+    this._seedCardsFromSnapshot(msg);
+    this._setOpponentNicknames(msg.seats);
 
     this._renderStatus(msg.gameStatus);
     this._lastGameStatus = msg.gameStatus;
@@ -170,9 +163,36 @@ class GameScreen {
 
     this._leftOpponent.setCardCount(msg.opponentHandSizes[msg.seats.left] ?? 0);
     this._rightOpponent.setCardCount(msg.opponentHandSizes[msg.seats.right] ?? 0);
-
     this._handView.setHand(msg.myHand);
+    this._renderSnapshotTalon(msg);
+    this._initSellSubPhase(msg);
 
+    this._mountControlsForPhase(msg.gameStatus);
+  }
+
+  _seedCardsFromSnapshot(msg) {
+    for (const card of msg.myHand) {
+      this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
+    }
+    if (msg.exposed) {
+      for (const card of msg.exposed) {
+        this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
+      }
+    }
+  }
+
+  _setOpponentNicknames(seats) {
+    const left = seats.players.find((p) => p.seat === seats.left);
+    const right = seats.players.find((p) => p.seat === seats.right);
+    if (left) {
+      this._leftOpponent.setNickname(left.nickname);
+    }
+    if (right) {
+      this._rightOpponent.setNickname(right.nickname);
+    }
+  }
+
+  _renderSnapshotTalon(msg) {
     if (msg.exposed && msg.exposed.length > 0) {
       this._talonView.setCards(msg.exposed);
     } else if (msg.talonIds && msg.talonIds.length > 0) {
@@ -180,17 +200,18 @@ class GameScreen {
     } else {
       this._talonView.clear();
     }
+  }
 
-    if (msg.gameStatus.phase === 'Selling') {
-      if (msg.exposed && msg.exposed.length > 0) {
-        this._sellSubPhase = 'bidding';
-        this._exposedCardIds = msg.exposedSellCardIds ?? msg.exposed.map(c => c.id);
-      } else {
-        this._sellSubPhase = 'selection';
-      }
+  _initSellSubPhase(msg) {
+    if (msg.gameStatus.phase !== 'Selling') {
+      return;
     }
-
-    this._mountControlsForPhase(msg.gameStatus);
+    if (msg.exposed && msg.exposed.length > 0) {
+      this._sellSubPhase = 'bidding';
+      this._exposedCardIds = msg.exposedSellCardIds ?? msg.exposed.map((c) => c.id);
+    } else {
+      this._sellSubPhase = 'selection';
+    }
   }
 
   // Called on every phase_changed, bid_accepted, pass_accepted, etc.
@@ -326,61 +347,88 @@ class GameScreen {
   }
 
   _mountControlsForPhase(gameStatus) {
-    const { phase, viewerIsActive, passedPlayers } = gameStatus;
-
+    const { phase } = gameStatus;
     const sellBiddingActive = phase === 'Selling' && this._sellSubPhase === 'bidding';
-    if (phase !== 'Bidding' && !sellBiddingActive) {this._clearLastAction();}
+    if (phase !== 'Bidding' && !sellBiddingActive) {
+      this._clearLastAction();
+    }
 
     if (phase === 'Bidding') {
-      if (this._dropControl('_declarerControls')) {this._controlsEl.textContent = '';}
-      if (!this._bidControls) {
-        this._controlsEl.textContent = '';
-        this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
-      }
-      this._bidControls.setCurrentHighBid(gameStatus.currentHighBid);
-      const viewerPlayer = this._seats?.players.find((p) => p.seat === this._seats.self);
-      const viewerNickname = viewerPlayer?.nickname;
-      const viewerHasPassed = viewerNickname ? (passedPlayers ?? []).includes(viewerNickname) : false;
-      this._bidControls.setActiveState({ isActiveBidder: viewerIsActive, isEligible: !viewerHasPassed });
-
+      this._mountBiddingControls(gameStatus);
     } else if (phase === 'Declarer deciding') {
-      if (this._dropControl('_bidControls')) {this._controlsEl.textContent = '';}
-      if (this._sellSelectionControls) {
-        this._handView.setSelectionMode(false);
-        this._sellSelectionControls = null;
-      }
-      this._sellBidControls = null;
-      this._sellSubPhase = null;
-
-      if (viewerIsActive) {
-        if (!this._declarerControls) {
-          this._controlsEl.textContent = '';
-          this._declarerControls = new DeclarerDecisionControls(
-            this._controlsEl, this._antlion, this._dispatcher,
-          );
-        }
-        this._declarerControls.setMode(this._declarerMode(gameStatus));
-      } else {
-        if (this._dropControl('_declarerControls')) {this._controlsEl.textContent = '';}
-        const declarerNickname = gameStatus.declarer?.nickname ?? 'declarer';
-        let waitDiv = this._controlsEl.querySelector('.waiting');
-        if (!waitDiv) {
-          this._controlsEl.textContent = '';
-          waitDiv = document.createElement('div');
-          waitDiv.className = 'waiting';
-          this._controlsEl.appendChild(waitDiv);
-        }
-        waitDiv.textContent = `Waiting for ${declarerNickname}…`;
-      }
-
+      this._mountDeclarerControls(gameStatus);
     } else if (phase === 'Selling') {
-      if (this._dropControl('_bidControls')) {this._controlsEl.textContent = '';}
-      if (this._dropControl('_declarerControls')) {this._controlsEl.textContent = '';}
-      if (this._sellSubPhase) {this._mountControlsForSelling(gameStatus);}
-
+      if (this._dropControl('_bidControls')) {
+        this._controlsEl.textContent = '';
+      }
+      if (this._dropControl('_declarerControls')) {
+        this._controlsEl.textContent = '';
+      }
+      if (this._sellSubPhase) {
+        this._mountControlsForSelling(gameStatus);
+      }
     } else {
       this._tearDownAllControls();
     }
+  }
+
+  _mountBiddingControls(gameStatus) {
+    if (this._dropControl('_declarerControls')) {
+      this._controlsEl.textContent = '';
+    }
+    if (!this._bidControls) {
+      this._controlsEl.textContent = '';
+      this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
+    }
+    this._bidControls.setCurrentHighBid(gameStatus.currentHighBid);
+    const viewerPlayer = this._seats?.players.find((p) => p.seat === this._seats.self);
+    const viewerNickname = viewerPlayer?.nickname;
+    const viewerHasPassed = viewerNickname
+      ? (gameStatus.passedPlayers ?? []).includes(viewerNickname)
+      : false;
+    this._bidControls.setActiveState({
+      isActiveBidder: gameStatus.viewerIsActive,
+      isEligible: !viewerHasPassed,
+    });
+  }
+
+  _mountDeclarerControls(gameStatus) {
+    if (this._dropControl('_bidControls')) {
+      this._controlsEl.textContent = '';
+    }
+    if (this._sellSelectionControls) {
+      this._handView.setSelectionMode(false);
+      this._sellSelectionControls = null;
+    }
+    this._sellBidControls = null;
+    this._sellSubPhase = null;
+
+    if (gameStatus.viewerIsActive) {
+      if (!this._declarerControls) {
+        this._controlsEl.textContent = '';
+        this._declarerControls = new DeclarerDecisionControls(
+          this._controlsEl, this._antlion, this._dispatcher,
+        );
+      }
+      this._declarerControls.setMode(this._declarerMode(gameStatus));
+    } else {
+      this._renderWaitingForDeclarer(gameStatus);
+    }
+  }
+
+  _renderWaitingForDeclarer(gameStatus) {
+    if (this._dropControl('_declarerControls')) {
+      this._controlsEl.textContent = '';
+    }
+    const declarerNickname = gameStatus.declarer?.nickname ?? 'declarer';
+    let waitDiv = this._controlsEl.querySelector('.waiting');
+    if (!waitDiv) {
+      this._controlsEl.textContent = '';
+      waitDiv = document.createElement('div');
+      waitDiv.className = 'waiting';
+      this._controlsEl.appendChild(waitDiv);
+    }
+    waitDiv.textContent = `Waiting for ${declarerNickname}…`;
   }
 
   // Returns the correct mode for DeclarerDecisionControls based on game state.

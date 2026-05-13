@@ -66,35 +66,10 @@ class Round {
   // T022
   getRoundStartedPayloadFor(playerId) {
     const selfSeat = this.seatByPlayer.get(playerId);
-    const leftSeat = (selfSeat + 1) % 3;
-    const rightSeat = (selfSeat + 2) % 3;
-
-    const players = this.seatOrder.map((pid, seat) => ({
-      seat,
-      playerId: pid,
-      nickname: this._store.players.get(pid).nickname,
-    }));
-
-    const dealSequence = this.deck.map((card, i) => {
-      const to = stepDest(i);
-      const step = { id: i, to };
-      if (to === `seat${selfSeat}`) {
-        step.rank = card.rank;
-        step.suit = card.suit;
-      }
-      return step;
-    });
-
     return {
       type: 'round_started',
-      seats: {
-        self: selfSeat,
-        left: leftSeat,
-        right: rightSeat,
-        dealer: 0,
-        players,
-      },
-      dealSequence,
+      seats: this._seatLayoutFor(selfSeat),
+      dealSequence: this._buildDealSequenceFor(selfSeat),
       gameStatus: this.getViewModelFor(selfSeat),
     };
   }
@@ -157,54 +132,54 @@ class Round {
 
   // T026
   getViewModelFor(seat) {
-    const phaseLabel = PHASE_LABELS[this.phase] ?? this.phase;
-
-    const activePlayer = this.currentTurnSeat !== null
-      ? {
-          seat: this.currentTurnSeat,
-          nickname: this._store.players.get(this.seatOrder[this.currentTurnSeat]).nickname,
-        }
-      : null;
-
-    const declarer = this.declarerSeat !== null
-      ? {
-          seat: this.declarerSeat,
-          nickname: this._store.players.get(this.seatOrder[this.declarerSeat]).nickname,
-        }
-      : null;
-
-    // passedBidders shown only during bidding; sell opponents shown only during selling-bidding
-    const passedSeats = this.phase === 'selling-bidding'
-      ? [...this.passedSellOpponents]
-      : this.phase === 'bidding'
-        ? [...this.passedBidders]
-        : [];
-    const passedPlayers = passedSeats.map(s => this._store.players.get(this.seatOrder[s]).nickname);
-
-    // sellAttempt is 1-based: shown during selling phases and in post-bid-decision after a failed attempt
-    let sellAttempt = null;
-    if (this.phase === 'selling-bidding') {
-      sellAttempt = this.attemptCount + 1;
-    } else if (
-      this.phase === 'post-bid-decision' &&
-      this.attemptHistory.length > 0 &&
-      this.attemptHistory[this.attemptHistory.length - 1].outcome === 'returned'
-    ) {
-      sellAttempt = this.attemptCount + 1;
-    }
-
     return {
-      phase: phaseLabel,
-      activePlayer,
+      phase: PHASE_LABELS[this.phase] ?? this.phase,
+      activePlayer: this._seatInfo(this.currentTurnSeat),
       viewerIsActive: this.currentTurnSeat === seat,
       currentHighBid: this.currentHighBid,
-      declarer,
-      passedPlayers,
-      sellAttempt,
-      disconnectedPlayers: [...this.disconnectedSeats].map(s =>
-        this._store.players.get(this.seatOrder[s])?.nickname
-      ).filter(Boolean),
+      declarer: this._seatInfo(this.declarerSeat),
+      passedPlayers: this._passedNicknamesForCurrentPhase(),
+      sellAttempt: this._currentSellAttempt(),
+      disconnectedPlayers: this._disconnectedNicknames(),
     };
+  }
+
+  _seatInfo(seat) {
+    if (seat === null) {
+      return null;
+    }
+    return { seat, nickname: this._store.players.get(this.seatOrder[seat]).nickname };
+  }
+
+  // passedBidders shown only during bidding; sell opponents shown only during selling-bidding
+  _passedNicknamesForCurrentPhase() {
+    let passedSeats;
+    if (this.phase === 'selling-bidding') {
+      passedSeats = [...this.passedSellOpponents];
+    } else if (this.phase === 'bidding') {
+      passedSeats = [...this.passedBidders];
+    } else {
+      passedSeats = [];
+    }
+    return passedSeats.map((s) => this._store.players.get(this.seatOrder[s]).nickname);
+  }
+
+  // sellAttempt is 1-based: shown during selling phases and in post-bid-decision after a failed attempt
+  _currentSellAttempt() {
+    if (this.phase === 'selling-bidding') {
+      return this.attemptCount + 1;
+    }
+    const last = this.attemptHistory[this.attemptHistory.length - 1];
+    if (this.phase === 'post-bid-decision' && last?.outcome === 'returned') {
+      return this.attemptCount + 1;
+    }
+    return null;
+  }
+
+  _disconnectedNicknames() {
+    return [...this.disconnectedSeats]
+      .map((s) => this._store.players.get(this.seatOrder[s])?.nickname)
+      .filter(Boolean);
   }
 
   // T045
@@ -225,40 +200,14 @@ class Round {
 
   // T047
   getSnapshotFor(seat) {
-    const leftSeat = (seat + 1) % 3;
-    const rightSeat = (seat + 2) % 3;
-
-    const players = this.seatOrder.map((pid, s) => ({
-      seat: s,
-      playerId: pid,
-      nickname: this._store.players.get(pid).nickname,
-    }));
-
-    const myHand = this.hands[seat].map(id => {
-      const card = this.deck[id];
-      return { id, rank: card.rank, suit: card.suit };
-    });
-
-    const opponentHandSizes = {};
-    for (const s of [0, 1, 2]) {
-      if (s !== seat) {opponentHandSizes[s] = this.hands[s].length;}
-    }
-
     const gameStatus = this.getViewModelFor(seat);
-
     const payload = {
       type: 'round_state_snapshot',
       phase: gameStatus.phase,
       gameStatus,
-      seats: {
-        self: seat,
-        left: leftSeat,
-        right: rightSeat,
-        dealer: this.dealerSeat,
-        players,
-      },
-      myHand,
-      opponentHandSizes,
+      seats: this._seatLayoutFor(seat),
+      myHand: this._handIdentitiesFor(seat),
+      opponentHandSizes: this._opponentHandSizesFor(seat),
     };
 
     if (this.talon.length > 0) {
@@ -268,20 +217,12 @@ class Round {
     // Deal sequence included so the client can replay the animation on reconnect
     // (only needed when no bids have been placed yet — after that, animating would be jarring)
     if (this.phase === 'bidding' && this.currentHighBid === null) {
-      payload.dealSequence = this.deck.map((card, i) => {
-        const to = stepDest(i);
-        const step = { id: i, to };
-        if (to === `seat${seat}`) {
-          step.rank = card.rank;
-          step.suit = card.suit;
-        }
-        return step;
-      });
+      payload.dealSequence = this._buildDealSequenceFor(seat);
     }
 
     // Exposed sell card identities visible to all during selling-bidding
     if (this.phase === 'selling-bidding') {
-      payload.exposed = this.exposedSellCards.map(id => {
+      payload.exposed = this.exposedSellCards.map((id) => {
         const card = this.deck[id];
         return { id, rank: card.rank, suit: card.suit };
       });
@@ -292,6 +233,50 @@ class Round {
     }
 
     return payload;
+  }
+
+  _seatLayoutFor(seat) {
+    const players = this.seatOrder.map((pid, s) => ({
+      seat: s,
+      playerId: pid,
+      nickname: this._store.players.get(pid).nickname,
+    }));
+    return {
+      self: seat,
+      left: (seat + 1) % 3,
+      right: (seat + 2) % 3,
+      dealer: this.dealerSeat,
+      players,
+    };
+  }
+
+  _handIdentitiesFor(seat) {
+    return this.hands[seat].map((id) => {
+      const card = this.deck[id];
+      return { id, rank: card.rank, suit: card.suit };
+    });
+  }
+
+  _opponentHandSizesFor(seat) {
+    const sizes = {};
+    for (const s of [0, 1, 2]) {
+      if (s !== seat) {
+        sizes[s] = this.hands[s].length;
+      }
+    }
+    return sizes;
+  }
+
+  _buildDealSequenceFor(seat) {
+    return this.deck.map((card, i) => {
+      const to = stepDest(i);
+      const step = { id: i, to };
+      if (to === `seat${seat}`) {
+        step.rank = card.rank;
+        step.suit = card.suit;
+      }
+      return step;
+    });
   }
 
   // T042

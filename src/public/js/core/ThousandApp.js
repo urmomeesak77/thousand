@@ -353,18 +353,11 @@ class ThousandApp {
   }
 
   _bindLeaveGame() {
-    this._antlion.bindInput($('leave-game-btn'), 'click', 'leave-game-click');
-    this._antlion.onInput('leave-game-click', () => {
-      const modal = $('leave-confirm-modal');
-      modal.classList.remove('hidden');
-      modal.style.display = 'flex';
-    });
+    const openLeaveModal = () => this._openLeaveModal();
+    const closeLeaveModal = () => this._closeLeaveModal();
 
-    const closeLeaveModal = () => {
-      const modal = $('leave-confirm-modal');
-      modal.classList.add('hidden');
-      modal.style.display = '';
-    };
+    this._antlion.bindInput($('leave-game-btn'), 'click', 'leave-game-click');
+    this._antlion.onInput('leave-game-click', openLeaveModal);
 
     this._antlion.bindInput($('leave-cancel-btn'), 'click', 'leave-cancel-click');
     this._antlion.onInput('leave-cancel-click', closeLeaveModal);
@@ -376,34 +369,49 @@ class ThousandApp {
       }
     });
 
-    this._antlion.onInput('keydown', (e) => {
-      if (e.key !== 'Escape') {
-        return;
-      }
-      const modal = $('leave-confirm-modal');
-      if (!modal.classList.contains('hidden')) {
-        closeLeaveModal();
-      } else if (this._roundEnded) {
-        this._antlion.emit('round-ready-back-click', {});
-      } else if (!$('game-screen').classList.contains('hidden')) {
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-      }
-    });
+    this._antlion.onInput('keydown', (e) => this._handleLeaveGameKeydown(e));
 
     this._antlion.bindInput($('leave-confirm-btn'), 'click', 'leave-confirm-click');
-    this._antlion.onInput('leave-confirm-click', async () => {
-      closeLeaveModal();
-      const ok = await this._api.leave(this._gameId);
-      if (!ok) {
-        return;
-      }
-      this._gameId = null;
-      this._inviteCode = null;
-      this._waitingRoom.stopTimer();
-      this._showScreen('lobby-screen');
-      this._gameList.startElapsedTimer();
-    });
+    this._antlion.onInput('leave-confirm-click', () => this._confirmLeaveGame());
+  }
+
+  _openLeaveModal() {
+    const modal = $('leave-confirm-modal');
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+
+  _closeLeaveModal() {
+    const modal = $('leave-confirm-modal');
+    modal.classList.add('hidden');
+    modal.style.display = '';
+  }
+
+  _handleLeaveGameKeydown(e) {
+    if (e.key !== 'Escape') {
+      return;
+    }
+    const modal = $('leave-confirm-modal');
+    if (!modal.classList.contains('hidden')) {
+      this._closeLeaveModal();
+    } else if (this._roundEnded) {
+      this._antlion.emit('round-ready-back-click', {});
+    } else if (!$('game-screen').classList.contains('hidden')) {
+      this._openLeaveModal();
+    }
+  }
+
+  async _confirmLeaveGame() {
+    this._closeLeaveModal();
+    const ok = await this._api.leave(this._gameId);
+    if (!ok) {
+      return;
+    }
+    this._gameId = null;
+    this._inviteCode = null;
+    this._waitingRoom.stopTimer();
+    this._showScreen('lobby-screen');
+    this._gameList.startElapsedTimer();
   }
 
   async _joinGame(gameId) {

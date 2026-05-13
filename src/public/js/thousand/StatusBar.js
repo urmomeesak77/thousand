@@ -12,71 +12,65 @@ class StatusBar {
 
   // Re-renders the bar from the GameStatus view-model
   render(gameStatus, sellWinner = null) {
-    const {
-      phase,
-      activePlayer,
-      viewerIsActive,
-      currentHighBid,
-      declarer,
-      passedPlayers,
-      sellAttempt,
-      disconnectedPlayers,
-    } = gameStatus;
-
     this._el.textContent = '';
-
-    this._el.appendChild(this._span('status-bar__phase', phase));
-
-    if (activePlayer) {
-      const text = viewerIsActive
-        ? 'Your turn'
-        : `Waiting for ${activePlayer.nickname}…`;
-      this._el.appendChild(this._span('status-bar__turn', text));
+    this._el.appendChild(this._span('status-bar__phase', gameStatus.phase));
+    this._renderTurn(gameStatus);
+    this._renderBidAndDeclarer(gameStatus);
+    if (sellWinner) {
+      this._el.appendChild(this._span('status-bar__sell-winner', `Sold to: ${sellWinner}`));
     }
+    if (gameStatus.sellAttempt != null) {
+      this._el.appendChild(
+        this._span('status-bar__attempt', `Attempt ${gameStatus.sellAttempt} of ${MAX_SELL_ATTEMPTS}`),
+      );
+    }
+    this._renderPassedPlayers(gameStatus.passedPlayers);
+    this._renderDisconnected(gameStatus.disconnectedPlayers);
+  }
 
+  _renderTurn({ activePlayer, viewerIsActive }) {
+    if (!activePlayer) {
+      return;
+    }
+    const text = viewerIsActive ? 'Your turn' : `Waiting for ${activePlayer.nickname}…`;
+    this._el.appendChild(this._span('status-bar__turn', text));
+  }
+
+  _renderBidAndDeclarer({ phase, declarer, currentHighBid }) {
+    const bid = currentHighBid ?? MIN_BID;
     if (phase === 'Declarer deciding' && declarer) {
       this._el.appendChild(
-        this._span('status-bar__bid-winner', `Bid won: ${declarer.nickname} (${currentHighBid ?? MIN_BID})`)
+        this._span('status-bar__bid-winner', `Bid won: ${declarer.nickname} (${bid})`),
       );
-    } else {
+      return;
+    }
+    this._el.appendChild(this._span('status-bar__bid', `Bid: ${bid}`));
+    if (declarer) {
+      this._el.appendChild(this._span('status-bar__declarer', `Declarer: ${declarer.nickname}`));
+    }
+  }
+
+  _renderPassedPlayers(passedPlayers) {
+    if (!passedPlayers || passedPlayers.length === 0) {
+      return;
+    }
+    const row = document.createElement('span');
+    row.className = 'status-bar__passed-row';
+    row.appendChild(this._span('status-bar__passed-label', 'Passed:'));
+    for (const nickname of passedPlayers) {
+      row.appendChild(this._span('status-bar__passed-chip', nickname));
+    }
+    this._el.appendChild(row);
+  }
+
+  _renderDisconnected(disconnectedPlayers) {
+    if (!disconnectedPlayers || disconnectedPlayers.length === 0) {
+      return;
+    }
+    for (const nickname of disconnectedPlayers) {
       this._el.appendChild(
-        this._span('status-bar__bid', `Bid: ${currentHighBid ?? MIN_BID}`)
+        this._span('status-bar__disconnected', `${nickname}: Connection lost…`),
       );
-      if (declarer) {
-        this._el.appendChild(
-          this._span('status-bar__declarer', `Declarer: ${declarer.nickname}`)
-        );
-      }
-    }
-
-    if (sellWinner) {
-      this._el.appendChild(
-        this._span('status-bar__sell-winner', `Sold to: ${sellWinner}`)
-      );
-    }
-
-    if (sellAttempt != null) {
-      this._el.appendChild(
-        this._span('status-bar__attempt', `Attempt ${sellAttempt} of ${MAX_SELL_ATTEMPTS}`)
-      );
-    }
-
-    if (passedPlayers && passedPlayers.length > 0) {
-      const row = document.createElement('span');
-      row.className = 'status-bar__passed-row';
-      row.appendChild(this._span('status-bar__passed-label', 'Passed:'));
-      passedPlayers.forEach((nickname) => {
-        row.appendChild(this._span('status-bar__passed-chip', nickname));
-      });
-      this._el.appendChild(row);
-    }
-
-    if (disconnectedPlayers && disconnectedPlayers.length > 0) {
-      disconnectedPlayers.forEach((nickname) => {
-        this._el.appendChild(
-          this._span('status-bar__disconnected', `${nickname}: Connection lost…`)
-        );
-      });
     }
   }
 

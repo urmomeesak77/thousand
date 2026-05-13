@@ -1,14 +1,20 @@
 'use strict';
 
 const crypto = require('crypto');
+
 const HttpUtil = require('../utils/HttpUtil');
 const RateLimiter = require('../utils/RateLimiter');
 const { validateNickname, validateRequiredPlayers } = require('./validators');
 
+const INVALID_NICKNAME_MSG = 'nickname must be 3–20 characters and contain no control characters';
+const DUPLICATE_NICKNAME_MSG = 'That nickname is already taken';
+const CREATE_RATE_LIMIT_WINDOW_MS = 60000;
+const CREATE_RATE_LIMIT_MAX = 5;
+
 class GameController {
   constructor(store) {
     this.store = store;
-    this._createLimiter = new RateLimiter(60000, 5); // 5 creates per minute per IP
+    this._createLimiter = new RateLimiter(CREATE_RATE_LIMIT_WINDOW_MS, CREATE_RATE_LIMIT_MAX);
   }
 
   cleanupRateLimiter() {
@@ -44,7 +50,7 @@ class GameController {
     // Skip the duplicate check for already-named players — body.nickname is
     // informational on join, and the server-side name was vetted at claim time.
     if (!player.nickname && this._isNicknameTaken(nickname.trim(), player.id)) {
-      return [409, 'duplicate_nickname', 'That nickname is already taken'];
+      return [409, 'duplicate_nickname', DUPLICATE_NICKNAME_MSG];
     }
     return null;
   }
@@ -99,13 +105,13 @@ class GameController {
 
     const { nickname } = body;
     if (!validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'Nickname must be 3–20 characters and contain no control characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', INVALID_NICKNAME_MSG);
       return;
     }
 
     const nick = nickname.trim();
     if (this._isNicknameTaken(nick, player.id)) {
-      HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
+      HttpUtil.sendError(res, 409, 'duplicate_nickname', DUPLICATE_NICKNAME_MSG);
       return;
     }
 
@@ -125,65 +131,86 @@ class GameController {
       return;
     }
 
-    let body;
-    try {
-      body = await HttpUtil.parseBody(req);
-    } catch {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+    const body = await this._readJsonBody(req, res);
+    if (body === null) {
       return;
     }
 
-    const { type, nickname, requiredPlayers: rawRequired = 3 } = body;
-
-    if (!validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
+    const validated = this._validateCreateGameBody(body, res);
+    if (!validated) {
       return;
+    }
+    const { type, nickname, requiredPlayers } = validated;
+
+    if (!this._assignNicknameIfMissing(player, nickname, res)) {
+      return;
+    }
+
+    const { gameId, inviteCode, game } = this._registerNewGame(player.id, type, requiredPlayers);
+
+    // T035, T041 – broadcast and notify host
+    this._admitPlayerToGame(game, gameId, player.id);
+
+    HttpUtil.sendJSON(res, 201, { gameId, inviteCode });
+  }
+
+  async _readJsonBody(req, res) {
+    try {
+      return await HttpUtil.parseBody(req);
+    } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+      return null;
+    }
+  }
+
+  _validateCreateGameBody(body, res) {
+    const { type, nickname, requiredPlayers: rawRequired = 3 } = body;
+    if (!validateNickname(nickname)) {
+      HttpUtil.sendError(res, 400, 'invalid_request', INVALID_NICKNAME_MSG);
+      return null;
     }
     if (type !== 'public' && type !== 'private') {
       HttpUtil.sendError(res, 400, 'invalid_request', 'type must be "public" or "private"');
-      return;
+      return null;
     }
     const requiredPlayersErr = validateRequiredPlayers(rawRequired);
     if (requiredPlayersErr) {
       HttpUtil.sendError(res, 400, 'invalid_request', requiredPlayersErr);
-      return;
+      return null;
     }
-    const requiredPlayers = Number(rawRequired);
+    return { type, nickname: nickname.trim(), requiredPlayers: Number(rawRequired) };
+  }
 
-    const nick = nickname.trim();
-    const playerId = player.id;
-
-    // Honor a previously-claimed nickname. The body field is required by the API
-    // (so old/new clients all send it), but it's informational once the player
-    // has a server-side identity — silently renaming on every create was a footgun.
-    if (!player.nickname) {
-      if (this._isNicknameTaken(nick, playerId)) {
-        HttpUtil.sendError(res, 409, 'duplicate_nickname', 'That nickname is already taken');
-        return;
-      }
-      player.nickname = nick;
+  // Honor a previously-claimed nickname. The body field is required by the API
+  // (so old/new clients all send it), but it's informational once the player
+  // has a server-side identity — silently renaming on every create was a footgun.
+  _assignNicknameIfMissing(player, nick, res) {
+    if (player.nickname) {
+      return true;
     }
+    if (this._isNicknameTaken(nick, player.id)) {
+      HttpUtil.sendError(res, 409, 'duplicate_nickname', DUPLICATE_NICKNAME_MSG);
+      return false;
+    }
+    player.nickname = nick;
+    return true;
+  }
 
+  _registerNewGame(hostId, type, requiredPlayers) {
     const gameId = crypto.randomBytes(3).toString('hex');
     const inviteCode = type === 'private' ? this.store.generateInviteCode() : null;
-
     const game = {
-      id: gameId, type, hostId: playerId,
-      players: new Set([playerId]), requiredPlayers,
+      id: gameId, type, hostId,
+      players: new Set([hostId]), requiredPlayers,
       status: 'waiting', inviteCode,
       createdAt: Date.now(), round: null,
     };
-
     this.store.games.set(gameId, game);
     if (inviteCode) {
       this.store.inviteCodes.set(inviteCode, gameId);
     }
     this.store.scheduleWaitingRoomTimeout(gameId);
-
-    // T035, T041 – broadcast and notify host
-    this._admitPlayerToGame(game, gameId, playerId);
-
-    HttpUtil.sendJSON(res, 201, { gameId, inviteCode });
+    return { gameId, inviteCode, game };
   }
 
   // T018 – POST /api/games/:id/join
@@ -198,7 +225,7 @@ class GameController {
 
     const { nickname } = body;
     if (!validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', INVALID_NICKNAME_MSG);
       return;
     }
 
@@ -237,7 +264,7 @@ class GameController {
     const { code, nickname } = body;
 
     if (!validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'nickname must be 3–20 characters and contain no control characters');
+      HttpUtil.sendError(res, 400, 'invalid_request', INVALID_NICKNAME_MSG);
       return;
     }
 
