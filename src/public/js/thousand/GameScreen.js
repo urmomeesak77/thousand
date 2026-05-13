@@ -79,10 +79,6 @@ class GameScreen {
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
     this._clearLastAction();
-    this._talonCardIds = msg.dealSequence
-      .filter(step => step.to === 'talon')
-      .map(step => step.id);
-
     this._handView.setHand([]);
     this._talonView.clear();
     this._leftOpponent.setCardCount(0);
@@ -102,31 +98,8 @@ class GameScreen {
     if (leftPlayer) this._leftOpponent.setNickname(leftPlayer.nickname);
     if (rightPlayer) this._rightOpponent.setNickname(rightPlayer.nickname);
 
-    this._controlsLocked = true;
     this._lastGameStatus = msg.gameStatus;
-
-    const animation = new DealAnimation(
-      this._antlion,
-      msg.dealSequence,
-      this._cardsById,
-      msg.seats.self,
-      this._cardTable,
-      () => {
-        this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
-        // Show viewer's 7 hand cards as a sorted row
-        const selfCards = Object.values(this._cardsById)
-          .filter(c => !this._talonCardIds.includes(c.id));
-        this._handView.setHand(selfCards);
-        // Show talon as face-down during bidding (rules: talon not revealed until declarer takes it)
-        this._talonView.setFaceDownCount(this._talonCardIds.length);
-        this._leftOpponent.setCardCount(7);
-        this._rightOpponent.setCardCount(7);
-        this._controlsLocked = false;
-        if (this._lastGameStatus) this._mountControlsForPhase(this._lastGameStatus);
-      },
-    );
-    animation.start(this._tableEl);
-
+    this._startDealAnimation(msg.dealSequence);
     this._renderStatus(msg.gameStatus);
   }
 
@@ -162,30 +135,7 @@ class GameScreen {
     this._lastGameStatus = msg.gameStatus;
 
     if (msg.dealSequence) {
-      this._talonCardIds = msg.dealSequence
-        .filter(step => step.to === 'talon')
-        .map(step => step.id);
-      this._controlsLocked = true;
-
-      const animation = new DealAnimation(
-        this._antlion,
-        msg.dealSequence,
-        this._cardsById,
-        msg.seats.self,
-        this._cardTable,
-        () => {
-          this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
-          const selfCards = Object.values(this._cardsById)
-            .filter(c => !this._talonCardIds.includes(c.id));
-          this._handView.setHand(selfCards);
-          this._talonView.setFaceDownCount(this._talonCardIds.length);
-          this._leftOpponent.setCardCount(msg.opponentHandSizes[msg.seats.left] ?? 7);
-          this._rightOpponent.setCardCount(msg.opponentHandSizes[msg.seats.right] ?? 7);
-          this._controlsLocked = false;
-          if (this._lastGameStatus) this._mountControlsForPhase(this._lastGameStatus);
-        },
-      );
-      animation.start(this._tableEl);
+      this._startDealAnimation(msg.dealSequence, msg.opponentHandSizes);
       return;
     }
 
@@ -294,34 +244,8 @@ class GameScreen {
     const talonSlot = this._cardTable.getSlot('talon');
     const slots = this._cardTable.slotsForSeat(viewerSeat);
     const destSlot = slots[declarerSeat] ?? talonSlot;
-    const OFFSET = 18;
-    const ANIM_MS = 300;
 
-    const sprites = talonIds.map((id, i) => {
-      const sprite = new CardSprite(id);
-      sprite.setFace('up');
-      const known = this._cardsById[id];
-      if (known) sprite.setIdentity(known);
-      sprite.setPosition(talonSlot.x + i * OFFSET, talonSlot.y);
-      this._tableEl.appendChild(sprite.element);
-      sprite.setPosition(destSlot.x + i * OFFSET, destSlot.y, ANIM_MS);
-      return sprite;
-    });
-
-    let running = true;
-    this._antlion.onTick(() => {
-      if (!running) return;
-      let anyAnimating = false;
-      for (const sprite of sprites) {
-        if (sprite.update()) anyAnimating = true;
-      }
-      if (anyAnimating) return;
-
-      running = false;
-      for (const sprite of sprites) {
-        sprite.element.remove();
-      }
-
+    this._animateSprites(talonIds, talonSlot, destSlot, () => {
       if (viewerIsDeclarer) {
         if (identities) {
           for (const id of talonIds) {
@@ -340,7 +264,6 @@ class GameScreen {
           this._rightOpponent.setCardCount(10);
         }
       }
-
       this._controlsLocked = false;
       this._mountControlsForPhase(this._lastGameStatus);
     });
@@ -389,6 +312,23 @@ class GameScreen {
     this._rightOpponent.setLastAction('');
   }
 
+  _dropControl(name) {
+    if (!this[name]) return false;
+    this[name] = null;
+    return true;
+  }
+
+  _tearDownAllControls() {
+    const hadAny = this._bidControls || this._declarerControls
+      || this._sellSelectionControls || this._sellBidControls
+      || this._controlsEl.querySelector('.waiting');
+    this._bidControls = null;
+    this._declarerControls = null;
+    this._sellSelectionControls = null;
+    this._sellBidControls = null;
+    if (hadAny) this._controlsEl.textContent = '';
+  }
+
   _mountControlsForPhase(gameStatus) {
     const { phase, viewerIsActive, passedPlayers } = gameStatus;
 
@@ -396,38 +336,24 @@ class GameScreen {
     if (phase !== 'Bidding' && !sellBiddingActive) this._clearLastAction();
 
     if (phase === 'Bidding') {
-      if (this._declarerControls) {
-        this._controlsEl.textContent = '';
-        this._declarerControls = null;
-      }
-
+      if (this._dropControl('_declarerControls')) this._controlsEl.textContent = '';
       if (!this._bidControls) {
         this._controlsEl.textContent = '';
         this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
       }
       this._bidControls.setCurrentHighBid(gameStatus.currentHighBid);
-
       const viewerPlayer = this._seats?.players.find((p) => p.seat === this._seats.self);
       const viewerNickname = viewerPlayer?.nickname;
-      const viewerHasPassed = viewerNickname
-        ? (passedPlayers ?? []).includes(viewerNickname)
-        : false;
-
-      this._bidControls.setActiveState({
-        isActiveBidder: viewerIsActive,
-        isEligible: !viewerHasPassed,
-      });
+      const viewerHasPassed = viewerNickname ? (passedPlayers ?? []).includes(viewerNickname) : false;
+      this._bidControls.setActiveState({ isActiveBidder: viewerIsActive, isEligible: !viewerHasPassed });
 
     } else if (phase === 'Declarer deciding') {
-      if (this._bidControls) {
-        this._controlsEl.textContent = '';
-        this._bidControls = null;
-      }
+      if (this._dropControl('_bidControls')) this._controlsEl.textContent = '';
       if (this._sellSelectionControls) {
         this._handView.setSelectionMode(false);
         this._sellSelectionControls = null;
       }
-      if (this._sellBidControls) { this._sellBidControls = null; }
+      this._sellBidControls = null;
       this._sellSubPhase = null;
 
       if (viewerIsActive) {
@@ -439,10 +365,7 @@ class GameScreen {
         }
         this._declarerControls.setMode(this._declarerMode(gameStatus));
       } else {
-        if (this._declarerControls) {
-          this._controlsEl.textContent = '';
-          this._declarerControls = null;
-        }
+        if (this._dropControl('_declarerControls')) this._controlsEl.textContent = '';
         const declarerNickname = gameStatus.declarer?.nickname ?? 'declarer';
         let waitDiv = this._controlsEl.querySelector('.waiting');
         if (!waitDiv) {
@@ -455,16 +378,12 @@ class GameScreen {
       }
 
     } else if (phase === 'Selling') {
-      if (this._bidControls) { this._controlsEl.textContent = ''; this._bidControls = null; }
-      if (this._declarerControls) { this._controlsEl.textContent = ''; this._declarerControls = null; }
+      if (this._dropControl('_bidControls')) this._controlsEl.textContent = '';
+      if (this._dropControl('_declarerControls')) this._controlsEl.textContent = '';
       if (this._sellSubPhase) this._mountControlsForSelling(gameStatus);
 
     } else {
-      if (this._bidControls) { this._controlsEl.textContent = ''; this._bidControls = null; }
-      if (this._declarerControls) { this._controlsEl.textContent = ''; this._declarerControls = null; }
-      if (this._sellSelectionControls) { this._controlsEl.textContent = ''; this._sellSelectionControls = null; }
-      if (this._sellBidControls) { this._controlsEl.textContent = ''; this._sellBidControls = null; }
-      if (this._controlsEl.querySelector('.waiting')) { this._controlsEl.textContent = ''; }
+      this._tearDownAllControls();
     }
   }
 
@@ -638,6 +557,27 @@ class GameScreen {
     }
   }
 
+  _startDealAnimation(sequence, opponentHandSizes = {}) {
+    this._talonCardIds = sequence.filter(s => s.to === 'talon').map(s => s.id);
+    this._controlsLocked = true;
+    const animation = new DealAnimation(
+      this._antlion, sequence, this._cardsById, this._seats.self, this._cardTable,
+      () => {
+        this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
+        const selfCards = Object.values(this._cardsById)
+          .filter(c => !this._talonCardIds.includes(c.id));
+        this._handView.setHand(selfCards);
+        // Talon stays face-down during bidding; declarer reveals it on take
+        this._talonView.setFaceDownCount(this._talonCardIds.length);
+        this._leftOpponent.setCardCount(opponentHandSizes[this._seats.left] ?? 7);
+        this._rightOpponent.setCardCount(opponentHandSizes[this._seats.right] ?? 7);
+        this._controlsLocked = false;
+        if (this._lastGameStatus) this._mountControlsForPhase(this._lastGameStatus);
+      },
+    );
+    animation.start(this._tableEl);
+  }
+
   _renderStatus(gameStatus) {
     this._statusBar.render(gameStatus, this._sellWinnerNickname);
     const { text, isActive } = this._computeStatusText(gameStatus);
@@ -685,15 +625,13 @@ class GameScreen {
       return sprite;
     });
 
-    let running = true;
-    this._antlion.onTick(() => {
-      if (!running) return;
+    const cancelTick = this._antlion.onTick(() => {
       let anyAnimating = false;
       for (const sprite of sprites) {
         if (sprite.update()) anyAnimating = true;
       }
       if (anyAnimating) return;
-      running = false;
+      cancelTick();
       for (const sprite of sprites) sprite.element.remove();
       onComplete();
     });

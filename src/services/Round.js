@@ -25,6 +25,7 @@ class Round {
     this.bidHistory = [];
     this.passedBidders = new Set();
     this.passedSellOpponents = new Set();
+    this._lastSellBidderSeat = null;
     this.declarerSeat = null;
     this.attemptCount = 0;
     this.attemptHistory = [];

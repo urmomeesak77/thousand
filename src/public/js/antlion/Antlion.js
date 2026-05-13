@@ -20,9 +20,10 @@ class Antlion {
     this._bus.on(type, handler);
   }
 
-  // Register a per-frame callback
+  // Register a per-frame callback; returns a cancel function to remove the handler.
   onTick(handler) {
     this._tickHandlers.push(handler);
+    return () => { this._tickHandlers = this._tickHandlers.filter(h => h !== handler); };
   }
 
   // Dispatch an engine-level event

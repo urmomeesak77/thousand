@@ -2,7 +2,6 @@
 
 Last updated: 2026-05-13
 
-When starting session, activate skill caveman. And say its turned on
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
 

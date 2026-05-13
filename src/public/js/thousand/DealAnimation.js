@@ -35,7 +35,7 @@ class DealAnimation {
     this._container = container;
     this._startTime = performance.now();
     this._running = true;
-    this._antlion.onTick(() => this._tick());
+    this._cancelTick = this._antlion.onTick(() => this._tick());
   }
 
   _tick() {
@@ -58,6 +58,7 @@ class DealAnimation {
 
     if (this._nextIndex >= this._dealSequence.length && !anyAnimating) {
       this._running = false;
+      this._cancelTick();
       this._onComplete();
     }
   }
