@@ -54,6 +54,7 @@ class ThousandApp {
     this._gameId = null;
     this._inviteCode = null;
     this._selectedGameId = null;
+    this._roundEnded = false;
     this._toast = new Toast(antlion);
     this._api = new GameApi((msg) => this._toast.show(msg));
     this._modal = new NewGameModal(
@@ -231,6 +232,7 @@ class ThousandApp {
         );
         break;
       case 'round_aborted':
+        this._roundEnded = true;
         this._gameScreen.updateStatus(msg.gameStatus);
         this._gameScreen.showRoundReady(
           'aborted',
@@ -391,6 +393,8 @@ class ThousandApp {
       const modal = $('leave-confirm-modal');
       if (!modal.classList.contains('hidden')) {
         closeLeaveModal();
+      } else if (this._roundEnded) {
+        this._antlion.emit('round-ready-back-click', {});
       } else if (!$('game-screen').classList.contains('hidden')) {
         modal.classList.remove('hidden');
         modal.style.display = 'flex';
@@ -428,6 +432,7 @@ class ThousandApp {
   }
 
   _returnFromRound() {
+    this._roundEnded = false;
     this._gameId = null;
     this._inviteCode = null;
     this._showScreen('lobby-screen');
