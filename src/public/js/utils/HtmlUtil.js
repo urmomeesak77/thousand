@@ -1,4 +1,8 @@
 class HtmlUtil {
+  static byId(id) {
+    return document.getElementById(id);
+  }
+
   static escape(str) {
     return String(str)
       .replace(/&/g, '&amp;')
@@ -8,13 +12,13 @@ class HtmlUtil {
       .replace(/'/g, '&#39;');
   }
 
-  static formatElapsed(secs) {
-    if (secs < 60) {
-      return `${secs}s`;
+  static formatElapsed(seconds) {
+    if (seconds < 60) {
+      return `${seconds}s`;
     }
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}m ${s}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    return `${minutes}m ${remainder}s`;
   }
 }
 

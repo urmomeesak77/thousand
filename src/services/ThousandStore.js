@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+
 const Round = require('./Round');
 
 const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
@@ -30,9 +31,9 @@ class ThousandStore {
   createOrRestorePlayer(ws, clientIp, playerId, sessionToken) {
     // crypto.randomUUID() emits 36-char strings (8-4-4-4-12). Reject anything
     // else so probes with malformed ids fall straight through to a fresh identity.
-    const validShape = typeof playerId === 'string' && typeof sessionToken === 'string'
+    const isValidShape = typeof playerId === 'string' && typeof sessionToken === 'string'
       && playerId.length === 36 && sessionToken.length === 36;
-    if (!validShape) {
+    if (!isValidShape) {
       const result = this.createPlayer(ws, clientIp);
       return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
     }
@@ -50,17 +51,17 @@ class ThousandStore {
   }
 
   findBySessionToken(token) {
-    if (typeof token !== 'string') return null;
+    if (typeof token !== 'string') {return null;}
     const playerId = this._tokenIndex.get(token);
     if (playerId) {
       const player = this.players.get(playerId);
-      if (player && player.sessionToken === token) return player;
+      if (player && player.sessionToken === token) {return player;}
     }
     // Fallback for code paths that mutate `players` directly without going
     // through createPlayer (tests, in-memory fixtures). Production traffic
     // always hits the index above.
     for (const [, player] of this.players) {
-      if (player.sessionToken === token) return player;
+      if (player.sessionToken === token) {return player;}
     }
     return null;
   }
@@ -130,6 +131,7 @@ class ThousandStore {
     player.ws = null;
     player.disconnectedAt = Date.now();
     player.graceTimer = setTimeout(() => this._purgePlayer(playerId), this._gracePeriodMs);
+    if (typeof player.graceTimer.unref === 'function') {player.graceTimer.unref();}
 
     if (player.gameId) {
       const game = this.games.get(player.gameId);
@@ -137,7 +139,7 @@ class ThousandStore {
         const seat = game.round.seatByPlayer.get(playerId);
         game.round.markDisconnected(seat);
         for (const pid of game.players) {
-          if (pid === playerId) continue;
+          if (pid === playerId) {continue;}
           const recipientSeat = game.round.seatByPlayer.get(pid);
           this.sendToPlayer(pid, {
             type: 'player_disconnected',
@@ -151,7 +153,7 @@ class ThousandStore {
 
   reconnectPlayer(playerId, ws) {
     const player = this.players.get(playerId);
-    if (!player) return;
+    if (!player) {return;}
     clearTimeout(player.graceTimer);
     player.graceTimer = null;
     player.disconnectedAt = null;
@@ -168,7 +170,7 @@ class ThousandStore {
         const seat = game.round.seatByPlayer.get(playerId);
         game.round.markReconnected(seat);
         for (const pid of game.players) {
-          if (pid === playerId) continue;
+          if (pid === playerId) {continue;}
           const recipientSeat = game.round.seatByPlayer.get(pid);
           this.sendToPlayer(pid, {
             type: 'player_reconnected',
@@ -182,19 +184,19 @@ class ThousandStore {
 
   _purgePlayer(playerId) {
     const player = this.players.get(playerId);
-    if (!player) return;
+    if (!player) {return;}
     const { gameId, nickname } = player;
     this._tokenIndex.delete(player.sessionToken);
     this.players.delete(playerId);
-    if (!gameId) return;
+    if (!gameId) {return;}
     const game = this.games.get(gameId);
-    if (!game) return;
+    if (!game) {return;}
 
     if (game.status === 'in-progress' && game.round) {
-      game.round.abort(nickname);
+      game.round.abort();
       const baseMsg = { type: 'round_aborted', reason: 'player_grace_expired', disconnectedNickname: nickname };
       for (const pid of game.players) {
-        if (pid === playerId) continue;
+        if (pid === playerId) {continue;}
         const recipientSeat = game.round.seatByPlayer.get(pid);
         this.sendToPlayer(pid, { ...baseMsg, gameStatus: game.round.getViewModelFor(recipientSeat) });
       }
@@ -238,7 +240,7 @@ class ThousandStore {
       return;
     }
     if (game.status === 'in-progress' && game.round) {
-      game.round.abort(nickname);
+      game.round.abort();
       const baseMsg = { type: 'round_aborted', reason: 'player_left', disconnectedNickname: nickname };
       for (const pid of game.players) {
         const recipientSeat = game.round.seatByPlayer.get(pid);
@@ -285,7 +287,7 @@ class ThousandStore {
 
   startRound(gameId) {
     const game = this.games.get(gameId);
-    if (!game) return;
+    if (!game) {return;}
     if (game.waitingRoomTimer) {
       clearTimeout(game.waitingRoomTimer);
       game.waitingRoomTimer = null;
@@ -296,17 +298,17 @@ class ThousandStore {
     game.round.advanceFromDealingToBidding();
     for (const pid of game.players) {
       const payload = game.round.getRoundStartedPayloadFor(pid);
-      if (payload) this.sendToPlayer(pid, payload);
+      if (payload) {this.sendToPlayer(pid, payload);}
     }
     this.broadcastLobbyUpdate();
   }
 
   _cleanupRound(gameId) {
     const game = this.games.get(gameId);
-    if (!game) return;
+    if (!game) {return;}
     for (const pid of game.players) {
       const player = this.players.get(pid);
-      if (player) player.gameId = null;
+      if (player) {player.gameId = null;}
     }
     if (game.waitingRoomTimer) {
       clearTimeout(game.waitingRoomTimer);
@@ -321,10 +323,10 @@ class ThousandStore {
 
   scheduleWaitingRoomTimeout(gameId) {
     const game = this.games.get(gameId);
-    if (!game) return;
+    if (!game) {return;}
     game.waitingRoomTimer = setTimeout(() => {
       const g = this.games.get(gameId);
-      if (!g || g.status !== 'waiting') return;
+      if (!g || g.status !== 'waiting') {return;}
       this._disbandGame(gameId, g, 'waiting_room_timeout');
     }, WAITING_ROOM_TIMEOUT_MS);
   }

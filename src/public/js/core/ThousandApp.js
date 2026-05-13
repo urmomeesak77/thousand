@@ -160,9 +160,9 @@ class ThousandApp {
   }
 
   _handleMessage(msg) {
-    if (!msg || typeof msg.type !== 'string') return;
+    if (!msg || typeof msg.type !== 'string') {return;}
     const validator = MESSAGE_VALIDATORS[msg.type];
-    if (!validator || !validator(msg)) return;
+    if (!validator || !validator(msg)) {return;}
     this._messageHandlers[msg.type]?.(msg);
   }
 

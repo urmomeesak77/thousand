@@ -49,13 +49,13 @@ class DeclarerDecisionControls {
   _bindEvents() {
     this._antlion.bindInput(this._sellBtn, 'click', 'declarer-sell-click');
     this._antlion.onInput('declarer-sell-click', () => {
-      if (this._mode !== 'full') return;
+      if (this._mode !== 'full') {return;}
       this._dispatcher.sendSellStart();
     });
 
     this._antlion.bindInput(this._startBtn, 'click', 'declarer-start-click');
     this._antlion.onInput('declarer-start-click', () => {
-      if (this._mode === 'hidden') return;
+      if (this._mode === 'hidden') {return;}
       this._dispatcher.sendStartGame();
     });
   }

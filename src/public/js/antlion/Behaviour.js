@@ -1,11 +1,11 @@
 class Behaviour {
   constructor() {
     this.owner = null;
-    this._enabled = true;
+    this._isEnabled = true;
   }
 
-  enable() { this._enabled = true; }
-  disable() { this._enabled = false; }
+  enable() { this._isEnabled = true; }
+  disable() { this._isEnabled = false; }
 
   onAttach() {}
   onDetach() {}

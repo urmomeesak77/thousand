@@ -19,14 +19,14 @@ class RequestHandler {
 
   _authenticateRequest(req) {
     const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ')) return null;
+    if (!auth || !auth.startsWith('Bearer ')) {return null;}
     return this.store.findBySessionToken(auth.slice(7));
   }
 
   // Returns authenticated player or sends 401 and returns null.
   _requireAuth(req, res) {
     const player = this._authenticateRequest(req);
-    if (!player) HttpUtil.sendError(res, 401, 'unauthorized', 'Session required');
+    if (!player) {HttpUtil.sendError(res, 401, 'unauthorized', 'Session required');}
     return player;
   }
 
@@ -44,7 +44,7 @@ class RequestHandler {
 
     if (req.method === 'POST' && pathname === '/api/nickname') {
       const player = this._requireAuth(req, res);
-      if (!player) return;
+      if (!player) {return;}
       return this._games.handleClaimNickname(req, res, player);
     }
     if (req.method === 'GET' && pathname === '/api/games') {
@@ -52,27 +52,27 @@ class RequestHandler {
     }
     if (req.method === 'POST' && pathname === '/api/games') {
       const player = this._requireAuth(req, res);
-      if (!player) return;
+      if (!player) {return;}
       return this._games.handleCreateGame(req, res, player, ip);
     }
     // Must match before /:id/join
     if (req.method === 'POST' && pathname === '/api/games/join-invite') {
       const player = this._requireAuth(req, res);
-      if (!player) return;
+      if (!player) {return;}
       return this._games.handleJoinInvite(req, res, player);
     }
 
     const leaveMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/leave$/);
     if (req.method === 'POST' && leaveMatch) {
       const player = this._requireAuth(req, res);
-      if (!player) return;
+      if (!player) {return;}
       return this._games.handleLeaveGame(req, res, player, leaveMatch[1]);
     }
 
     const joinMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/join$/);
     if (req.method === 'POST' && joinMatch) {
       const player = this._requireAuth(req, res);
-      if (!player) return;
+      if (!player) {return;}
       return this._games.handleJoinGame(req, res, player, joinMatch[1]);
     }
 

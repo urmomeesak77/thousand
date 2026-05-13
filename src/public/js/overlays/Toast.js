@@ -1,8 +1,6 @@
-const $ = (id) => document.getElementById(id);
+import HtmlUtil from '../utils/HtmlUtil.js';
 
-// ============================================================
-// Toast — owns toast timer state  (T043)
-// ============================================================
+const TOAST_DURATION_MS = 4000;
 
 class Toast {
   constructor(antlion) {
@@ -11,13 +9,13 @@ class Toast {
   }
 
   show(message) {
-    const el = $('toast');
+    const el = HtmlUtil.byId('toast');
     el.textContent = message;
     el.classList.remove('hidden');
     if (this._timer) {
       this._antlion.cancelScheduled(this._timer);
     }
-    this._timer = this._antlion.schedule(4000, () => {
+    this._timer = this._antlion.schedule(TOAST_DURATION_MS, () => {
       el.classList.add('hidden');
       this._timer = null;
     });

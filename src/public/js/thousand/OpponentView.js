@@ -8,7 +8,7 @@ class OpponentView {
     this._container.className = 'opponent-view';
     this._nickname = '';
     this._cardCount = 0;
-    this._disconnected = false;
+    this._isDisconnected = false;
     this._lastAction = '';
     this._render();
   }
@@ -23,8 +23,8 @@ class OpponentView {
     this._render();
   }
 
-  setDisconnected(disconnected) {
-    this._disconnected = disconnected;
+  setDisconnected(isDisconnected) {
+    this._isDisconnected = isDisconnected;
     this._render();
   }
 
@@ -70,7 +70,7 @@ class OpponentView {
       this._container.appendChild(actionEl);
     }
 
-    if (this._disconnected) {
+    if (this._isDisconnected) {
       const lost = document.createElement('div');
       lost.className = 'opponent-view__disconnected';
       lost.textContent = 'Connection lost…';

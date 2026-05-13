@@ -88,15 +88,15 @@ class ConnectionManager {
   }
 
   _handleMessage(ws, data) {
-    if (this._enforceRateLimit(ws)) return;
+    if (this._enforceRateLimit(ws)) {return;}
     const msg = this._parseMessage(ws, data);
-    if (!msg) return;
-    if (msg.type === 'ping') return;
+    if (!msg) {return;}
+    if (msg.type === 'ping') {return;}
     if (msg.type === 'hello') {
       this._handleHello(ws, msg);
       return;
     }
-    if (ws._playerId && this._handleAuthedMessage(ws, msg)) return;
+    if (ws._playerId && this._handleAuthedMessage(ws, msg)) {return;}
     ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
   }
 
@@ -133,7 +133,7 @@ class ConnectionManager {
   }
 
   _handleHello(ws, msg) {
-    if (ws._playerId) return;
+    if (ws._playerId) {return;}
     clearTimeout(ws._helloTimer);
     const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
     const result = this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken);
@@ -150,11 +150,11 @@ class ConnectionManager {
 
   _sendRestoredGameState(ws, result) {
     const game = this._store.games.get(result.gameId);
-    if (!game) return;
+    if (!game) {return;}
     if (game.status === 'in-progress') {
       const seat = game.round.seatByPlayer.get(result.playerId);
       const snapshot = game.round.getSnapshotFor(seat);
-      if (snapshot) ws.send(JSON.stringify(snapshot));
+      if (snapshot) {ws.send(JSON.stringify(snapshot));}
     } else {
       ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt, inviteCode: game.inviteCode ?? null, requiredPlayers: game.requiredPlayers }));
     }
@@ -163,7 +163,7 @@ class ConnectionManager {
   // Returns true if the message was handled (known authed action), false to let caller send the unrecognized-type error.
   _handleAuthedMessage(ws, msg) {
     const action = ACTION_DISPATCH[msg.type];
-    if (!action) return false;
+    if (!action) {return false;}
     action(this._roundActionHandler, ws._playerId, msg);
     return true;
   }

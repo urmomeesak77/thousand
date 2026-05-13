@@ -1,7 +1,9 @@
+const STORAGE_KEY = 'thousand_identity';
+
 export class IdentityStore {
   static save(playerId, sessionToken) {
     try {
-      localStorage.setItem('thousand_identity', JSON.stringify({ playerId, sessionToken }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ playerId, sessionToken }));
       return true;
     } catch {
       // Quota exceeded, storage disabled (Safari private mode), or storage access denied.
@@ -13,14 +15,22 @@ export class IdentityStore {
 
   static load() {
     try {
-      const parsed = JSON.parse(localStorage.getItem('thousand_identity'));
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
       // Reject non-objects, arrays, and anything whose prototype isn't Object.prototype
       // (defends against malicious storage payloads attempting prototype pollution).
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-      if (Object.getPrototypeOf(parsed) !== Object.prototype) return {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return {};
+      }
+      if (Object.getPrototypeOf(parsed) !== Object.prototype) {
+        return {};
+      }
       const out = {};
-      if (typeof parsed.playerId === 'string') out.playerId = parsed.playerId;
-      if (typeof parsed.sessionToken === 'string') out.sessionToken = parsed.sessionToken;
+      if (typeof parsed.playerId === 'string') {
+        out.playerId = parsed.playerId;
+      }
+      if (typeof parsed.sessionToken === 'string') {
+        out.sessionToken = parsed.sessionToken;
+      }
       return out;
     } catch {
       return {};
@@ -28,6 +38,6 @@ export class IdentityStore {
   }
 
   static clear() {
-    localStorage.removeItem('thousand_identity');
+    localStorage.removeItem(STORAGE_KEY);
   }
 }

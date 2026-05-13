@@ -18,8 +18,8 @@ class GameController {
   _isNicknameTaken(nick, excludePlayerId) {
     const lower = nick.toLowerCase();
     for (const [pid, player] of this.store.players) {
-      if (pid === excludePlayerId) continue;
-      if (player.nickname && player.nickname.toLowerCase() === lower) return true;
+      if (pid === excludePlayerId) {continue;}
+      if (player.nickname && player.nickname.toLowerCase() === lower) {return true;}
     }
     return false;
   }

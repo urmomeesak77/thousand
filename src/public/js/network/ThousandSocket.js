@@ -15,12 +15,12 @@ class ThousandSocket {
     this._onDisconnect = onDisconnect ?? null;
     this._reconnectId = null;
     this._ws = null;
-    this._stopped = false;
+    this._isStopped = false;
     this._attempts = 0;
   }
 
   connect() {
-    if (this._stopped) return;
+    if (this._isStopped) {return;}
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
     this._ws = ws;
@@ -34,7 +34,7 @@ class ThousandSocket {
   }
 
   disconnect() {
-    this._stopped = true;
+    this._isStopped = true;
     if (this._reconnectId !== null) {
       this._antlion.cancelScheduled(this._reconnectId);
       this._reconnectId = null;
@@ -61,7 +61,7 @@ class ThousandSocket {
     };
     ws.onerror = () => this._onError('Connection error.');
     ws.onclose = () => {
-      if (this._stopped) return;
+      if (this._isStopped) {return;}
       this._onDisconnect?.();
       if (this._reconnectId !== null) {
         this._antlion.cancelScheduled(this._reconnectId);

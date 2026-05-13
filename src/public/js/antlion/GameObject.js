@@ -3,8 +3,8 @@ class GameObject {
     this.name = name;
     this._parent = null;
     this._scene = null;
-    this._enabled = true;
-    this._visible = true;
+    this._isEnabled = true;
+    this._isVisible = true;
     this._behaviours = new Map();
   }
 
@@ -13,7 +13,7 @@ class GameObject {
 
   update(dt) {
     for (const [, b] of this._behaviours) {
-      if (b._enabled) {
+      if (b._isEnabled) {
         b.update(dt);
       }
     }
@@ -21,14 +21,37 @@ class GameObject {
 
   render() {}
 
-  enable() { this._enabled = true; }
-  disable() { this._enabled = false; }
-  setEnabled(bool) { this._enabled = bool; }
-  show() { this._visible = true; }
-  hide() { this._visible = false; }
-  setVisible(bool) { this._visible = bool; }
-  isEnabled() { return this._enabled; }
-  isVisible() { return this._visible; }
+  enable() {
+    this._isEnabled = true;
+  }
+
+  disable() {
+    this._isEnabled = false;
+  }
+
+  setEnabled(enabled) {
+    this._isEnabled = enabled;
+  }
+
+  show() {
+    this._isVisible = true;
+  }
+
+  hide() {
+    this._isVisible = false;
+  }
+
+  setVisible(visible) {
+    this._isVisible = visible;
+  }
+
+  isEnabled() {
+    return this._isEnabled;
+  }
+
+  isVisible() {
+    return this._isVisible;
+  }
 
   addBehaviour(name, b) {
     b.owner = this;
@@ -46,7 +69,9 @@ class GameObject {
     this._behaviours.delete(name);
   }
 
-  getBehaviour(name) { return this._behaviours.get(name); }
+  getBehaviour(name) {
+    return this._behaviours.get(name);
+  }
 
   getScene() {
     if (this._scene) {

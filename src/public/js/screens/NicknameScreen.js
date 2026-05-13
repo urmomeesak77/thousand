@@ -4,7 +4,7 @@ class NicknameScreen extends HtmlContainer {
   constructor(element, api, toast) {
     super('nickname-screen');
     this._element = element;
-    this._visible = !element.classList.contains('hidden');
+    this._isVisible = !element.classList.contains('hidden');
     this._api = api;
     this._toast = toast;
   }

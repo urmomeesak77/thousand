@@ -94,14 +94,14 @@ function setupInProgressGame() {
 // ---------------------------------------------------------------------------
 
 describe('Round.disconnect — (a) active-player disconnect pauses round', () => {
-  it('markDisconnected(currentTurnSeat) sets pausedByDisconnect = true', () => {
+  it('markDisconnected(currentTurnSeat) sets isPausedByDisconnect = true', () => {
     const { round } = makeRoundInBidding();
     assert.equal(round.currentTurnSeat, 1);
     round.markDisconnected(1);
-    assert.equal(round.pausedByDisconnect, true);
+    assert.equal(round.isPausedByDisconnect, true);
   });
 
-  it('submitBid from the active seat is rejected while pausedByDisconnect is true', () => {
+  it('submitBid from the active seat is rejected while isPausedByDisconnect is true', () => {
     const { round } = makeRoundInBidding();
     round.markDisconnected(1);
     const result = round.submitBid(1, 100);
@@ -109,7 +109,7 @@ describe('Round.disconnect — (a) active-player disconnect pauses round', () =>
     assert.ok(result.reason, 'rejection must carry a reason');
   });
 
-  it('submitPass from the active seat is rejected while pausedByDisconnect is true', () => {
+  it('submitPass from the active seat is rejected while isPausedByDisconnect is true', () => {
     const { round } = makeRoundInBidding();
     round.markDisconnected(1);
     const result = round.submitPass(1);
@@ -120,9 +120,9 @@ describe('Round.disconnect — (a) active-player disconnect pauses round', () =>
   it('markReconnected(activePlayer) clears the pause and allows actions again', () => {
     const { round } = makeRoundInBidding();
     round.markDisconnected(1);
-    assert.equal(round.pausedByDisconnect, true);
+    assert.equal(round.isPausedByDisconnect, true);
     round.markReconnected(1);
-    assert.equal(round.pausedByDisconnect, false);
+    assert.equal(round.isPausedByDisconnect, false);
     const result = round.submitBid(1, 100);
     assert.equal(result.rejected, false);
   });
@@ -133,11 +133,11 @@ describe('Round.disconnect — (a) active-player disconnect pauses round', () =>
 // ---------------------------------------------------------------------------
 
 describe('Round.disconnect — (b) non-active-player disconnect does not pause round', () => {
-  it('markDisconnected(non-active seat) leaves pausedByDisconnect false', () => {
+  it('markDisconnected(non-active seat) leaves isPausedByDisconnect false', () => {
     const { round } = makeRoundInBidding();
     assert.equal(round.currentTurnSeat, 1);
     round.markDisconnected(0); // seat 0 (Alice/Dealer) is not the active bidder
-    assert.equal(round.pausedByDisconnect, false);
+    assert.equal(round.isPausedByDisconnect, false);
   });
 
   it('active player can still bid after a non-active player disconnects', () => {
@@ -151,7 +151,7 @@ describe('Round.disconnect — (b) non-active-player disconnect does not pause r
     const { round } = makeRoundInBidding();
     round.markDisconnected(0);
     assert.ok(round.disconnectedSeats.has(0));
-    assert.equal(round.pausedByDisconnect, false);
+    assert.equal(round.isPausedByDisconnect, false);
   });
 });
 
@@ -166,7 +166,7 @@ describe('Round.disconnect — (c1) active-player grace expiry aborts round', ()
 
     // Disconnect Bob (seat 1 = active bidder)
     store.handlePlayerDisconnect(pids[1], ws[1]);
-    assert.equal(round.pausedByDisconnect, true, 'round must be paused after active player disconnect');
+    assert.equal(round.isPausedByDisconnect, true, 'round must be paused after active player disconnect');
 
     // Wait for the 0ms grace timer to fire
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -197,7 +197,7 @@ describe('Round.disconnect — (c2) non-active-player grace expiry also aborts r
     store.handlePlayerDisconnect(pids[0], ws[0]);
 
     const game = store.games.get(gameId);
-    assert.equal(game.round.pausedByDisconnect, false, 'round must NOT be paused for non-active disconnect');
+    assert.equal(game.round.isPausedByDisconnect, false, 'round must NOT be paused for non-active disconnect');
 
     await new Promise((resolve) => setTimeout(resolve, 20));
 
@@ -260,7 +260,7 @@ describe('Round.disconnect — (e) paused round: action_rejected to sender only,
 
     // Disconnect Bob (seat 1 = active bidder)
     store.handlePlayerDisconnect(pids[1], ws[1]);
-    assert.equal(game.round.pausedByDisconnect, true);
+    assert.equal(game.round.isPausedByDisconnect, true);
 
     ws.forEach((w) => { w._sent.length = 0; });
 
@@ -294,11 +294,11 @@ describe('Round.disconnect — (e) paused round: action_rejected to sender only,
     const game = store.games.get(gameId);
 
     store.handlePlayerDisconnect(pids[1], ws[1]);
-    assert.equal(game.round.pausedByDisconnect, true);
+    assert.equal(game.round.isPausedByDisconnect, true);
 
     // Reconnect Bob
     store.reconnectPlayer(pids[1], ws[1]);
-    assert.equal(game.round.pausedByDisconnect, false);
+    assert.equal(game.round.isPausedByDisconnect, false);
 
     ws.forEach((w) => { w._sent.length = 0; });
 

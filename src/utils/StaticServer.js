@@ -3,24 +3,22 @@
 const path = require('path');
 const fs = require('fs');
 
-class StaticServer {
-  static get MIME() {
-    return {
-      '.html': 'text/html',
-      '.css': 'text/css',
-      '.js': 'application/javascript',
-      '.json': 'application/json',
-      '.svg': 'image/svg+xml',
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.gif': 'image/gif',
-      '.ico': 'image/x-icon',
-      '.woff': 'font/woff',
-      '.woff2': 'font/woff2',
-    };
-  }
+const MIME = {
+  '.html': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+};
 
+class StaticServer {
   static serve(req, res) {
     const publicDir = path.join(__dirname, '..', 'public');
     let urlPath;
@@ -34,16 +32,14 @@ class StaticServer {
 
     const filePath = path.resolve(publicDir, urlPath.replace(/^\//, ''));
 
-    // Check that resolved path is within publicDir
     const publicDirWithSep = publicDir + path.sep;
-    const isValid = filePath.startsWith(publicDirWithSep) || filePath === path.join(publicDir, 'index.html');
-    if (!isValid) {
+    if (!filePath.startsWith(publicDirWithSep)) {
       res.writeHead(404);
       res.end('Not Found');
       return;
     }
 
-    const contentType = StaticServer.MIME[path.extname(filePath)] || 'text/plain';
+    const contentType = MIME[path.extname(filePath)] || 'text/plain';
 
     fs.readFile(filePath, (err, data) => {
       if (err) {

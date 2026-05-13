@@ -11,7 +11,7 @@ class Antlion {
     this._domListeners = [];
     this._timers = [];
     this._intervals = [];
-    this._running = false;
+    this._isRunning = false;
     this._rafId = null;
   }
 
@@ -72,17 +72,17 @@ class Antlion {
   }
 
   start() {
-    if (this._running) {
+    if (this._isRunning) {
       return;
     }
-    this._running = true;
+    this._isRunning = true;
     if (this._tickHandlers.length > 0) {
       this._tick();
     }
   }
 
   stop() {
-    this._running = false;
+    this._isRunning = false;
     if (this._rafId !== null) {
       cancelAnimationFrame(this._rafId);
     }
@@ -99,7 +99,7 @@ class Antlion {
   }
 
   _tick() {
-    if (!this._running) {
+    if (!this._isRunning) {
       return;
     }
     this._tickHandlers.forEach(h => h());

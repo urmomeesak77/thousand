@@ -81,7 +81,7 @@ class BidControls {
   _bindEvents() {
     this._antlion.bindInput(this._decreaseBtn, 'click', 'bid-decrease-click');
     this._antlion.onInput('bid-decrease-click', () => {
-      if (this._state !== 'operable') return;
+      if (this._state !== 'operable') {return;}
       const cur = parseInt(this._input.value, 10);
       const base = isNaN(cur) ? this._smallestLegalBid : cur;
       this._input.value = String(Math.max(this._smallestLegalBid, base - 5));
@@ -90,7 +90,7 @@ class BidControls {
 
     this._antlion.bindInput(this._increaseBtn, 'click', 'bid-increase-click');
     this._antlion.onInput('bid-increase-click', () => {
-      if (this._state !== 'operable') return;
+      if (this._state !== 'operable') {return;}
       const cur = parseInt(this._input.value, 10);
       const base = isNaN(cur) ? this._smallestLegalBid : cur;
       this._input.value = String(Math.min(300, base + 5));
@@ -99,20 +99,20 @@ class BidControls {
 
     this._antlion.bindInput(this._input, 'input', 'bid-input-change');
     this._antlion.onInput('bid-input-change', () => {
-      if (this._state !== 'operable') return;
+      if (this._state !== 'operable') {return;}
       this._applyState();
     });
 
     this._antlion.bindInput(this._bidBtn, 'click', 'bid-submit-click');
     this._antlion.onInput('bid-submit-click', () => {
-      if (this._state !== 'operable' || !this._isBidValid()) return;
+      if (this._state !== 'operable' || !this._isBidValid()) {return;}
       this._dispatcher.sendBid(parseInt(this._input.value, 10));
     });
 
     this._antlion.bindInput(this._passBtn, 'click', 'bid-pass-click');
     this._antlion.onInput('bid-pass-click', () => {
       // Pass is operable for the active bidder; disabled state prevents the click.
-      if (this._state === 'hidden') return;
+      if (this._state === 'hidden') {return;}
       this._dispatcher.sendPass();
     });
   }

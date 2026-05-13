@@ -23,7 +23,7 @@ class GameScreen {
     this._dispatcher = dispatcher;
     this._cardsById = {};
     this._seats = null;
-    this._controlsLocked = false;
+    this._isControlsLocked = false;
     this._lastGameStatus = null;
     this._bidControls = null;
     this._declarerControls = null;
@@ -76,22 +76,22 @@ class GameScreen {
   }
 
   _opponentForSeat(seat) {
-    if (!this._seats || seat == null) return null;
-    if (seat === this._seats.left) return this._leftOpponent;
-    if (seat === this._seats.right) return this._rightOpponent;
+    if (!this._seats || seat == null) {return null;}
+    if (seat === this._seats.left) {return this._leftOpponent;}
+    if (seat === this._seats.right) {return this._rightOpponent;}
     return null;
   }
 
   _elForSeat(seat) {
-    if (!this._seats || seat == null) return null;
-    if (seat === this._seats.self) return this._handEl;
-    if (seat === this._seats.left) return this._leftEl;
-    if (seat === this._seats.right) return this._rightEl;
+    if (!this._seats || seat == null) {return null;}
+    if (seat === this._seats.self) {return this._handEl;}
+    if (seat === this._seats.left) {return this._leftEl;}
+    if (seat === this._seats.right) {return this._rightEl;}
     return null;
   }
 
   _setLastActionForSeat(seat, text) {
-    if (!this._seats || seat == null) return;
+    if (!this._seats || seat == null) {return;}
     if (seat === this._seats.self) {
       this._lastActionEl.textContent = text;
       this._lastActionEl.classList.remove('hidden');
@@ -124,8 +124,8 @@ class GameScreen {
 
     const leftPlayer = msg.seats.players.find((p) => p.seat === msg.seats.left);
     const rightPlayer = msg.seats.players.find((p) => p.seat === msg.seats.right);
-    if (leftPlayer) this._leftOpponent.setNickname(leftPlayer.nickname);
-    if (rightPlayer) this._rightOpponent.setNickname(rightPlayer.nickname);
+    if (leftPlayer) {this._leftOpponent.setNickname(leftPlayer.nickname);}
+    if (rightPlayer) {this._rightOpponent.setNickname(rightPlayer.nickname);}
 
     this._lastGameStatus = msg.gameStatus;
     this._startDealAnimation(msg.dealSequence);
@@ -138,7 +138,7 @@ class GameScreen {
     this._cardTable.refresh();
     this._seats = msg.seats;
     this._cardsById = {};
-    this._controlsLocked = false;
+    this._isControlsLocked = false;
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
     this._clearLastAction();
@@ -157,8 +157,8 @@ class GameScreen {
 
     const leftPlayer = msg.seats.players.find(p => p.seat === msg.seats.left);
     const rightPlayer = msg.seats.players.find(p => p.seat === msg.seats.right);
-    if (leftPlayer) this._leftOpponent.setNickname(leftPlayer.nickname);
-    if (rightPlayer) this._rightOpponent.setNickname(rightPlayer.nickname);
+    if (leftPlayer) {this._leftOpponent.setNickname(leftPlayer.nickname);}
+    if (rightPlayer) {this._rightOpponent.setNickname(rightPlayer.nickname);}
 
     this._renderStatus(msg.gameStatus);
     this._lastGameStatus = msg.gameStatus;
@@ -197,7 +197,7 @@ class GameScreen {
   updateStatus(gameStatus) {
     this._lastGameStatus = gameStatus;
     this._renderStatus(gameStatus);
-    if (!this._controlsLocked) {
+    if (!this._isControlsLocked) {
       this._mountControlsForPhase(gameStatus);
     }
   }
@@ -206,18 +206,18 @@ class GameScreen {
     return this._cardsById;
   }
 
-  get controlsLocked() {
-    return this._controlsLocked;
+  get isControlsLocked() {
+    return this._isControlsLocked;
   }
 
-  setControlsLocked(locked) {
-    this._controlsLocked = locked;
+  setControlsLocked(isLocked) {
+    this._isControlsLocked = isLocked;
   }
 
   // Adds a brief highlight ring to the seat that just bid or passed.
   flashPlayer(playerId) {
     const el = this._elForSeat(this._seatOf(playerId));
-    if (!el) return;
+    if (!el) {return;}
     el.classList.add('bid-flash');
     this._antlion.schedule(600, () => el.classList.remove('bid-flash'));
   }
@@ -243,7 +243,7 @@ class GameScreen {
 
     this._renderStatus(gameStatus);
     this._lastGameStatus = gameStatus;
-    this._controlsLocked = true;
+    this._isControlsLocked = true;
 
     // Remove the static talon sprites so they don't stay visible during animation
     this._talonView.clear();
@@ -257,7 +257,7 @@ class GameScreen {
         if (identities) {
           for (const id of talonIds) {
             const identity = identities[String(id)];
-            if (identity) this._cardsById[id] = { id, ...identity };
+            if (identity) {this._cardsById[id] = { id, ...identity };}
           }
         }
         this._handView.setHand(Object.values(this._cardsById));
@@ -267,7 +267,7 @@ class GameScreen {
         }
         this._opponentForSeat(declarerSeat)?.setCardCount(10);
       }
-      this._controlsLocked = false;
+      this._isControlsLocked = false;
       this._mountControlsForPhase(this._lastGameStatus);
     });
   }
@@ -309,7 +309,7 @@ class GameScreen {
   }
 
   _dropControl(name) {
-    if (!this[name]) return false;
+    if (!this[name]) {return false;}
     this[name] = null;
     return true;
   }
@@ -322,17 +322,17 @@ class GameScreen {
     this._declarerControls = null;
     this._sellSelectionControls = null;
     this._sellBidControls = null;
-    if (hadAny) this._controlsEl.textContent = '';
+    if (hadAny) {this._controlsEl.textContent = '';}
   }
 
   _mountControlsForPhase(gameStatus) {
     const { phase, viewerIsActive, passedPlayers } = gameStatus;
 
     const sellBiddingActive = phase === 'Selling' && this._sellSubPhase === 'bidding';
-    if (phase !== 'Bidding' && !sellBiddingActive) this._clearLastAction();
+    if (phase !== 'Bidding' && !sellBiddingActive) {this._clearLastAction();}
 
     if (phase === 'Bidding') {
-      if (this._dropControl('_declarerControls')) this._controlsEl.textContent = '';
+      if (this._dropControl('_declarerControls')) {this._controlsEl.textContent = '';}
       if (!this._bidControls) {
         this._controlsEl.textContent = '';
         this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
@@ -344,7 +344,7 @@ class GameScreen {
       this._bidControls.setActiveState({ isActiveBidder: viewerIsActive, isEligible: !viewerHasPassed });
 
     } else if (phase === 'Declarer deciding') {
-      if (this._dropControl('_bidControls')) this._controlsEl.textContent = '';
+      if (this._dropControl('_bidControls')) {this._controlsEl.textContent = '';}
       if (this._sellSelectionControls) {
         this._handView.setSelectionMode(false);
         this._sellSelectionControls = null;
@@ -361,7 +361,7 @@ class GameScreen {
         }
         this._declarerControls.setMode(this._declarerMode(gameStatus));
       } else {
-        if (this._dropControl('_declarerControls')) this._controlsEl.textContent = '';
+        if (this._dropControl('_declarerControls')) {this._controlsEl.textContent = '';}
         const declarerNickname = gameStatus.declarer?.nickname ?? 'declarer';
         let waitDiv = this._controlsEl.querySelector('.waiting');
         if (!waitDiv) {
@@ -374,9 +374,9 @@ class GameScreen {
       }
 
     } else if (phase === 'Selling') {
-      if (this._dropControl('_bidControls')) this._controlsEl.textContent = '';
-      if (this._dropControl('_declarerControls')) this._controlsEl.textContent = '';
-      if (this._sellSubPhase) this._mountControlsForSelling(gameStatus);
+      if (this._dropControl('_bidControls')) {this._controlsEl.textContent = '';}
+      if (this._dropControl('_declarerControls')) {this._controlsEl.textContent = '';}
+      if (this._sellSubPhase) {this._mountControlsForSelling(gameStatus);}
 
     } else {
       this._tearDownAllControls();
@@ -386,8 +386,8 @@ class GameScreen {
   // Returns the correct mode for DeclarerDecisionControls based on game state.
   _declarerMode(gameStatus) {
     const { sellAttempt } = gameStatus;
-    if (sellAttempt === 3) return 'sell-disabled';
-    if (this._viewerIsNewDeclarer) return 'sell-hidden';
+    if (sellAttempt === 3) {return 'sell-disabled';}
+    if (this._viewerIsNewDeclarer) {return 'sell-hidden';}
     return 'full';
   }
 
@@ -397,7 +397,7 @@ class GameScreen {
     this._sellWinnerNickname = null;
     this._lastGameStatus = gameStatus;
     this._renderStatus(gameStatus);
-    if (!this._controlsLocked) this._mountControlsForPhase(gameStatus);
+    if (!this._isControlsLocked) {this._mountControlsForPhase(gameStatus);}
   }
 
   // Called from ThousandApp on sell_exposed — animates the 3 selected cards to the centre.
@@ -407,7 +407,7 @@ class GameScreen {
     if (identities) {
       for (const id of exposedIds) {
         const ident = identities[String(id)];
-        if (ident) this._cardsById[id] = { id, ...ident };
+        if (ident) {this._cardsById[id] = { id, ...ident };}
       }
     }
 
@@ -415,7 +415,7 @@ class GameScreen {
     this._sellSubPhase = 'bidding';
     this._renderStatus(gameStatus);
     this._lastGameStatus = gameStatus;
-    this._controlsLocked = true;
+    this._isControlsLocked = true;
 
     this._handView.setSelectionMode(false);
     this._sellSelectionControls = null;
@@ -439,7 +439,7 @@ class GameScreen {
     this._animateSprites(exposedIds, fromSlot, toSlot, () => {
       const talonCards = exposedIds.map(id => this._cardsById[id]).filter(Boolean);
       this._talonView.setCards(talonCards);
-      this._controlsLocked = false;
+      this._isControlsLocked = false;
       this._mountControlsForPhase(this._lastGameStatus);
     });
   }
@@ -451,7 +451,7 @@ class GameScreen {
 
     this._renderStatus(gameStatus);
     this._lastGameStatus = gameStatus;
-    this._controlsLocked = true;
+    this._isControlsLocked = true;
 
     this._handView.setSelectionMode(false);
     if (this._sellBidControls) { this._controlsEl.textContent = ''; this._sellBidControls = null; }
@@ -471,7 +471,7 @@ class GameScreen {
       this._applySellResolved(outcome, exposedIds, oldDeclarerSeat, newDeclarerSeat, viewerSeat);
       this._sellSubPhase = null;
       this._exposedCardIds = [];
-      this._controlsLocked = false;
+      this._isControlsLocked = false;
       this._renderStatus(this._lastGameStatus);
       this._mountControlsForPhase(this._lastGameStatus);
     });
@@ -482,7 +482,7 @@ class GameScreen {
       if (viewerSeat === oldDeclarerSeat) {
         this._handView.setHand(Object.values(this._cardsById));
       } else {
-        for (const id of exposedIds) delete this._cardsById[id];
+        for (const id of exposedIds) {delete this._cardsById[id];}
         this._opponentForSeat(oldDeclarerSeat)?.setCardCount(10);
       }
     } else if (outcome === 'sold') {
@@ -496,7 +496,7 @@ class GameScreen {
       if (viewerSeat === newDeclarerSeat) {
         this._handView.setHand(Object.values(this._cardsById));
       } else {
-        for (const id of exposedIds) delete this._cardsById[id];
+        for (const id of exposedIds) {delete this._cardsById[id];}
         if (viewerSeat === oldDeclarerSeat) {
           this._handView.setHand(Object.values(this._cardsById));
         }
@@ -512,7 +512,7 @@ class GameScreen {
 
     if (this._sellSubPhase === 'selection') {
       if (viewerIsActive) {
-        if (this._sellSelectionControls) return;
+        if (this._sellSelectionControls) {return;}
         this._controlsEl.textContent = '';
         this._handView.setSelectionMode(true);
         this._sellSelectionControls = new SellSelectionControls(
@@ -520,7 +520,7 @@ class GameScreen {
         );
         this._sellSelectionControls.show();
       } else {
-        if (this._controlsEl.querySelector('.waiting')) return;
+        if (this._controlsEl.querySelector('.waiting')) {return;}
         this._controlsEl.textContent = '';
         const w = document.createElement('div');
         w.className = 'waiting';
@@ -548,7 +548,7 @@ class GameScreen {
 
   _startDealAnimation(sequence, opponentHandSizes = {}) {
     this._talonCardIds = sequence.filter(s => s.to === 'talon').map(s => s.id);
-    this._controlsLocked = true;
+    this._isControlsLocked = true;
     const animation = new DealAnimation(
       this._antlion, sequence, this._cardsById, this._seats.self, this._cardTable,
       () => {
@@ -560,8 +560,8 @@ class GameScreen {
         this._talonView.setFaceDownCount(this._talonCardIds.length);
         this._leftOpponent.setCardCount(opponentHandSizes[this._seats.left] ?? 7);
         this._rightOpponent.setCardCount(opponentHandSizes[this._seats.right] ?? 7);
-        this._controlsLocked = false;
-        if (this._lastGameStatus) this._mountControlsForPhase(this._lastGameStatus);
+        this._isControlsLocked = false;
+        if (this._lastGameStatus) {this._mountControlsForPhase(this._lastGameStatus);}
       },
     );
     animation.start(this._tableEl);
@@ -576,12 +576,12 @@ class GameScreen {
   _computeStatusText(gameStatus) {
     const { phase, viewerIsActive, activePlayer, declarer } = gameStatus;
     if (phase === 'Bidding') {
-      if (viewerIsActive) return { text: 'Your turn', isActive: true };
+      if (viewerIsActive) {return { text: 'Your turn', isActive: true };}
       return { text: `Waiting for ${activePlayer?.nickname ?? '…'}`, isActive: false };
     }
     if (phase === 'Declarer deciding') {
       if (viewerIsActive) {
-        if (this._viewerIsNewDeclarer) return { text: 'Start the game', isActive: true };
+        if (this._viewerIsNewDeclarer) {return { text: 'Start the game', isActive: true };}
         return { text: 'Take the talon or sell?', isActive: true };
       }
       const name = declarer?.nickname ?? activePlayer?.nickname ?? '…';
@@ -589,10 +589,10 @@ class GameScreen {
     }
     if (phase === 'Selling') {
       if (this._sellSubPhase === 'selection') {
-        if (viewerIsActive) return { text: 'Choose 3 cards to show', isActive: true };
+        if (viewerIsActive) {return { text: 'Choose 3 cards to show', isActive: true };}
         return { text: `Waiting for ${declarer?.nickname ?? '…'} to choose cards`, isActive: false };
       }
-      if (viewerIsActive) return { text: 'Your turn', isActive: true };
+      if (viewerIsActive) {return { text: 'Your turn', isActive: true };}
       return { text: `Waiting for ${activePlayer?.nickname ?? '…'}`, isActive: false };
     }
     return { text: '', isActive: false };
@@ -607,7 +607,7 @@ class GameScreen {
       const sprite = new CardSprite(id);
       sprite.setFace('up');
       const identity = this._cardsById[id];
-      if (identity) sprite.setIdentity(identity);
+      if (identity) {sprite.setIdentity(identity);}
       sprite.setPosition(fromSlot.x + i * OFFSET, fromSlot.y);
       this._tableEl.appendChild(sprite.element);
       sprite.setPosition(toSlot.x + i * OFFSET, toSlot.y, ANIM_MS);
@@ -617,11 +617,11 @@ class GameScreen {
     const cancelTick = this._antlion.onTick(() => {
       let anyAnimating = false;
       for (const sprite of sprites) {
-        if (sprite.update()) anyAnimating = true;
+        if (sprite.update()) {anyAnimating = true;}
       }
-      if (anyAnimating) return;
+      if (anyAnimating) {return;}
       cancelTick();
-      for (const sprite of sprites) sprite.element.remove();
+      for (const sprite of sprites) {sprite.element.remove();}
       onComplete();
     });
   }

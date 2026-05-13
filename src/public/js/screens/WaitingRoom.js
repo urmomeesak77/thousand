@@ -5,7 +5,7 @@ class WaitingRoom extends HtmlContainer {
   constructor(element) {
     super('waiting-room');
     this._element = element;
-    this._visible = !element.classList.contains('hidden');
+    this._isVisible = !element.classList.contains('hidden');
     this._gameId = null;
     this._inviteCode = null;
     this._players = [];
@@ -27,13 +27,12 @@ class WaitingRoom extends HtmlContainer {
   }
 
   renderContent() {
-    const el = (id) => document.getElementById(id);
-    el('game-id-display').textContent = `Game #${this._gameId}`;
+    HtmlUtil.byId('game-id-display').textContent = `Game #${this._gameId}`;
     if (this._inviteCode) {
-      el('invite-code-value').textContent = this._inviteCode;
+      HtmlUtil.byId('invite-code-value').textContent = this._inviteCode;
     }
-    el('invite-display').classList.toggle('hidden', !this._inviteCode);
-    const ul = el('player-list');
+    HtmlUtil.byId('invite-display').classList.toggle('hidden', !this._inviteCode);
+    const ul = HtmlUtil.byId('player-list');
     ul.innerHTML = '';
     for (const p of this._players) {
       const li = document.createElement('li');

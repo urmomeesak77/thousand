@@ -11,6 +11,7 @@ module.exports = {
   extends: ['eslint:recommended'],
   rules: {
     'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    curly: ['error', 'all'],
   },
   overrides: [
     {

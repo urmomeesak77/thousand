@@ -7,7 +7,7 @@ class SellSelectionControls {
     this._antlion = antlion;
     this._dispatcher = dispatcher;
     this._selectedIds = [];
-    this._visible = false;
+    this._isVisible = false;
 
     this._el = document.createElement('div');
     this._el.className = 'sell-selection-controls hidden';
@@ -28,12 +28,12 @@ class SellSelectionControls {
     this._selectedIds = [];
     this._updateCounter();
     this._el.classList.remove('hidden');
-    this._visible = true;
+    this._isVisible = true;
   }
 
   hide() {
     this._el.classList.add('hidden');
-    this._visible = false;
+    this._isVisible = false;
   }
 
   _updateCounter() {
@@ -45,20 +45,20 @@ class SellSelectionControls {
   _bindEvents() {
     // Receives selection state emitted by HandView.setSelectionMode (T068)
     this._antlion.onInput('selectionchanged', (selectedIds) => {
-      if (!this._visible) return;
+      if (!this._isVisible) {return;}
       this._selectedIds = selectedIds ?? [];
       this._updateCounter();
     });
 
     this._antlion.bindInput(this._sellBtn, 'click', 'sell-confirm-click');
     this._antlion.onInput('sell-confirm-click', () => {
-      if (!this._visible || this._selectedIds.length !== 3) return;
+      if (!this._isVisible || this._selectedIds.length !== 3) {return;}
       this._dispatcher.sendSellSelect([...this._selectedIds]);
     });
 
     this._antlion.bindInput(this._cancelBtn, 'click', 'sell-cancel-click');
     this._antlion.onInput('sell-cancel-click', () => {
-      if (!this._visible) return;
+      if (!this._isVisible) {return;}
       this._dispatcher.sendSellCancel();
     });
   }

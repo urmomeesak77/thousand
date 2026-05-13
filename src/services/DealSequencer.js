@@ -6,14 +6,14 @@
 function stepDest(i) {
   if (i < 12) {
     const pos = i % 4;
-    if (pos === 0) return 'seat1';
-    if (pos === 1) return 'seat2';
-    if (pos === 2) return 'seat0';
+    if (pos === 0) {return 'seat1';}
+    if (pos === 1) {return 'seat2';}
+    if (pos === 2) {return 'seat0';}
     return 'talon';
   }
   const pos = (i - 12) % 3;
-  if (pos === 0) return 'seat1';
-  if (pos === 1) return 'seat2';
+  if (pos === 0) {return 'seat1';}
+  if (pos === 1) {return 'seat2';}
   return 'seat0';
 }
 

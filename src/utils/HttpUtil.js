@@ -4,7 +4,7 @@ class HttpUtil {
   // Normalize an IP read from a Node socket: collapse IPv4-mapped IPv6
   // (::ffff:1.2.3.4) to plain IPv4 so per-IP buckets don't double-count.
   static normalizeIp(ip) {
-    if (typeof ip !== 'string') return 'unknown';
+    if (typeof ip !== 'string') {return 'unknown';}
     return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
   }
 
@@ -25,12 +25,14 @@ class HttpUtil {
     return new Promise((resolve, reject) => {
       const chunks = [];
       let size = 0;
-      let aborted = false;
+      let isAborted = false;
       req.on('data', (chunk) => {
-        if (aborted) return;
+        if (isAborted) {
+          return;
+        }
         size += chunk.length;
         if (size > maxBytes) {
-          aborted = true;
+          isAborted = true;
           req.destroy();
           reject(new Error('Request body too large'));
           return;
@@ -38,13 +40,20 @@ class HttpUtil {
         chunks.push(chunk);
       });
       req.on('end', () => {
-        if (aborted) return;
+        if (isAborted) {
+          return;
+        }
         const data = Buffer.concat(chunks).toString('utf8');
-        try { resolve(JSON.parse(data || '{}')); }
-        catch { reject(new Error('Invalid JSON')); }
+        try {
+          resolve(JSON.parse(data || '{}'));
+        } catch {
+          reject(new Error('Invalid JSON'));
+        }
       });
       req.on('error', (err) => {
-        if (!aborted) reject(err);
+        if (!isAborted) {
+          reject(err);
+        }
       });
     });
   }

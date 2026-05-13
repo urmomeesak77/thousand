@@ -4,20 +4,25 @@ class HtmlGameObject extends GameObject {
   constructor(name, tag = 'div') {
     super(name);
     this._element = document.createElement(tag);
-    this._dirty = false;
+    this._isDirty = false;
   }
 
   static adopt(name, element) {
     const obj = new this(name);
     obj._element = element;
-    obj._visible = !element.classList.contains('hidden');
+    obj._isVisible = !element.classList.contains('hidden');
     return obj;
   }
 
-  get element() { return this._element; }
+  get element() {
+    return this._element;
+  }
 
-  markDirty() { this._dirty = true; }
+  markDirty() {
+    this._isDirty = true;
+  }
 
+  // Override in subclasses to render this object's content.
   renderContent() {}
 
   show() {
@@ -31,9 +36,9 @@ class HtmlGameObject extends GameObject {
   }
 
   render() {
-    if (this._dirty) {
+    if (this._isDirty) {
       this.renderContent();
-      this._dirty = false;
+      this._isDirty = false;
     }
   }
 

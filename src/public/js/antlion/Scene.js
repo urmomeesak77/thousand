@@ -5,22 +5,22 @@ class Scene {
     this.engine = engine;
     this.root = HtmlContainer.adopt('root', rootElement);
     this.root._scene = this;
-    this._running = false;
+    this._isRunning = false;
     this._lastTime = 0;
   }
 
   start() {
-    this._running = true;
+    this._isRunning = true;
     this._lastTime = performance.now();
     this.engine.onTick(() => this._tick());
   }
 
   stop() {
-    this._running = false;
+    this._isRunning = false;
   }
 
   _tick() {
-    if (!this._running) {
+    if (!this._isRunning) {
       return;
     }
     const now = performance.now();

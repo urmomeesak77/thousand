@@ -23,23 +23,23 @@ class DealAnimation {
     this._startTime = null;
     this._container = null;
     this._destCounts = {};
-    this._running = false;
+    this._isRunning = false;
   }
 
   get isRunning() {
-    return this._running;
+    return this._isRunning;
   }
 
   // Append sprites to container and begin the tick-driven animation sequence.
   start(container) {
     this._container = container;
     this._startTime = performance.now();
-    this._running = true;
+    this._isRunning = true;
     this._cancelTick = this._antlion.onTick(() => this._tick());
   }
 
   _tick() {
-    if (!this._running) return;
+    if (!this._isRunning) {return;}
 
     const elapsed = performance.now() - this._startTime;
 
@@ -53,11 +53,11 @@ class DealAnimation {
 
     let anyAnimating = false;
     for (const sprite of this._sprites) {
-      if (sprite.update()) anyAnimating = true;
+      if (sprite.update()) {anyAnimating = true;}
     }
 
     if (this._nextIndex >= this._dealSequence.length && !anyAnimating) {
-      this._running = false;
+      this._isRunning = false;
       this._cancelTick();
       this._onComplete();
     }
@@ -73,7 +73,7 @@ class DealAnimation {
     if (step.to === `seat${this._viewerSeat}`) {
       sprite.setFace('up');
       const identity = this._cardsById[step.id];
-      if (identity) sprite.setIdentity(identity);
+      if (identity) {sprite.setIdentity(identity);}
     }
 
     const dest = this._getDestSlot(step.to);
@@ -89,7 +89,7 @@ class DealAnimation {
   }
 
   _getDestSlot(to) {
-    if (to === 'talon') return this._cardTable.getSlot('talon');
+    if (to === 'talon') {return this._cardTable.getSlot('talon');}
     const seatIdx = parseInt(to.replace('seat', ''), 10);
     const slots = this._cardTable.slotsForSeat(this._viewerSeat);
     return slots[seatIdx] ?? null;

@@ -5,7 +5,7 @@ class GameList extends HtmlGameObject {
   constructor(element) {
     super('game-list', 'ul');
     this._element = element;
-    this._visible = !element.classList.contains('hidden');
+    this._isVisible = !element.classList.contains('hidden');
     this._games = [];
     this._elapsedTimerId = null;
   }

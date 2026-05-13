@@ -1,4 +1,4 @@
-const $ = (id) => document.getElementById(id);
+import HtmlUtil from '../utils/HtmlUtil.js';
 
 // ============================================================
 // NewGameModal — new-game modal open/close/submit
@@ -13,15 +13,15 @@ class NewGameModal {
   }
 
   bind() {
-    this._antlion.bindInput($('new-game-btn'), 'click', 'new-game-click');
+    this._antlion.bindInput(HtmlUtil.byId('new-game-btn'), 'click', 'new-game-click');
     this._antlion.onInput('new-game-click', () => this._open());
 
-    this._antlion.bindInput($('modal-cancel-btn'), 'click', 'modal-cancel-click');
+    this._antlion.bindInput(HtmlUtil.byId('modal-cancel-btn'), 'click', 'modal-cancel-click');
     this._antlion.onInput('modal-cancel-click', () => this._close());
 
-    this._antlion.bindInput($('new-game-modal'), 'click', 'modal-overlay-click');
+    this._antlion.bindInput(HtmlUtil.byId('new-game-modal'), 'click', 'modal-overlay-click');
     this._antlion.onInput('modal-overlay-click', (e) => {
-      if (e.target === $('new-game-modal')) {
+      if (e.target === HtmlUtil.byId('new-game-modal')) {
         this._close();
       }
     });
@@ -33,7 +33,7 @@ class NewGameModal {
       }
     });
 
-    this._antlion.bindInput($('new-game-form'), 'submit', 'new-game-submit');
+    this._antlion.bindInput(HtmlUtil.byId('new-game-form'), 'submit', 'new-game-submit');
     this._antlion.onInput('new-game-submit', (e) => {
       e.preventDefault();
       if (!this._getNickname()) {
@@ -45,20 +45,20 @@ class NewGameModal {
         this._onError('Pick public or private.');
         return;
       }
-      const requiredPlayers = parseInt($('player-count').value, 10);
+      const requiredPlayers = parseInt(HtmlUtil.byId('player-count').value, 10);
       this._close();
       this._onCreateGame(checked.value, requiredPlayers);
     });
   }
 
   _open() {
-    const modal = $('new-game-modal');
+    const modal = HtmlUtil.byId('new-game-modal');
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
   }
 
   _close() {
-    const modal = $('new-game-modal');
+    const modal = HtmlUtil.byId('new-game-modal');
     modal.classList.add('hidden');
     modal.style.display = '';
   }

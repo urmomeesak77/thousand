@@ -3,7 +3,25 @@
 // Deal sequencing → DealSequencer.js; phase-transition helpers → RoundPhases.js
 const { makeDeck, shuffle } = require('./Deck');
 const { stepDest, buildDealDistribution } = require('./DealSequencer');
-const { absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned } = require('./RoundPhases');
+const {
+  absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned,
+} = require('./RoundPhases');
+
+const MIN_BID = 100;
+const MAX_BID = 300;
+const BID_STEP = 5;
+const SELL_SELECTION_SIZE = 3;
+const MAX_SELL_ATTEMPTS = 3;
+
+const PHASE_LABELS = {
+  'dealing': 'Dealing',
+  'bidding': 'Bidding',
+  'post-bid-decision': 'Declarer deciding',
+  'selling-selection': 'Selling',
+  'selling-bidding': 'Selling',
+  'play-phase-ready': 'Round ready to play',
+  'aborted': 'Round aborted',
+};
 
 class Round {
   constructor({ game, store }) {
@@ -29,7 +47,7 @@ class Round {
     this.declarerSeat = null;
     this.attemptCount = 0;
     this.attemptHistory = [];
-    this.pausedByDisconnect = false;
+    this.isPausedByDisconnect = false;
     this.disconnectedSeats = new Set();
   }
 
@@ -83,21 +101,21 @@ class Round {
 
   // T023
   advanceFromDealingToBidding() {
-    if (this.phase !== 'dealing') return;
+    if (this.phase !== 'dealing') {return;}
     this.phase = 'bidding';
     this.currentTurnSeat = 1; // P1 (clockwise-left of Dealer) bids first per FR-004
   }
 
   // T024
   submitBid(seat, amount) {
-    if (this.phase !== 'bidding') return { rejected: true, reason: 'Not in bidding phase' };
-    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
-    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
-    if (!Number.isInteger(amount)) return { rejected: true, reason: 'Bid must be an integer' };
-    if (amount % 5 !== 0) return { rejected: true, reason: 'Bid must be a multiple of 5' };
-    if (amount > 300) return { rejected: true, reason: 'Bid cannot exceed 300' };
-    const smallest = this.currentHighBid === null ? 100 : this.currentHighBid + 5;
-    if (amount < smallest) return { rejected: true, reason: `Bid must be at least ${smallest}` };
+    if (this.phase !== 'bidding') {return { rejected: true, reason: 'Not in bidding phase' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (seat !== this.currentTurnSeat) {return { rejected: true, reason: 'Not your turn' };}
+    if (!Number.isInteger(amount)) {return { rejected: true, reason: 'Bid must be an integer' };}
+    if (amount % BID_STEP !== 0) {return { rejected: true, reason: `Bid must be a multiple of ${BID_STEP}` };}
+    if (amount > MAX_BID) {return { rejected: true, reason: `Bid cannot exceed ${MAX_BID}` };}
+    const smallest = this.currentHighBid === null ? MIN_BID : this.currentHighBid + BID_STEP;
+    if (amount < smallest) {return { rejected: true, reason: `Bid must be at least ${smallest}` };}
 
     this.bidHistory.push({ seat, amount });
     this.currentHighBid = amount;
@@ -113,9 +131,9 @@ class Round {
 
   // T025
   submitPass(seat) {
-    if (this.phase !== 'bidding') return { rejected: true, reason: 'Not in bidding phase' };
-    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
-    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
+    if (this.phase !== 'bidding') {return { rejected: true, reason: 'Not in bidding phase' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (seat !== this.currentTurnSeat) {return { rejected: true, reason: 'Not your turn' };}
 
     this.passedBidders.add(seat);
     this.bidHistory.push({ seat, amount: null });
@@ -123,14 +141,14 @@ class Round {
     const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
     if (remaining.length === 1) {
       this.declarerSeat = remaining[0];
-      if (this.currentHighBid === null) this.currentHighBid = 100;
+      if (this.currentHighBid === null) {this.currentHighBid = MIN_BID;}
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = remaining[0];
       const { talonIds, identities } = this._absorbTalon();
       return { rejected: false, resolved: true, talonIds, identities };
     } else {
       let next = (seat + 1) % 3;
-      while (this.passedBidders.has(next)) next = (next + 1) % 3;
+      while (this.passedBidders.has(next)) {next = (next + 1) % 3;}
       this.currentTurnSeat = next;
     }
 
@@ -139,15 +157,7 @@ class Round {
 
   // T026
   getViewModelFor(seat) {
-    const phaseLabel = {
-      'dealing': 'Dealing',
-      'bidding': 'Bidding',
-      'post-bid-decision': 'Declarer deciding',
-      'selling-selection': 'Selling',
-      'selling-bidding': 'Selling',
-      'play-phase-ready': 'Round ready to play',
-      'aborted': 'Round aborted',
-    }[this.phase] ?? this.phase;
+    const phaseLabel = PHASE_LABELS[this.phase] ?? this.phase;
 
     const activePlayer = this.currentTurnSeat !== null
       ? {
@@ -200,15 +210,15 @@ class Round {
   // T045
   markDisconnected(seat) {
     this.disconnectedSeats.add(seat);
-    if (seat === this.currentTurnSeat) this.pausedByDisconnect = true;
+    if (seat === this.currentTurnSeat) {this.isPausedByDisconnect = true;}
   }
 
   markReconnected(seat) {
     this.disconnectedSeats.delete(seat);
-    if (seat === this.currentTurnSeat) this.pausedByDisconnect = false;
+    if (seat === this.currentTurnSeat) {this.isPausedByDisconnect = false;}
   }
 
-  abort(_abortedByNickname) {
+  abort() {
     this.phase = 'aborted';
     this.currentTurnSeat = null;
   }
@@ -231,7 +241,7 @@ class Round {
 
     const opponentHandSizes = {};
     for (const s of [0, 1, 2]) {
-      if (s !== seat) opponentHandSizes[s] = this.hands[s].length;
+      if (s !== seat) {opponentHandSizes[s] = this.hands[s].length;}
     }
 
     const gameStatus = this.getViewModelFor(seat);
@@ -286,46 +296,46 @@ class Round {
 
   // T042
   startGame(seat) {
-    if (this.phase === 'play-phase-ready') return { noop: true };
-    if (this.phase !== 'post-bid-decision') return { rejected: true, reason: 'Not in decision phase' };
-    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can start the game' };
+    if (this.phase === 'play-phase-ready') {return { noop: true };}
+    if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
+    if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can start the game' };}
     this.phase = 'play-phase-ready';
     return { noop: false, declarerId: this.seatOrder[this.declarerSeat], finalBid: this.currentHighBid };
   }
 
   // T059
   startSelling(seat) {
-    if (this.phase !== 'post-bid-decision') return { rejected: true, reason: 'Not in decision phase' };
-    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can start selling' };
-    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
-    if (this.attemptHistory.some(a => a.outcome === 'sold')) return { rejected: true, reason: 'Selling is no longer available' };
-    if (this.attemptCount >= 3) return { rejected: true, reason: 'No selling attempts remaining' };
+    if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
+    if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can start selling' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (this.attemptHistory.some(a => a.outcome === 'sold')) {return { rejected: true, reason: 'Selling is no longer available' };}
+    if (this.attemptCount >= MAX_SELL_ATTEMPTS) {return { rejected: true, reason: 'No selling attempts remaining' };}
     this.phase = 'selling-selection';
     return { rejected: false };
   }
 
   // T060
   cancelSelling(seat) {
-    if (this.phase !== 'selling-selection') return { rejected: true, reason: 'Not in selling-selection phase' };
-    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can cancel selling' };
+    if (this.phase !== 'selling-selection') {return { rejected: true, reason: 'Not in selling-selection phase' };}
+    if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can cancel selling' };}
     this.phase = 'post-bid-decision';
     return { rejected: false };
   }
 
   // T061
   commitSellSelection(seat, cardIds) {
-    if (this.phase !== 'selling-selection') return { rejected: true, reason: 'Not in selling-selection phase' };
-    if (seat !== this.declarerSeat) return { rejected: true, reason: 'Only the declarer can select cards' };
-    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
-    if (!Array.isArray(cardIds) || cardIds.length !== 3) {
-      return { rejected: true, reason: 'Exactly 3 cards must be selected' };
+    if (this.phase !== 'selling-selection') {return { rejected: true, reason: 'Not in selling-selection phase' };}
+    if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can select cards' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (!Array.isArray(cardIds) || cardIds.length !== SELL_SELECTION_SIZE) {
+      return { rejected: true, reason: `Exactly ${SELL_SELECTION_SIZE} cards must be selected` };
     }
-    if (new Set(cardIds).size !== 3) {
+    if (new Set(cardIds).size !== SELL_SELECTION_SIZE) {
       return { rejected: true, reason: 'Cards must be distinct' };
     }
     const hand = this.hands[this.declarerSeat];
     for (const id of cardIds) {
-      if (!hand.includes(id)) return { rejected: true, reason: 'Card is not in your hand' };
+      if (!hand.includes(id)) {return { rejected: true, reason: 'Card is not in your hand' };}
     }
     // FR-016: selection must differ from every prior attempt's exposed set
     const sortedNew = [...cardIds].sort((a, b) => a - b);
@@ -347,15 +357,15 @@ class Round {
 
   // T062
   submitSellBid(seat, amount) {
-    if (this.phase !== 'selling-bidding') return { rejected: true, reason: 'Not in selling-bidding phase' };
-    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
-    if (seat === this.declarerSeat) return { rejected: true, reason: 'The declarer cannot bid in the sell auction' };
-    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
-    if (!Number.isInteger(amount)) return { rejected: true, reason: 'Bid must be an integer' };
-    if (amount % 5 !== 0) return { rejected: true, reason: 'Bid must be a multiple of 5' };
-    if (amount > 300) return { rejected: true, reason: 'Bid cannot exceed 300' };
-    const smallest = this.currentHighBid === null ? 100 : this.currentHighBid + 5;
-    if (amount < smallest) return { rejected: true, reason: `Bid must be at least ${smallest}` };
+    if (this.phase !== 'selling-bidding') {return { rejected: true, reason: 'Not in selling-bidding phase' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (seat === this.declarerSeat) {return { rejected: true, reason: 'The declarer cannot bid in the sell auction' };}
+    if (seat !== this.currentTurnSeat) {return { rejected: true, reason: 'Not your turn' };}
+    if (!Number.isInteger(amount)) {return { rejected: true, reason: 'Bid must be an integer' };}
+    if (amount % BID_STEP !== 0) {return { rejected: true, reason: `Bid must be a multiple of ${BID_STEP}` };}
+    if (amount > MAX_BID) {return { rejected: true, reason: `Bid cannot exceed ${MAX_BID}` };}
+    const smallest = this.currentHighBid === null ? MIN_BID : this.currentHighBid + BID_STEP;
+    if (amount < smallest) {return { rejected: true, reason: `Bid must be at least ${smallest}` };}
 
     this.currentHighBid = amount;
     this._lastSellBidderSeat = seat;
@@ -372,10 +382,10 @@ class Round {
 
   // T063
   submitSellPass(seat) {
-    if (this.phase !== 'selling-bidding') return { rejected: true, reason: 'Not in selling-bidding phase' };
-    if (this.pausedByDisconnect) return { rejected: true, reason: 'Round is paused' };
-    if (seat === this.declarerSeat) return { rejected: true, reason: 'The declarer cannot pass in the sell auction' };
-    if (seat !== this.currentTurnSeat) return { rejected: true, reason: 'Not your turn' };
+    if (this.phase !== 'selling-bidding') {return { rejected: true, reason: 'Not in selling-bidding phase' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (seat === this.declarerSeat) {return { rejected: true, reason: 'The declarer cannot pass in the sell auction' };}
+    if (seat !== this.currentTurnSeat) {return { rejected: true, reason: 'Not your turn' };}
 
     this.passedSellOpponents.add(seat);
 

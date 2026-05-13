@@ -19,9 +19,9 @@ class HandView {
     if (this._antlion) {
       this._antlion.bindInput(this._container, 'click', 'hand-card-click');
       this._antlion.onInput('hand-card-click', (e) => {
-        if (!this._selectionEnabled) return;
+        if (!this._selectionEnabled) {return;}
         const cardEl = e.target.closest('[data-card-id]');
-        if (!cardEl) return;
+        if (!cardEl) {return;}
         const id = parseInt(cardEl.dataset.cardId, 10);
         const idx = this._selectedIds.indexOf(id);
         if (idx === -1) {
@@ -52,10 +52,10 @@ class HandView {
 
   // Enables tap-to-toggle selection on cards; emits 'selectionchanged' via Antlion.
   // Disabling clears all selections and emits an empty event.
-  setSelectionMode(enabled) {
-    this._selectionEnabled = enabled;
-    this._container.classList.toggle('hand-view--selectable', enabled);
-    if (!enabled) {
+  setSelectionMode(isEnabled) {
+    this._selectionEnabled = isEnabled;
+    this._container.classList.toggle('hand-view--selectable', isEnabled);
+    if (!isEnabled) {
       this._selectedIds = [];
       this._container.querySelectorAll('.hand-view__card--selected')
         .forEach(el => el.classList.remove('hand-view__card--selected'));
