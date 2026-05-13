@@ -55,7 +55,12 @@ before(() => {
     path.join(publicDir, 'js', 'thousand', 'RoundActionDispatcher.js'),
     path.join(publicDir, 'js', 'thousand', 'GameStatusBox.js'),
     path.join(publicDir, 'js', 'thousand', 'RoundReadyScreen.js'),
+    path.join(publicDir, 'js', 'thousand', 'GameScreenControls.js'),
+    path.join(publicDir, 'js', 'thousand', 'SellPhaseView.js'),
+    path.join(publicDir, 'js', 'thousand', 'statusText.js'),
     path.join(publicDir, 'js', 'thousand', 'GameScreen.js'),
+    path.join(publicDir, 'js', 'core', 'ThousandMessageRouter.js'),
+    path.join(publicDir, 'js', 'core', 'LobbyBinder.js'),
     path.join(publicDir, 'js', 'core', 'ThousandApp.js'),
     path.join(publicDir, 'js', 'index.js'),
   ];

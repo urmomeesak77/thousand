@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const HttpUtil = require('../utils/HttpUtil');
 const RateLimiter = require('../utils/RateLimiter');
 const { validateNickname, validateRequiredPlayers } = require('./validators');
+const { isNicknameTaken } = require('./nicknameLookup');
 
 const INVALID_NICKNAME_MSG = 'nickname must be 3–20 characters and contain no control characters';
 const DUPLICATE_NICKNAME_MSG = 'That nickname is already taken';
@@ -19,15 +20,6 @@ class GameController {
 
   cleanupRateLimiter() {
     this._createLimiter.cleanup();
-  }
-
-  _isNicknameTaken(nick, excludePlayerId) {
-    const lower = nick.toLowerCase();
-    for (const [pid, player] of this.store.players) {
-      if (pid === excludePlayerId) {continue;}
-      if (player.nickname && player.nickname.toLowerCase() === lower) {return true;}
-    }
-    return false;
   }
 
   // Shared join preconditions for public join + invite-code join.
@@ -49,7 +41,7 @@ class GameController {
     }
     // Skip the duplicate check for already-named players — body.nickname is
     // informational on join, and the server-side name was vetted at claim time.
-    if (!player.nickname && this._isNicknameTaken(nickname.trim(), player.id)) {
+    if (!player.nickname && isNicknameTaken(this.store.players, nickname.trim(), player.id)) {
       return [409, 'duplicate_nickname', DUPLICATE_NICKNAME_MSG];
     }
     return null;
@@ -91,32 +83,6 @@ class GameController {
     if (game.players.size === game.requiredPlayers) {
       this.store.startRound(game.id);
     }
-  }
-
-  // POST /api/nickname
-  async handleClaimNickname(req, res, player) {
-    let body;
-    try {
-      body = await HttpUtil.parseBody(req);
-    } catch {
-      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
-      return;
-    }
-
-    const { nickname } = body;
-    if (!validateNickname(nickname)) {
-      HttpUtil.sendError(res, 400, 'invalid_request', INVALID_NICKNAME_MSG);
-      return;
-    }
-
-    const nick = nickname.trim();
-    if (this._isNicknameTaken(nick, player.id)) {
-      HttpUtil.sendError(res, 409, 'duplicate_nickname', DUPLICATE_NICKNAME_MSG);
-      return;
-    }
-
-    player.nickname = nick;
-    HttpUtil.sendJSON(res, 200, { nickname: nick });
   }
 
   // T017 – GET /api/games
@@ -188,7 +154,7 @@ class GameController {
     if (player.nickname) {
       return true;
     }
-    if (this._isNicknameTaken(nick, player.id)) {
+    if (isNicknameTaken(this.store.players, nick, player.id)) {
       HttpUtil.sendError(res, 409, 'duplicate_nickname', DUPLICATE_NICKNAME_MSG);
       return false;
     }

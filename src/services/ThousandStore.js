@@ -3,67 +3,37 @@
 const crypto = require('crypto');
 
 const Round = require('./Round');
+const PlayerRegistry = require('./PlayerRegistry');
 
 const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
+const DEFAULT_GRACE_PERIOD_MS = 30_000;
+const WS_OPEN = 1;
 
 class ThousandStore {
   constructor() {
     this.games = new Map();        // gameId -> Game
-    this.players = new Map();      // playerId -> Player
     this.inviteCodes = new Map();  // inviteCode -> gameId
-    this._tokenIndex = new Map();  // sessionToken -> playerId
+    this._registry = new PlayerRegistry();
     // A bad env value (e.g. "foo") becomes NaN, and setTimeout(NaN) fires immediately —
     // every disconnect would purge instantly. Reject anything that isn't a positive finite number.
     const parsed = process.env.GRACE_PERIOD_MS ? Number(process.env.GRACE_PERIOD_MS) : null;
-    this._gracePeriodMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 30_000;
+    this._gracePeriodMs = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_GRACE_PERIOD_MS;
+  }
+
+  get players() {
+    return this._registry.players;
   }
 
   createPlayer(ws, clientIp) {
-    const playerId = crypto.randomUUID();
-    const sessionToken = crypto.randomUUID();
-    this.players.set(playerId, { id: playerId, nickname: null, gameId: null, ws, sessionToken, disconnectedAt: null, graceTimer: null });
-    this._tokenIndex.set(sessionToken, playerId);
-    ws._clientIp = clientIp;
-    ws._playerId = playerId;
-    return { playerId, sessionToken };
+    return this._registry.create(ws, clientIp);
   }
 
   createOrRestorePlayer(ws, clientIp, playerId, sessionToken) {
-    // crypto.randomUUID() emits 36-char strings (8-4-4-4-12). Reject anything
-    // else so probes with malformed ids fall straight through to a fresh identity.
-    const isValidShape = typeof playerId === 'string' && typeof sessionToken === 'string'
-      && playerId.length === 36 && sessionToken.length === 36;
-    if (!isValidShape) {
-      const result = this.createPlayer(ws, clientIp);
-      return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
-    }
-    const player = this.players.get(playerId);
-    if (player && player.sessionToken === sessionToken) {
-      // Mirror the bookkeeping createPlayer does, so anything that later reads
-      // ws._clientIp / ws._playerId (audit logging, abuse detection) sees the
-      // same shape on restored sessions.
-      ws._clientIp = clientIp;
-      ws._playerId = playerId;
-      return { playerId, sessionToken, restored: true, nickname: player.nickname, gameId: player.gameId };
-    }
-    const result = this.createPlayer(ws, clientIp);
-    return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
+    return this._registry.createOrRestore(ws, clientIp, playerId, sessionToken);
   }
 
   findBySessionToken(token) {
-    if (typeof token !== 'string') {return null;}
-    const playerId = this._tokenIndex.get(token);
-    if (playerId) {
-      const player = this.players.get(playerId);
-      if (player && player.sessionToken === token) {return player;}
-    }
-    // Fallback for code paths that mutate `players` directly without going
-    // through createPlayer (tests, in-memory fixtures). Production traffic
-    // always hits the index above.
-    for (const [, player] of this.players) {
-      if (player.sessionToken === token) {return player;}
-    }
-    return null;
+    return this._registry.findBySessionToken(token);
   }
 
   // T026 – invite code generator
@@ -157,7 +127,7 @@ class ThousandStore {
     clearTimeout(player.graceTimer);
     player.graceTimer = null;
     player.disconnectedAt = null;
-    if (player.ws && player.ws.readyState === 1 /* OPEN */) {
+    if (player.ws && player.ws.readyState === WS_OPEN) {
       player.ws.send(JSON.stringify({ type: 'session_replaced' }));
       player.ws.close();
     }
@@ -183,11 +153,9 @@ class ThousandStore {
   }
 
   _purgePlayer(playerId) {
-    const player = this.players.get(playerId);
+    const player = this._registry.remove(playerId);
     if (!player) {return;}
     const { gameId, nickname } = player;
-    this._tokenIndex.delete(player.sessionToken);
-    this.players.delete(playerId);
     if (!gameId) {return;}
     const game = this.games.get(gameId);
     if (!game) {return;}
@@ -212,7 +180,7 @@ class ThousandStore {
   broadcastLobbyUpdate() {
     const msg = JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() });
     for (const [, player] of this.players) {
-      if (player.gameId === null && player.ws && player.ws.readyState === 1 /* OPEN */) {
+      if (player.gameId === null && player.ws && player.ws.readyState === WS_OPEN) {
         // readyState can flip between the check and send (socket terminated mid-iteration).
         // Swallow per-recipient errors so one bad ws doesn't abort the broadcast.
         try { player.ws.send(msg); } catch { /* ignore */ }
@@ -221,17 +189,11 @@ class ThousandStore {
   }
 
   sendToPlayer(playerId, payload) {
-    const player = this.players.get(playerId);
-    if (player && player.ws && player.ws.readyState === 1) {
-      try { player.ws.send(JSON.stringify(payload)); } catch { /* ignore */ }
-    }
+    this._registry.sendToPlayer(playerId, payload);
   }
 
   serializePlayers(game) {
-    return [...game.players].map((pid) => {
-      const p = this.players.get(pid);
-      return p ? { nickname: p.nickname } : null;
-    }).filter(Boolean);
+    return this._registry.serializePlayers(game);
   }
 
   _resolveGameAfterExit(gameId, game, playerId, nickname) {

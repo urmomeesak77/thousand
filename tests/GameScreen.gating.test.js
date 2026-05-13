@@ -36,6 +36,9 @@ before(() => {
     'thousand/SellSelectionControls.js',
     'thousand/GameStatusBox.js',
     'thousand/RoundReadyScreen.js',
+    'thousand/GameScreenControls.js',
+    'thousand/SellPhaseView.js',
+    'thousand/statusText.js',
     'thousand/GameScreen.js',
   ];
   for (const mod of modules) {
@@ -119,16 +122,16 @@ describe('GameScreen.gating — Declarer deciding: declarer sees full controls (
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0 }));
 
-    assert.ok(gs._declarerControls !== null, 'DeclarerDecisionControls must be created for the declarer');
+    assert.ok(gs._controls._declarerControls !== null, 'DeclarerDecisionControls must be created for the declarer');
   });
 
   it('declarer controls are not hidden (mode = full)', () => {
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0 }));
 
-    assert.equal(gs._declarerControls._mode, 'full');
+    assert.equal(gs._controls._declarerControls._mode, 'full');
     assert.ok(
-      !gs._declarerControls._el.classList.contains('hidden'),
+      !gs._controls._declarerControls._el.classList.contains('hidden'),
       'declarer controls must be visible'
     );
   });
@@ -137,8 +140,8 @@ describe('GameScreen.gating — Declarer deciding: declarer sees full controls (
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: null }));
 
-    assert.equal(gs._declarerControls._sellBtn.disabled, false, 'Sell must be enabled');
-    assert.equal(gs._declarerControls._startBtn.disabled, false, 'Start must be enabled');
+    assert.equal(gs._controls._declarerControls._sellBtn.disabled, false, 'Sell must be enabled');
+    assert.equal(gs._controls._declarerControls._startBtn.disabled, false, 'Start must be enabled');
   });
 });
 
@@ -147,7 +150,7 @@ describe('GameScreen.gating — Declarer deciding: opponents see .waiting div (F
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 1, declarerSeat: 0 }));
 
-    assert.equal(gs._declarerControls, null, 'DeclarerDecisionControls must not exist for a non-declarer');
+    assert.equal(gs._controls._declarerControls, null, 'DeclarerDecisionControls must not exist for a non-declarer');
   });
 
   it('non-declarer sees a .waiting div with the declarer\'s nickname', () => {
@@ -166,7 +169,7 @@ describe('GameScreen.gating — Declarer deciding: opponents see .waiting div (F
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 2, declarerSeat: 0 }));
 
-    assert.equal(gs._declarerControls, null);
+    assert.equal(gs._controls._declarerControls, null);
     assert.ok(gs._controlsEl.querySelector('.waiting'), '.waiting must exist for seat 2');
   });
 });
@@ -176,15 +179,15 @@ describe('GameScreen.gating — Declarer deciding: 3 failed attempts disables Se
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: 3 }));
 
-    assert.equal(gs._declarerControls._mode, 'sell-disabled');
+    assert.equal(gs._controls._declarerControls._mode, 'sell-disabled');
   });
 
   it('Sell button is disabled and Start button is still operable when sellAttempt === 3', () => {
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: 3 }));
 
-    assert.equal(gs._declarerControls._sellBtn.disabled, true, 'Sell must be disabled after 3 attempts');
-    assert.equal(gs._declarerControls._startBtn.disabled, false, 'Start must still be operable');
+    assert.equal(gs._controls._declarerControls._sellBtn.disabled, true, 'Sell must be disabled after 3 attempts');
+    assert.equal(gs._controls._declarerControls._startBtn.disabled, false, 'Start must still be operable');
   });
 });
 
@@ -203,13 +206,13 @@ describe('GameScreen.gating — controls swap correctly across phase transitions
       sellAttempt: null,
       disconnectedPlayers: [],
     });
-    assert.ok(gs._bidControls !== null, 'BidControls must exist during Bidding');
+    assert.ok(gs._controls._bidControls !== null, 'BidControls must exist during Bidding');
 
     // Then: phase shifts to Declarer deciding (viewer is declarer)
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0 }));
 
-    assert.equal(gs._bidControls, null, 'BidControls must be removed when phase changes to Declarer deciding');
-    assert.ok(gs._declarerControls !== null, 'DeclarerDecisionControls must appear');
+    assert.equal(gs._controls._bidControls, null, 'BidControls must be removed when phase changes to Declarer deciding');
+    assert.ok(gs._controls._declarerControls !== null, 'DeclarerDecisionControls must appear');
   });
 
   it('.waiting text updates when the declarer seat changes', () => {

@@ -100,6 +100,7 @@ A standard reference for code style, naming, and structure across projects. Appl
 ### Structure
 - One responsibility per function (single responsibility principle)
 - Keep functions under 50 lines; extract helpers if longer
+- Keep classes under 300 lines; split into focused collaborators if longer
 - Use early returns to reduce nesting
 - Group related functions together
 
@@ -414,6 +415,7 @@ try {
 
 - [ ] Code follows conventions in this guide
 - [ ] Functions are under 50 lines (JS) / 30 lines (PHP)
+- [ ] Classes are under 300 lines
 - [ ] Variable names are clear and descriptive
 - [ ] Comments explain *why*, not *what*
 - [ ] No commented-out code left behind
