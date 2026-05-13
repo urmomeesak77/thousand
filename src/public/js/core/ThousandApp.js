@@ -376,15 +376,11 @@ class ThousandApp {
   }
 
   _openLeaveModal() {
-    const modal = $('leave-confirm-modal');
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+    $('leave-confirm-modal').classList.remove('hidden');
   }
 
   _closeLeaveModal() {
-    const modal = $('leave-confirm-modal');
-    modal.classList.add('hidden');
-    modal.style.display = '';
+    $('leave-confirm-modal').classList.add('hidden');
   }
 
   _handleLeaveGameKeydown(e) {

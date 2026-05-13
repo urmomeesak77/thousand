@@ -52,15 +52,11 @@ class NewGameModal {
   }
 
   _open() {
-    const modal = HtmlUtil.byId('new-game-modal');
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+    HtmlUtil.byId('new-game-modal').classList.remove('hidden');
   }
 
   _close() {
-    const modal = HtmlUtil.byId('new-game-modal');
-    modal.classList.add('hidden');
-    modal.style.display = '';
+    HtmlUtil.byId('new-game-modal').classList.add('hidden');
   }
 }
 

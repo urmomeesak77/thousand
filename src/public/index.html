@@ -14,14 +14,14 @@
   <!-- ======================================================
        Reconnect overlay (shown on reload when identity stored)
   ======================================================= -->
-  <div id="reconnect-overlay" class="hidden">
+  <div class="hidden" id="reconnect-overlay" role="status" aria-live="polite">
     <p>Reconnecting…</p>
   </div>
 
   <!-- ======================================================
        Nickname screen (shown before entering lobby)
   ======================================================= -->
-  <section id="nickname-screen" class="screen">
+  <section class="screen" id="nickname-screen">
     <div class="card">
       <h1>Thousand</h1>
       <p class="subtitle">Card Game for 2–4 players</p>
@@ -44,7 +44,7 @@
   <!-- ======================================================
        Lobby screen (shown after nickname is set)
   ======================================================= -->
-  <section id="lobby-screen" class="screen hidden">
+  <section class="screen hidden" id="lobby-screen">
     <header class="lobby-header">
       <h2>Welcome to Thousand, <span id="player-name-display"></span></h2>
       <div class="lobby-header-actions">
@@ -70,7 +70,7 @@
         <ul id="game-list" aria-label="Available games"></ul>
         <p id="empty-state" class="empty-state hidden">No open games yet. Create one!</p>
       </div>
-      <button id="join-selected-btn" class="btn btn-primary" disabled>Join Selected Game</button>
+      <button class="btn btn-primary" id="join-selected-btn" disabled>Join Selected Game</button>
       <div class="join-invite-row">
         <input
           id="invite-code-input"
@@ -79,30 +79,30 @@
           placeholder="Invite code (e.g. A3FX9C)"
           autocomplete="off"
         />
-        <button id="join-invite-btn" class="btn btn-secondary" disabled>Join with Code</button>
+        <button class="btn btn-secondary" id="join-invite-btn" disabled>Join with Code</button>
       </div>
-      <button id="new-game-btn" class="btn btn-secondary">+ New Game</button>
+      <button class="btn btn-secondary" id="new-game-btn">+ New Game</button>
     </div>
   </section>
 
   <!-- ======================================================
        Game waiting room (shown after joining)
   ======================================================= -->
-  <section id="game-screen" class="screen hidden">
+  <section class="screen hidden" id="game-screen">
     <div class="card">
       <h2>Waiting Room</h2>
-      <p id="game-id-display" class="game-id"></p>
-      <div id="invite-display" class="invite-display hidden">
+      <p class="game-id" id="game-id-display"></p>
+      <div class="invite-display hidden" id="invite-display">
         <p>Share this invite code with friends:</p>
         <div class="invite-code-box">
-          <span id="invite-code-value" class="invite-code"></span>
-          <button id="copy-invite-btn" class="btn btn-sm" aria-label="Copy invite code">Copy</button>
+          <span class="invite-code" id="invite-code-value"></span>
+          <button class="btn btn-sm" id="copy-invite-btn" aria-label="Copy invite code">Copy</button>
         </div>
       </div>
-      <ul id="player-list" class="player-list" aria-label="Players in game"></ul>
+      <ul class="player-list" id="player-list" aria-label="Players in game"></ul>
       <p class="waiting-hint">Waiting for players… (2–4 needed to start)</p>
       <p class="waiting-elapsed">Waiting for <span id="waiting-elapsed">0s</span></p>
-      <button id="leave-game-btn" class="btn btn-ghost btn-sm">Leave Game</button>
+      <button class="btn btn-ghost btn-sm" id="leave-game-btn">Leave Game</button>
     </div>
   </section>
 
@@ -136,7 +136,7 @@
         </div>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">Create Game</button>
-          <button type="button" id="modal-cancel-btn" class="btn btn-ghost">Cancel</button>
+          <button class="btn btn-ghost" id="modal-cancel-btn" type="button">Cancel</button>
         </div>
       </form>
     </div>
@@ -150,8 +150,8 @@
       <h2 id="leave-modal-title">Leave this game?</h2>
       <p class="modal-body-text">You'll be taken back to the lobby.</p>
       <div class="modal-actions">
-        <button id="leave-confirm-btn" class="btn btn-accent">Leave</button>
-        <button id="leave-cancel-btn" class="btn btn-ghost">Stay</button>
+        <button class="btn btn-accent" id="leave-confirm-btn">Leave</button>
+        <button class="btn btn-ghost" id="leave-cancel-btn">Stay</button>
       </div>
     </div>
   </div>
@@ -159,7 +159,7 @@
   <!-- ======================================================
        Error toast
   ======================================================= -->
-  <div id="toast" class="toast hidden" role="alert" aria-live="assertive"></div>
+  <div class="toast hidden" id="toast" role="alert" aria-live="assertive"></div>
 
   <script type="module" src="/js/index.js"></script>
 </body>
