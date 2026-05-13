@@ -12,6 +12,11 @@ class CardTable {
     antlion.onInput('resize', () => this._compute());
   }
 
+  // Forces a slot recomputation — call after the container becomes visible.
+  refresh() {
+    this._compute();
+  }
+
   // Returns { x, y } pixel position (top-left of card) for a named slot
   getSlot(name) {
     return this._slots[name];

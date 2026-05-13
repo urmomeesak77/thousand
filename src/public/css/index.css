@@ -391,6 +391,7 @@ input[type="text"]::placeholder {
   justify-content: center;
 }
 
+
 .game-id {
   font-family: monospace;
   color: var(--color-text-muted);
@@ -609,11 +610,12 @@ fieldset legend {
 
 /* Full-viewport grid: fixed status bar on top, table fills the rest */
 .round-screen {
-  position: relative;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  width: 100%;
-  min-height: 100vh;
+  background: var(--color-bg);
   overflow: hidden;
 }
 
@@ -685,12 +687,17 @@ fieldset legend {
 .game-table {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 1fr auto;
   gap: 0.5rem;
   padding: 1rem;
-  flex: 1;
   overflow: hidden;
+}
+
+/* Prevent grid items from forcing column expansion beyond 1fr */
+.game-table > * {
+  min-width: 0;
+  min-height: 0;
 }
 
 /* Controls bar at the bottom of the round screen */
@@ -895,6 +902,7 @@ fieldset legend {
   justify-content: center;
   gap: 0.5rem;
   min-height: var(--card-height);
+  overflow: hidden;
 }
 
 .talon-view .card-sprite {
@@ -970,9 +978,17 @@ fieldset legend {
     padding: 0.4rem 0.75rem;
   }
 
-  /* Opponent: collapse stack to single card */
+  /* Opponent: collapse stack to single card, reset JS-set offset */
+  .opponent-view__stack {
+    width: var(--card-width) !important;
+  }
+
   .opponent-view__stack-card:not(:last-child) {
     display: none;
+  }
+
+  .opponent-view__stack-card:last-child {
+    left: 0 !important;
   }
 
   .opponent-view__count {

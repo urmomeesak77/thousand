@@ -62,6 +62,7 @@ class GameScreen {
 
   // Called on round_started; seeds cardsById, lays out seats, starts the deal animation.
   init(msg) {
+    this._cardTable.refresh();
     this._seats = msg.seats;
     this._cardsById = {};
     this._viewerIsNewDeclarer = false;
@@ -116,6 +117,7 @@ class GameScreen {
 
   // Called on round_state_snapshot; rebuilds the layout immediately with no animation (FR-027).
   initFromSnapshot(msg) {
+    this._cardTable.refresh();
     this._seats = msg.seats;
     this._cardsById = {};
     this._controlsLocked = false;
