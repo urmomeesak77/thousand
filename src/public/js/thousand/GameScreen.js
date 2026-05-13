@@ -49,7 +49,11 @@ class GameScreen {
     this._controlsEl = document.createElement('div');
     this._controlsEl.className = 'game-controls';
 
-    tableEl.append(leftEl, centerColEl, rightEl, handEl);
+    const lastActionEl = document.createElement('div');
+    lastActionEl.className = 'last-action-box hidden';
+    this._lastActionEl = lastActionEl;
+
+    tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, handEl);
     container.append(statusBarEl, tableEl, this._controlsEl);
 
     this._tableEl = tableEl;
@@ -72,6 +76,7 @@ class GameScreen {
     this._seats = msg.seats;
     this._cardsById = {};
     this._viewerIsNewDeclarer = false;
+    this._clearLastAction();
     this._talonCardIds = msg.dealSequence
       .filter(step => step.to === 'talon')
       .map(step => step.id);
@@ -134,6 +139,7 @@ class GameScreen {
     this._cardsById = {};
     this._controlsLocked = false;
     this._viewerIsNewDeclarer = false;
+    this._clearLastAction();
 
     this._tableEl.classList.remove('hidden');
     this._controlsEl.classList.remove('hidden');
@@ -254,6 +260,28 @@ class GameScreen {
     this._antlion.schedule(600, () => el.classList.remove('bid-flash'));
   }
 
+  setBidAction(playerId, amount) {
+    this._setPlayerLastAction(playerId, `bid ${amount}`);
+  }
+
+  setPassAction(playerId) {
+    this._setPlayerLastAction(playerId, 'passed');
+  }
+
+  _setPlayerLastAction(playerId, text) {
+    if (!this._seats) return;
+    const player = this._seats.players.find(p => p.playerId === playerId);
+    if (!player) return;
+    if (player.seat === this._seats.self) {
+      this._lastActionEl.textContent = text;
+      this._lastActionEl.classList.remove('hidden');
+    } else if (player.seat === this._seats.left) {
+      this._leftOpponent.setLastAction(text);
+    } else if (player.seat === this._seats.right) {
+      this._rightOpponent.setLastAction(text);
+    }
+  }
+
   // Animates the 3 talon cards flying into the declarer's hand (FR-023, FR-024).
   absorbTalon(msg) {
     const { declarerId, talonIds, identities, gameStatus } = msg;
@@ -360,8 +388,17 @@ class GameScreen {
     );
   }
 
+  _clearLastAction() {
+    this._lastActionEl.textContent = '';
+    this._lastActionEl.classList.add('hidden');
+    this._leftOpponent.setLastAction('');
+    this._rightOpponent.setLastAction('');
+  }
+
   _mountControlsForPhase(gameStatus) {
     const { phase, viewerIsActive, passedPlayers } = gameStatus;
+
+    if (phase !== 'Bidding') this._clearLastAction();
 
     if (phase === 'Bidding') {
       if (this._declarerControls) {

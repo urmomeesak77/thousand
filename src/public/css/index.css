@@ -688,7 +688,7 @@ fieldset legend {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 1fr auto auto;
   gap: 0.5rem;
   padding: 1rem;
   min-height: 300px;
@@ -862,6 +862,12 @@ fieldset legend {
   text-align: center;
 }
 
+.opponent-view__last-action {
+  font-size: 0.775rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 /* ============================================================
    Hand view — viewer's own sorted face-up hand
    ============================================================ */
@@ -936,6 +942,17 @@ fieldset legend {
 .game-status-box--active {
   color: var(--color-primary-hover);
   border-color: var(--color-primary);
+}
+
+/* ============================================================
+   Last action box — spans all columns between opponents and hand
+   ============================================================ */
+
+.last-action-box {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.775rem;
+  color: var(--color-text-muted);
 }
 
 /* ============================================================

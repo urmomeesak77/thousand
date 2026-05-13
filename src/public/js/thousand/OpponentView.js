@@ -9,6 +9,7 @@ class OpponentView {
     this._nickname = '';
     this._cardCount = 0;
     this._disconnected = false;
+    this._lastAction = '';
     this._render();
   }
 
@@ -24,6 +25,11 @@ class OpponentView {
 
   setDisconnected(disconnected) {
     this._disconnected = disconnected;
+    this._render();
+  }
+
+  setLastAction(text) {
+    this._lastAction = text;
     this._render();
   }
 
@@ -56,6 +62,13 @@ class OpponentView {
       stackEl.appendChild(card);
     }
     this._container.appendChild(stackEl);
+
+    if (this._lastAction) {
+      const actionEl = document.createElement('div');
+      actionEl.className = 'opponent-view__last-action';
+      actionEl.textContent = this._lastAction;
+      this._container.appendChild(actionEl);
+    }
 
     if (this._disconnected) {
       const lost = document.createElement('div');

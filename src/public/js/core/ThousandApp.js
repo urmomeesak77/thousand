@@ -212,10 +212,12 @@ class ThousandApp {
       case 'bid_accepted':
         this._gameScreen.updateStatus(msg.gameStatus);
         this._gameScreen.flashPlayer(msg.playerId);
+        this._gameScreen.setBidAction(msg.playerId, msg.amount);
         break;
       case 'pass_accepted':
         this._gameScreen.updateStatus(msg.gameStatus);
         this._gameScreen.flashPlayer(msg.playerId);
+        this._gameScreen.setPassAction(msg.playerId);
         break;
       case 'talon_absorbed':
         this._gameScreen.absorbTalon(msg);
