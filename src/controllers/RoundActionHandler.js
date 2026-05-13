@@ -10,7 +10,9 @@ class RoundActionHandler {
 
   _gameOf(playerId) {
     const player = this._store.players.get(playerId);
-    if (!player?.gameId) {return null;}
+    if (!player?.gameId) {
+      return null;
+    }
     return this._store.games.get(player.gameId) ?? null;
   }
 
@@ -23,169 +25,186 @@ class RoundActionHandler {
     this._store.sendToPlayer(playerId, { type: 'action_rejected', reason });
   }
 
-  // T027 + T044
-  handleBid(playerId, amount) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
+  // Common prelude for every in-round action: rate-limit, game/round lookup,
+  // seat resolution, action invocation, rejection handling, per-recipient broadcast.
+  // `action(round, seat)` performs the state mutation and returns the result object.
+  // `broadcast(pid, gameStatus, result, ctx)` emits whatever messages the action needs.
+  _runRoundAction(playerId, action, broadcast) {
+    if (!this._rateLimiter.isAllowed(playerId)) {
+      return;
+    }
     const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
     const round = game.round;
-    if (round.phase === 'dealing') {round.advanceFromDealingToBidding();}
     const seat = this._seatOf(playerId);
-    const result = round.submitBid(seat, amount);
-    if (result.rejected) {return this._reject(playerId, result.reason);}
+    const result = action(round, seat);
+    if (!result) {
+      return;
+    }
+    if (result.noop) {
+      return;
+    }
+    if (result.rejected) {
+      this._reject(playerId, result.reason);
+      return;
+    }
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
+      broadcast(pid, gameStatus, result, { game, round, playerId });
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
+    return { game, round, result };
+  }
+
+  // T027 + T044
+  handleBid(playerId, amount) {
+    this._runRoundAction(
+      playerId,
+      (round, seat) => {
+        if (round.phase === 'dealing') {
+          round.advanceFromDealingToBidding();
+        }
+        return round.submitBid(seat, amount);
+      },
+      (pid, gameStatus) => {
+        this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
+      },
+    );
   }
 
   // T028 + T044
   handlePass(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
-    const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
-    const round = game.round;
-    if (round.phase !== 'bidding') {return this._reject(playerId, 'Not in bidding phase');}
-    const seat = this._seatOf(playerId);
-    const result = round.submitPass(seat);
-    if (result.rejected) {return this._reject(playerId, result.reason);}
-    const declarerPid = result.resolved ? round.seatOrder[round.declarerSeat] : null;
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'pass_accepted', playerId, gameStatus });
-      if (result.resolved) {
-        const msg = { type: 'talon_absorbed', declarerId: declarerPid, talonIds: result.talonIds, gameStatus };
-        if (pid === declarerPid) {msg.identities = result.identities;}
-        this._store.sendToPlayer(pid, msg);
-      }
-      this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
-    }
+    this._runRoundAction(
+      playerId,
+      (round, seat) => {
+        if (round.phase !== 'bidding') {
+          return { rejected: true, reason: 'Not in bidding phase' };
+        }
+        return round.submitPass(seat);
+      },
+      (pid, gameStatus, result, { round }) => {
+        this._store.sendToPlayer(pid, { type: 'pass_accepted', playerId, gameStatus });
+        if (result.resolved) {
+          const declarerPid = round.seatOrder[round.declarerSeat];
+          const msg = { type: 'talon_absorbed', declarerId: declarerPid, talonIds: result.talonIds, gameStatus };
+          if (pid === declarerPid) {
+            msg.identities = result.identities;
+          }
+          this._store.sendToPlayer(pid, msg);
+        }
+      },
+    );
   }
 
   // T065
   handleSellStart(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
-    const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    const result = round.startSelling(seat);
-    if (result.rejected) {return this._reject(playerId, result.reason);}
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'sell_started', gameStatus });
-      this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
-    }
+    this._runRoundAction(
+      playerId,
+      (round, seat) => round.startSelling(seat),
+      (pid, gameStatus) => {
+        this._store.sendToPlayer(pid, { type: 'sell_started', gameStatus });
+      },
+    );
   }
 
   handleSellSelect(playerId, cardIds) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
-    const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    const result = round.commitSellSelection(seat, cardIds);
-    if (result.rejected) {return this._reject(playerId, result.reason);}
-    const declarerId = round.seatOrder[round.declarerSeat];
-    const exposedIds = [...round.exposedSellCards];
-    const identities = {};
-    for (const id of exposedIds) {
-      const card = round.deck[id];
-      identities[id] = { rank: card.rank, suit: card.suit };
-    }
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'sell_exposed', declarerId, exposedIds, identities, gameStatus });
-      this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
-    }
+    this._runRoundAction(
+      playerId,
+      (round, seat) => round.commitSellSelection(seat, cardIds),
+      (pid, gameStatus, _result, { round }) => {
+        const declarerId = round.seatOrder[round.declarerSeat];
+        const exposedIds = [...round.exposedSellCards];
+        const identities = {};
+        for (const id of exposedIds) {
+          const card = round.deck[id];
+          identities[id] = { rank: card.rank, suit: card.suit };
+        }
+        this._store.sendToPlayer(pid, { type: 'sell_exposed', declarerId, exposedIds, identities, gameStatus });
+      },
+    );
   }
 
   handleSellCancel(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
-    const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    const result = round.cancelSelling(seat);
-    if (result.rejected) {return this._reject(playerId, result.reason);}
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
-    }
+    this._runRoundAction(
+      playerId,
+      (round, seat) => round.cancelSelling(seat),
+      () => {
+        // phase_changed broadcast is emitted by _runRoundAction itself.
+      },
+    );
   }
 
   handleSellBid(playerId, amount) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
-    const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    const result = round.submitSellBid(seat, amount);
-    if (result.rejected) {return this._reject(playerId, result.reason);}
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
-      if (result.resolved) {
-        const msg = {
-          type: 'sell_resolved',
-          outcome: result.outcome,
-          oldDeclarerId: round.seatOrder[result.oldDeclarerSeat],
-          exposedIds: result.exposedIds,
-          gameStatus,
-        };
-        msg.newDeclarerId = round.seatOrder[round.declarerSeat];
-        this._store.sendToPlayer(pid, msg);
-      }
-      this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
-    }
+    this._runRoundAction(
+      playerId,
+      (round, seat) => round.submitSellBid(seat, amount),
+      (pid, gameStatus, result, { round }) => {
+        this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
+        if (result.resolved) {
+          this._store.sendToPlayer(pid, {
+            type: 'sell_resolved',
+            outcome: result.outcome,
+            oldDeclarerId: round.seatOrder[result.oldDeclarerSeat],
+            newDeclarerId: round.seatOrder[round.declarerSeat],
+            exposedIds: result.exposedIds,
+            gameStatus,
+          });
+        }
+      },
+    );
   }
 
   handleSellPass(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
-    const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    const result = round.submitSellPass(seat);
-    if (result.rejected) {return this._reject(playerId, result.reason);}
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'pass_accepted', playerId, gameStatus });
-      if (result.resolved) {
-        const msg = {
-          type: 'sell_resolved',
-          outcome: result.outcome,
-          oldDeclarerId: result.outcome === 'sold'
+    this._runRoundAction(
+      playerId,
+      (round, seat) => round.submitSellPass(seat),
+      (pid, gameStatus, result, { round }) => {
+        this._store.sendToPlayer(pid, { type: 'pass_accepted', playerId, gameStatus });
+        if (result.resolved) {
+          const oldDeclarerId = result.outcome === 'sold'
             ? round.seatOrder[result.oldDeclarerSeat]
-            : round.seatOrder[round.declarerSeat],
-          exposedIds: result.exposedIds,
-          gameStatus,
-        };
-        if (result.outcome === 'sold') {msg.newDeclarerId = round.seatOrder[round.declarerSeat];}
-        this._store.sendToPlayer(pid, msg);
-      }
-      this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
-    }
+            : round.seatOrder[round.declarerSeat];
+          const msg = {
+            type: 'sell_resolved',
+            outcome: result.outcome,
+            oldDeclarerId,
+            exposedIds: result.exposedIds,
+            gameStatus,
+          };
+          if (result.outcome === 'sold') {
+            msg.newDeclarerId = round.seatOrder[round.declarerSeat];
+          }
+          this._store.sendToPlayer(pid, msg);
+        }
+      },
+    );
   }
 
-  // T043
+  // T043 — special-case: no per-seat broadcast loop; emits a single shared payload
+  // and then drops the round entirely.
   handleStartGame(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {return;}
+    if (!this._rateLimiter.isAllowed(playerId)) {
+      return;
+    }
     const game = this._gameOf(playerId);
-    if (!game?.round) {return this._reject(playerId, 'Not in a round');}
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
     const round = game.round;
     const seat = this._seatOf(playerId);
     const result = round.startGame(seat);
-    if (result.noop) {return;}
-    if (result.rejected) {return this._reject(playerId, result.reason);}
+    if (result.noop) {
+      return;
+    }
+    if (result.rejected) {
+      this._reject(playerId, result.reason);
+      return;
+    }
     const { declarerId, finalBid } = result;
     const gameId = game.id;
     for (const pid of game.players) {

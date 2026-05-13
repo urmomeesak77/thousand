@@ -3,25 +3,17 @@
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
-const fs = require('fs');
-const path = require('path');
+const { loadModule } = require('./helpers/loadModule');
 
 let dom;
 
 before(() => {
-  const src = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'public', 'js', 'thousand', 'HandView.js'),
-    'utf8'
-  );
-  const stripped = src
-    .replace(/^import\s+\S.*$/gm, '')
-    .replace(/^export default\s+(\w+);\s*$/gm, 'window.$1 = $1;');
-
   dom = new JSDOM('<html><body></body></html>', {
     runScripts: 'dangerously',
     url: 'http://localhost',
   });
-  dom.window.eval(stripped);
+  loadModule(dom, 'thousand/cardSymbols.js');
+  loadModule(dom, 'thousand/HandView.js');
 });
 
 function makeHandView() {

@@ -2,10 +2,11 @@
 // HandView — viewer's own face-up hand, sorted per FR-005
 // ============================================================
 
+import { SUIT_LETTER } from './cardSymbols.js';
+
 // Suit order: ♣(100) → ♠(80) → ♥(60) → ♦(40), descending by marriage value
 const SUIT_ORDER = { '♣': 0, '♠': 1, '♥': 2, '♦': 3 };
 const RANK_ORDER = { '9': 0, '10': 1, 'J': 2, 'Q': 3, 'K': 4, 'A': 5 };
-const SUIT_LETTER = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' };
 
 class HandView {
   constructor(container, antlion = null) {

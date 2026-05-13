@@ -3,6 +3,13 @@ class HtmlUtil {
     return document.getElementById(id);
   }
 
+  static button(text, className) {
+    const b = document.createElement('button');
+    b.className = className;
+    b.textContent = text;
+    return b;
+  }
+
   static escape(str) {
     return String(str)
       .replace(/&/g, '&amp;')

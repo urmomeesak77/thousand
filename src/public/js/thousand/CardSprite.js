@@ -2,7 +2,7 @@
 // CardSprite — single card visual, absolutely-positioned DOM node
 // ============================================================
 
-const SUIT_LETTER = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' };
+import { SUIT_LETTER } from './cardSymbols.js';
 
 class CardSprite {
   constructor(id) {

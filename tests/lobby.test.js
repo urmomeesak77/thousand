@@ -27,8 +27,8 @@ before(() => {
     path.join(publicDir, 'js', 'antlion', 'HtmlGameObject.js'),
     path.join(publicDir, 'js', 'antlion', 'HtmlContainer.js'),
     path.join(publicDir, 'js', 'antlion', 'Scene.js'),
-    path.join(publicDir, 'js', 'overlays', 'Toast.js'),
     path.join(publicDir, 'js', 'utils', 'HtmlUtil.js'),
+    path.join(publicDir, 'js', 'overlays', 'Toast.js'),
     path.join(publicDir, 'js', 'storage', 'IdentityStore.js'),
     path.join(publicDir, 'js', 'overlays', 'ReconnectOverlay.js'),
     path.join(publicDir, 'js', 'network', 'ThousandSocket.js'),
@@ -38,6 +38,8 @@ before(() => {
     path.join(publicDir, 'js', 'screens', 'GameList.js'),
     path.join(publicDir, 'js', 'overlays', 'PlayerTooltip.js'),
     path.join(publicDir, 'js', 'screens', 'WaitingRoom.js'),
+    path.join(publicDir, 'js', 'thousand', 'constants.js'),
+    path.join(publicDir, 'js', 'thousand', 'cardSymbols.js'),
     path.join(publicDir, 'js', 'thousand', 'CardSprite.js'),
     path.join(publicDir, 'js', 'thousand', 'DealAnimation.js'),
     path.join(publicDir, 'js', 'thousand', 'CardTable.js'),
@@ -45,26 +47,41 @@ before(() => {
     path.join(publicDir, 'js', 'thousand', 'HandView.js'),
     path.join(publicDir, 'js', 'thousand', 'OpponentView.js'),
     path.join(publicDir, 'js', 'thousand', 'TalonView.js'),
+    path.join(publicDir, 'js', 'thousand', 'BiddingControls.js'),
     path.join(publicDir, 'js', 'thousand', 'BidControls.js'),
+    path.join(publicDir, 'js', 'thousand', 'SellBidControls.js'),
+    path.join(publicDir, 'js', 'thousand', 'DeclarerDecisionControls.js'),
+    path.join(publicDir, 'js', 'thousand', 'SellSelectionControls.js'),
     path.join(publicDir, 'js', 'thousand', 'RoundActionDispatcher.js'),
     path.join(publicDir, 'js', 'thousand', 'GameStatusBox.js'),
+    path.join(publicDir, 'js', 'thousand', 'RoundReadyScreen.js'),
     path.join(publicDir, 'js', 'thousand', 'GameScreen.js'),
     path.join(publicDir, 'js', 'core', 'ThousandApp.js'),
     path.join(publicDir, 'js', 'index.js'),
   ];
 
   // Strip ES module syntax for jsdom inline execution.
-  // Each file is wrapped in an IIFE so local `const` declarations (e.g. $)
-  // don't collide across files. `export default Foo` → `window.Foo = Foo`;
-  // `export class Foo` → `class Foo` + `window.Foo = Foo` appended inside IIFE.
+  // Each file is wrapped in an IIFE so local `const` declarations don't collide
+  // across files. Imports become reads from window, named exports become writes.
   const combinedJs = jsFiles.map((filePath) => {
     const js = fs.readFileSync(filePath, 'utf8');
-    const exportedClasses = [];
+    const exportedNames = [];
     const stripped = js
-      .replace(/^import\s+(?:\{[^}]+\}|\w+)\s+from\s+['"][^'"]+['"];\s*$/gm, '')
-      .replace(/^export default\s+(\w+);\s*$/gm, (_, name) => `window.${name} = ${name};`)
-      .replace(/^export class (\w+)/gm, (_, name) => { exportedClasses.push(name); return `class ${name}`; });
-    const windowAssignments = exportedClasses.map((n) => `window.${n} = ${n};`).join('\n');
+      .replace(/^import\s+(\w+)\s+from\s+['"][^'"]+['"];?\s*$/gm, 'const $1 = window.$1;')
+      .replace(/^import\s+\{\s*([^}]+)\s*\}\s+from\s+['"][^'"]+['"];?\s*$/gm, 'const { $1 } = window;')
+      .replace(/^export\s+const\s+(\w+)\s*=/gm, (_, name) => {
+        exportedNames.push(name);
+        return `const ${name} =`;
+      })
+      .replace(/^export\s+default\s+(\w+);?\s*$/gm, (_, name) => {
+        exportedNames.push(name);
+        return '';
+      })
+      .replace(/^export\s+class\s+(\w+)/gm, (_, name) => {
+        exportedNames.push(name);
+        return `class ${name}`;
+      });
+    const windowAssignments = exportedNames.map((n) => `window.${n} = ${n};`).join('\n');
     return `(function () {\n${stripped}\n${windowAssignments}\n})();`;
   }).join('\n');
 

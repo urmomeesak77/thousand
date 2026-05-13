@@ -2,6 +2,9 @@
 // SellSelectionControls — card-selection UI for the declarer per FR-029
 // ============================================================
 
+import HtmlUtil from '../utils/HtmlUtil.js';
+import { SELL_SELECTION_SIZE } from './constants.js';
+
 class SellSelectionControls {
   constructor(container, antlion, dispatcher) {
     this._antlion = antlion;
@@ -16,8 +19,8 @@ class SellSelectionControls {
     this._counter = document.createElement('span');
     this._counter.className = 'sell-selection-controls__counter';
 
-    this._sellBtn = this._btn('Sell', 'sell-selection-controls__sell btn');
-    this._cancelBtn = this._btn('Cancel', 'sell-selection-controls__cancel btn btn--secondary');
+    this._sellBtn = HtmlUtil.button('Sell', 'sell-selection-controls__sell btn');
+    this._cancelBtn = HtmlUtil.button('Cancel', 'sell-selection-controls__cancel btn btn--secondary');
 
     this._el.append(this._counter, this._sellBtn, this._cancelBtn);
     this._updateCounter();
@@ -38,8 +41,8 @@ class SellSelectionControls {
 
   _updateCounter() {
     const n = this._selectedIds.length;
-    this._counter.textContent = `Selected: ${n} / 3`;
-    this._sellBtn.disabled = n !== 3;
+    this._counter.textContent = `Selected: ${n} / ${SELL_SELECTION_SIZE}`;
+    this._sellBtn.disabled = n !== SELL_SELECTION_SIZE;
   }
 
   _bindEvents() {
@@ -52,7 +55,9 @@ class SellSelectionControls {
 
     this._antlion.bindInput(this._sellBtn, 'click', 'sell-confirm-click');
     this._antlion.onInput('sell-confirm-click', () => {
-      if (!this._isVisible || this._selectedIds.length !== 3) {return;}
+      if (!this._isVisible || this._selectedIds.length !== SELL_SELECTION_SIZE) {
+        return;
+      }
       this._dispatcher.sendSellSelect([...this._selectedIds]);
     });
 
@@ -61,13 +66,6 @@ class SellSelectionControls {
       if (!this._isVisible) {return;}
       this._dispatcher.sendSellCancel();
     });
-  }
-
-  _btn(text, className) {
-    const b = document.createElement('button');
-    b.className = className;
-    b.textContent = text;
-    return b;
   }
 }
 

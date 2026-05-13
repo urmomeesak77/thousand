@@ -2,6 +2,8 @@
 // StatusBar — fixed top bar per FR-025
 // ============================================================
 
+import { MIN_BID, MAX_SELL_ATTEMPTS } from './constants.js';
+
 class StatusBar {
   constructor(element) {
     this._el = element;
@@ -34,11 +36,11 @@ class StatusBar {
 
     if (phase === 'Declarer deciding' && declarer) {
       this._el.appendChild(
-        this._span('status-bar__bid-winner', `Bid won: ${declarer.nickname} (${currentHighBid ?? 100})`)
+        this._span('status-bar__bid-winner', `Bid won: ${declarer.nickname} (${currentHighBid ?? MIN_BID})`)
       );
     } else {
       this._el.appendChild(
-        this._span('status-bar__bid', `Bid: ${currentHighBid ?? 100}`)
+        this._span('status-bar__bid', `Bid: ${currentHighBid ?? MIN_BID}`)
       );
       if (declarer) {
         this._el.appendChild(
@@ -55,7 +57,7 @@ class StatusBar {
 
     if (sellAttempt != null) {
       this._el.appendChild(
-        this._span('status-bar__attempt', `Attempt ${sellAttempt} of 3`)
+        this._span('status-bar__attempt', `Attempt ${sellAttempt} of ${MAX_SELL_ATTEMPTS}`)
       );
     }
 

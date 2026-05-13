@@ -3,25 +3,13 @@
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
-const fs = require('fs');
-const path = require('path');
+const { loadModule } = require('./helpers/loadModule');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load all GameScreen dependencies in dependency order
 // ---------------------------------------------------------------------------
 
 let dom;
-
-function loadModule(domInstance, filename) {
-  const src = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'public', 'js', 'thousand', filename),
-    'utf8'
-  );
-  const stripped = src
-    .replace(/^import\s+\S.*$/gm, '')
-    .replace(/^export default\s+(\w+);\s*$/gm, 'window.$1 = $1;');
-  domInstance.window.eval(stripped);
-}
 
 before(() => {
   dom = new JSDOM('<html><body></body></html>', {
@@ -31,18 +19,24 @@ before(() => {
 
   // Load in dependency order: leaf modules first, GameScreen last
   const modules = [
-    'CardSprite.js',
-    'CardTable.js',
-    'StatusBar.js',
-    'HandView.js',
-    'OpponentView.js',
-    'TalonView.js',
-    'DealAnimation.js',
-    'BidControls.js',
-    'DeclarerDecisionControls.js',
-    'GameStatusBox.js',
-    'RoundReadyScreen.js',
-    'GameScreen.js',
+    'thousand/constants.js',
+    'thousand/cardSymbols.js',
+    'utils/HtmlUtil.js',
+    'thousand/CardSprite.js',
+    'thousand/CardTable.js',
+    'thousand/StatusBar.js',
+    'thousand/HandView.js',
+    'thousand/OpponentView.js',
+    'thousand/TalonView.js',
+    'thousand/DealAnimation.js',
+    'thousand/BiddingControls.js',
+    'thousand/BidControls.js',
+    'thousand/SellBidControls.js',
+    'thousand/DeclarerDecisionControls.js',
+    'thousand/SellSelectionControls.js',
+    'thousand/GameStatusBox.js',
+    'thousand/RoundReadyScreen.js',
+    'thousand/GameScreen.js',
   ];
   for (const mod of modules) {
     loadModule(dom, mod);

@@ -3,25 +3,23 @@
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
-const fs = require('fs');
-const path = require('path');
+const { loadModule } = require('./helpers/loadModule');
 
 let dom;
 
 before(() => {
-  const src = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'public', 'js', 'thousand', 'BidControls.js'),
-    'utf8'
-  );
-  const stripped = src
-    .replace(/^import\s+\S.*$/gm, '')
-    .replace(/^export default\s+(\w+);\s*$/gm, 'window.$1 = $1;');
-
   dom = new JSDOM('<html><body></body></html>', {
     runScripts: 'dangerously',
     url: 'http://localhost',
   });
-  dom.window.eval(stripped);
+  for (const mod of [
+    'thousand/constants.js',
+    'utils/HtmlUtil.js',
+    'thousand/BiddingControls.js',
+    'thousand/BidControls.js',
+  ]) {
+    loadModule(dom, mod);
+  }
 });
 
 // Minimal Antlion mock: stores onInput handlers; bindInput is a no-op

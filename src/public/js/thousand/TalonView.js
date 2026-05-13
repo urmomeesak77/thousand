@@ -2,7 +2,7 @@
 // TalonView — central talon area: zero-to-three face-up cards
 // ============================================================
 
-const SUIT_LETTER = { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' };
+import { SUIT_LETTER } from './cardSymbols.js';
 
 class TalonView {
   constructor(container) {

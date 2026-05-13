@@ -2,6 +2,8 @@
 // DeclarerDecisionControls — Sell / Start buttons per FR-026, FR-017, FR-018
 // ============================================================
 
+import HtmlUtil from '../utils/HtmlUtil.js';
+
 class DeclarerDecisionControls {
   constructor(container, antlion, dispatcher) {
     this._antlion = antlion;
@@ -12,8 +14,8 @@ class DeclarerDecisionControls {
     this._el.className = 'declarer-controls hidden';
     container.appendChild(this._el);
 
-    this._sellBtn = this._btn('Sell', 'declarer-controls__sell btn btn--secondary');
-    this._startBtn = this._btn('Start the Game', 'declarer-controls__start btn');
+    this._sellBtn = HtmlUtil.button('Sell', 'declarer-controls__sell btn btn--secondary');
+    this._startBtn = HtmlUtil.button('Start the Game', 'declarer-controls__start btn');
 
     this._el.append(this._sellBtn, this._startBtn);
     this._bindEvents();
@@ -58,13 +60,6 @@ class DeclarerDecisionControls {
       if (this._mode === 'hidden') {return;}
       this._dispatcher.sendStartGame();
     });
-  }
-
-  _btn(text, className) {
-    const b = document.createElement('button');
-    b.className = className;
-    b.textContent = text;
-    return b;
   }
 }
 

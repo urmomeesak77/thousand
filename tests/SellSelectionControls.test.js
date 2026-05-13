@@ -3,8 +3,7 @@
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
-const fs = require('fs');
-const path = require('path');
+const { loadModule } = require('./helpers/loadModule');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load SellSelectionControls and HandView into a shared window
@@ -18,15 +17,14 @@ before(() => {
     url: 'http://localhost',
   });
 
-  for (const name of ['SellSelectionControls', 'HandView']) {
-    const src = fs.readFileSync(
-      path.join(__dirname, '..', 'src', 'public', 'js', 'thousand', `${name}.js`),
-      'utf8'
-    );
-    const stripped = src
-      .replace(/^import\s+\S.*$/gm, '')
-      .replace(/^export default\s+(\w+);\s*$/gm, 'window.$1 = $1;');
-    dom.window.eval(stripped);
+  for (const mod of [
+    'thousand/constants.js',
+    'thousand/cardSymbols.js',
+    'utils/HtmlUtil.js',
+    'thousand/SellSelectionControls.js',
+    'thousand/HandView.js',
+  ]) {
+    loadModule(dom, mod);
   }
 });
 
