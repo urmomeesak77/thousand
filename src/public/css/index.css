@@ -992,8 +992,7 @@ fieldset legend {
 @media (max-width: 640px) {
   .hand-view {
     flex-wrap: nowrap;
-    justify-content: flex-start;
-    padding-left: 1rem;
+    justify-content: center;
   }
 
   .hand-view__card + .hand-view__card {
