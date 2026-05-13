@@ -660,6 +660,11 @@ fieldset legend {
   font-weight: 600;
 }
 
+.status-bar__sell-winner {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
 .status-bar__passed-row {
   display: flex;
   align-items: center;

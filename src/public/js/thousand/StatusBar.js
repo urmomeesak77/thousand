@@ -9,7 +9,7 @@ class StatusBar {
   }
 
   // Re-renders the bar from the GameStatus view-model
-  render(gameStatus) {
+  render(gameStatus, sellWinner = null) {
     const {
       phase,
       activePlayer,
@@ -39,6 +39,12 @@ class StatusBar {
     if (declarer) {
       this._el.appendChild(
         this._span('status-bar__declarer', `Declarer: ${declarer.nickname}`)
+      );
+    }
+
+    if (sellWinner) {
+      this._el.appendChild(
+        this._span('status-bar__sell-winner', `Sold to: ${sellWinner}`)
       );
     }
 

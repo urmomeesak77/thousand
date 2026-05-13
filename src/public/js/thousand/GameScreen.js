@@ -34,6 +34,7 @@ class GameScreen {
     this._roundReadyScreen = null;
     this._talonCardIds = [];
     this._viewerIsNewDeclarer = false;
+    this._sellWinnerNickname = null;
 
     const statusBarEl = document.createElement('div');
     const tableEl = document.createElement('div');
@@ -76,6 +77,7 @@ class GameScreen {
     this._seats = msg.seats;
     this._cardsById = {};
     this._viewerIsNewDeclarer = false;
+    this._sellWinnerNickname = null;
     this._clearLastAction();
     this._talonCardIds = msg.dealSequence
       .filter(step => step.to === 'talon')
@@ -136,6 +138,7 @@ class GameScreen {
     this._cardsById = {};
     this._controlsLocked = false;
     this._viewerIsNewDeclarer = false;
+    this._sellWinnerNickname = null;
     this._clearLastAction();
 
     this._tableEl.classList.remove('hidden');
@@ -476,6 +479,7 @@ class GameScreen {
   // Called from ThousandApp on sell_started — puts the declarer into card-selection mode.
   enterSellSelection(gameStatus) {
     this._sellSubPhase = 'selection';
+    this._sellWinnerNickname = null;
     this._lastGameStatus = gameStatus;
     this._renderStatus(gameStatus);
     if (!this._controlsLocked) this._mountControlsForPhase(gameStatus);
@@ -557,6 +561,7 @@ class GameScreen {
       this._sellSubPhase = null;
       this._exposedCardIds = [];
       this._controlsLocked = false;
+      this._renderStatus(this._lastGameStatus);
       this._mountControlsForPhase(this._lastGameStatus);
     });
   }
@@ -572,6 +577,12 @@ class GameScreen {
       }
     } else if (outcome === 'sold') {
       this._viewerIsNewDeclarer = (viewerSeat === newDeclarerSeat);
+      const winnerPlayer = this._seats?.players.find(p => p.seat === newDeclarerSeat);
+      const winnerNickname = winnerPlayer?.nickname;
+      const winnerAmount = this._lastGameStatus?.currentHighBid;
+      this._sellWinnerNickname = winnerNickname
+        ? `${winnerNickname}${winnerAmount != null ? ` (${winnerAmount})` : ''}`
+        : null;
       if (viewerSeat === newDeclarerSeat) {
         this._handView.setHand(Object.values(this._cardsById));
       } else {
@@ -628,7 +639,7 @@ class GameScreen {
   }
 
   _renderStatus(gameStatus) {
-    this._statusBar.render(gameStatus);
+    this._statusBar.render(gameStatus, this._sellWinnerNickname);
     const { text, isActive } = this._computeStatusText(gameStatus);
     this._statusBox.setText(text, isActive);
   }
@@ -640,7 +651,10 @@ class GameScreen {
       return { text: `Waiting for ${activePlayer?.nickname ?? '…'}`, isActive: false };
     }
     if (phase === 'Declarer deciding') {
-      if (viewerIsActive) return { text: 'Take the talon or sell?', isActive: true };
+      if (viewerIsActive) {
+        if (this._viewerIsNewDeclarer) return { text: 'Start the game', isActive: true };
+        return { text: 'Take the talon or sell?', isActive: true };
+      }
       const name = declarer?.nickname ?? activePlayer?.nickname ?? '…';
       return { text: `Waiting for ${name}`, isActive: false };
     }
