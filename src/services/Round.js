@@ -59,7 +59,7 @@ class Round {
     const dealSequence = this.deck.map((card, i) => {
       const to = stepDest(i);
       const step = { id: i, to };
-      if (to === 'talon' || to === `seat${selfSeat}`) {
+      if (to === `seat${selfSeat}`) {
         step.rank = card.rank;
         step.suit = card.suit;
       }
@@ -248,14 +248,6 @@ class Round {
       opponentHandSizes,
     };
 
-    // Talon identities visible to all during dealing and bidding
-    if (this.phase === 'dealing' || this.phase === 'bidding') {
-      payload.talon = this.talon.map(id => {
-        const card = this.deck[id];
-        return { id, rank: card.rank, suit: card.suit };
-      });
-    }
-
     if (this.talon.length > 0) {
       payload.talonIds = [...this.talon];
     }
@@ -266,7 +258,7 @@ class Round {
       payload.dealSequence = this.deck.map((card, i) => {
         const to = stepDest(i);
         const step = { id: i, to };
-        if (to === 'talon' || to === `seat${seat}`) {
+        if (to === `seat${seat}`) {
           step.rank = card.rank;
           step.suit = card.suit;
         }

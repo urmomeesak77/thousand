@@ -92,14 +92,14 @@ describe('round-messages — round_started on startRound', () => {
     }
   });
 
-  it('per-viewer filtering: own-seat and talon steps carry rank+suit; others do not', () => {
+  it('per-viewer filtering: only own-seat steps carry rank+suit; talon and opponent steps do not', () => {
     const { ws } = setupInProgressGame();
     for (let viewerSeat = 0; viewerSeat < 3; viewerSeat++) {
       const msg = ws[viewerSeat]._sent.find((m) => m.type === 'round_started');
       assert.ok(msg.dealSequence && msg.dealSequence.length === 24, 'dealSequence must have 24 steps');
 
       for (const step of msg.dealSequence) {
-        const isVisible = step.to === 'talon' || step.to === `seat${viewerSeat}`;
+        const isVisible = step.to === `seat${viewerSeat}`;
         if (isVisible) {
           assert.ok('rank' in step, `step id=${step.id} (to=${step.to}) must carry rank for viewer seat ${viewerSeat}`);
           assert.ok('suit' in step, `step id=${step.id} (to=${step.to}) must carry suit`);
@@ -813,7 +813,7 @@ describe('round-messages — reconnect to in-progress game (T009)', () => {
     assert.equal(snapshot.seats.self, 0, 'reconnecting player (seat 0) must see seats.self = 0');
   });
 
-  it('round_state_snapshot for dealing/bidding phase includes talon identities', () => {
+  it('round_state_snapshot for dealing/bidding phase includes talonIds but not talon identities', () => {
     const store = new ThousandStore();
     const cm = new ConnectionManager(store);
 
@@ -841,10 +841,9 @@ describe('round-messages — reconnect to in-progress game (T009)', () => {
     sendMsg(newWs, { type: 'hello', playerId: pids[0], sessionToken: tokens[0] });
 
     const snapshot = newWs._sent.find((m) => m.type === 'round_state_snapshot');
-    assert.ok(Array.isArray(snapshot.talon) && snapshot.talon.length === 3,
-      'dealing-phase snapshot must include talon identities');
+    assert.ok(!snapshot.talon, 'dealing-phase snapshot must NOT include talon identities');
     assert.ok(Array.isArray(snapshot.talonIds) && snapshot.talonIds.length === 3,
-      'snapshot must include talonIds');
+      'snapshot must include talonIds (card count only, no identities)');
   });
 
   it('round_state_snapshot for bidding phase with no bids includes dealSequence for animation replay', () => {
@@ -877,7 +876,7 @@ describe('round-messages — reconnect to in-progress game (T009)', () => {
     const talonSteps = snapshot.dealSequence.filter(s => s.to === 'talon');
     assert.equal(talonSteps.length, 3, 'dealSequence must have 3 talon steps');
     talonSteps.forEach((s) => {
-      assert.ok('rank' in s && 'suit' in s, 'talon steps must carry rank+suit');
+      assert.ok(!('rank' in s) && !('suit' in s), 'talon steps must NOT carry rank+suit (face-down)');
     });
   });
 

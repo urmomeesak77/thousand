@@ -20,6 +20,15 @@ class TalonView {
     }
   }
 
+  setFaceDownCount(count) {
+    this._container.textContent = '';
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'card-sprite card-sprite--back';
+      this._container.appendChild(el);
+    }
+  }
+
   // Used at the moment the declarer absorbs the talon
   clear() {
     this.setCards([]);

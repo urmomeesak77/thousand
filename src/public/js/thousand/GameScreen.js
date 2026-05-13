@@ -115,11 +115,8 @@ class GameScreen {
         const selfCards = Object.values(this._cardsById)
           .filter(c => !this._talonCardIds.includes(c.id));
         this._handView.setHand(selfCards);
-        // Show talon cards in the centre
-        const talonCards = this._talonCardIds
-          .map(id => this._cardsById[id])
-          .filter(Boolean);
-        this._talonView.setCards(talonCards);
+        // Show talon as face-down during bidding (rules: talon not revealed until declarer takes it)
+        this._talonView.setFaceDownCount(this._talonCardIds.length);
         this._leftOpponent.setCardCount(7);
         this._rightOpponent.setCardCount(7);
         this._controlsLocked = false;
@@ -146,11 +143,6 @@ class GameScreen {
 
     for (const card of msg.myHand) {
       this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
-    }
-    if (msg.talon) {
-      for (const card of msg.talon) {
-        this._cardsById[card.id] = { id: card.id, rank: card.rank, suit: card.suit };
-      }
     }
     if (msg.exposed) {
       for (const card of msg.exposed) {
@@ -183,8 +175,7 @@ class GameScreen {
           const selfCards = Object.values(this._cardsById)
             .filter(c => !this._talonCardIds.includes(c.id));
           this._handView.setHand(selfCards);
-          const talonCards = this._talonCardIds.map(id => this._cardsById[id]).filter(Boolean);
-          this._talonView.setCards(talonCards);
+          this._talonView.setFaceDownCount(this._talonCardIds.length);
           this._leftOpponent.setCardCount(msg.opponentHandSizes[msg.seats.left] ?? 7);
           this._rightOpponent.setCardCount(msg.opponentHandSizes[msg.seats.right] ?? 7);
           this._controlsLocked = false;
@@ -202,8 +193,8 @@ class GameScreen {
 
     if (msg.exposed && msg.exposed.length > 0) {
       this._talonView.setCards(msg.exposed);
-    } else if (msg.talon && msg.talon.length > 0) {
-      this._talonView.setCards(msg.talon);
+    } else if (msg.talonIds && msg.talonIds.length > 0) {
+      this._talonView.setFaceDownCount(msg.talonIds.length);
     } else {
       this._talonView.clear();
     }

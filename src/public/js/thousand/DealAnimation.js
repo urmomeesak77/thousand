@@ -69,9 +69,7 @@ class DealAnimation {
     const origin = this._cardTable.getSlot('deckOrigin');
     sprite.setPosition(origin.x, origin.y);
 
-    const isOwnSeat = step.to === `seat${this._viewerSeat}`;
-    const isTalon = step.to === 'talon';
-    if (isOwnSeat || isTalon) {
+    if (step.to === `seat${this._viewerSeat}`) {
       sprite.setFace('up');
       const identity = this._cardsById[step.id];
       if (identity) sprite.setIdentity(identity);
