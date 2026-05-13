@@ -419,6 +419,12 @@ class GameScreen {
         this._controlsEl.textContent = '';
         this._bidControls = null;
       }
+      if (this._sellSelectionControls) {
+        this._handView.setSelectionMode(false);
+        this._sellSelectionControls = null;
+      }
+      if (this._sellBidControls) { this._sellBidControls = null; }
+      this._sellSubPhase = null;
 
       if (viewerIsActive) {
         if (!this._declarerControls) {
