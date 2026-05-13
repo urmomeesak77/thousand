@@ -8,6 +8,17 @@ const HELLO_TIMEOUT_MS = 5000;
 const MESSAGE_RATE_LIMIT = 30;
 const MESSAGE_RATE_WINDOW_MS = 10000;
 
+const ACTION_DISPATCH = {
+  bid:         (h, pid, m) => h.handleBid(pid, m.amount),
+  pass:        (h, pid)    => h.handlePass(pid),
+  sell_start:  (h, pid)    => h.handleSellStart(pid),
+  sell_select: (h, pid, m) => h.handleSellSelect(pid, m.cardIds),
+  sell_cancel: (h, pid)    => h.handleSellCancel(pid),
+  sell_bid:    (h, pid, m) => h.handleSellBid(pid, m.amount),
+  sell_pass:   (h, pid)    => h.handleSellPass(pid),
+  start_game:  (h, pid)    => h.handleStartGame(pid),
+};
+
 class ConnectionManager {
   constructor(store) {
     this._store = store;
@@ -77,75 +88,84 @@ class ConnectionManager {
   }
 
   _handleMessage(ws, data) {
+    if (this._enforceRateLimit(ws)) return;
+    const msg = this._parseMessage(ws, data);
+    if (!msg) return;
+    if (msg.type === 'ping') return;
+    if (msg.type === 'hello') {
+      this._handleHello(ws, msg);
+      return;
+    }
+    if (ws._playerId && this._handleAuthedMessage(ws, msg)) return;
+    ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
+  }
+
+  // Returns true if this message should be dropped (rate-limit exceeded — connection closed).
+  _enforceRateLimit(ws) {
     const now = Date.now();
     const entry = this._wsMessageCounts.get(ws);
     if (!entry || now > entry.resetAt) {
       this._wsMessageCounts.set(ws, { count: 1, resetAt: now + MESSAGE_RATE_WINDOW_MS });
-    } else {
-      if (entry.count >= MESSAGE_RATE_LIMIT) {
-        ws.close(1008, 'Message rate limit exceeded');
-        return;
-      }
-      entry.count++;
+      return false;
     }
+    if (entry.count >= MESSAGE_RATE_LIMIT) {
+      ws.close(1008, 'Message rate limit exceeded');
+      return true;
+    }
+    entry.count++;
+    return false;
+  }
 
+  // Returns parsed message or null if invalid (error already sent to client).
+  _parseMessage(ws, data) {
     let msg;
     try {
       msg = JSON.parse(data.toString());
     } catch {
       ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid JSON' }));
-      return;
+      return null;
     }
     if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
       ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Invalid message' }));
-      return;
+      return null;
     }
-    if (msg.type === 'ping') {
-      return;
-    }
+    return msg;
+  }
 
-    if (msg.type === 'hello') {
-      if (ws._playerId) {
-        return;
-      }
-      clearTimeout(ws._helloTimer);
-      const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
-      const result = this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken);
-      ws._playerId = result.playerId;
-      if (result.restored) {
-        this._store.reconnectPlayer(result.playerId, ws);
-      }
-      ws.send(JSON.stringify({ type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken, restored: result.restored, nickname: result.nickname, gameId: result.gameId }));
-      ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
-      if (result.restored && result.gameId) {
-        const game = this._store.games.get(result.gameId);
-        if (game) {
-          if (game.status === 'in-progress') {
-            const seat = game.round.seatByPlayer.get(result.playerId);
-            const snapshot = game.round.getSnapshotFor(seat);
-            if (snapshot) ws.send(JSON.stringify(snapshot));
-          } else {
-            ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt, inviteCode: game.inviteCode ?? null, requiredPlayers: game.requiredPlayers }));
-          }
-        }
-      }
-      return;
+  _handleHello(ws, msg) {
+    if (ws._playerId) return;
+    clearTimeout(ws._helloTimer);
+    const clientIp = HttpUtil.normalizeIp(ws._socket?.remoteAddress || 'unknown');
+    const result = this._store.createOrRestorePlayer(ws, clientIp, msg.playerId, msg.sessionToken);
+    ws._playerId = result.playerId;
+    if (result.restored) {
+      this._store.reconnectPlayer(result.playerId, ws);
     }
-
-    if (ws._playerId) {
-      const h = this._roundActionHandler;
-      const pid = ws._playerId;
-      if (msg.type === 'bid') { h.handleBid(pid, msg.amount); return; }
-      if (msg.type === 'pass') { h.handlePass(pid); return; }
-      if (msg.type === 'sell_start') { h.handleSellStart(pid); return; }
-      if (msg.type === 'sell_select') { h.handleSellSelect(pid, msg.cardIds); return; }
-      if (msg.type === 'sell_cancel') { h.handleSellCancel(pid); return; }
-      if (msg.type === 'sell_bid') { h.handleSellBid(pid, msg.amount); return; }
-      if (msg.type === 'sell_pass') { h.handleSellPass(pid); return; }
-      if (msg.type === 'start_game') { h.handleStartGame(pid); return; }
+    ws.send(JSON.stringify({ type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken, restored: result.restored, nickname: result.nickname, gameId: result.gameId }));
+    ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
+    if (result.restored && result.gameId) {
+      this._sendRestoredGameState(ws, result);
     }
+  }
 
-    ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
+  _sendRestoredGameState(ws, result) {
+    const game = this._store.games.get(result.gameId);
+    if (!game) return;
+    if (game.status === 'in-progress') {
+      const seat = game.round.seatByPlayer.get(result.playerId);
+      const snapshot = game.round.getSnapshotFor(seat);
+      if (snapshot) ws.send(JSON.stringify(snapshot));
+    } else {
+      ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt, inviteCode: game.inviteCode ?? null, requiredPlayers: game.requiredPlayers }));
+    }
+  }
+
+  // Returns true if the message was handled (known authed action), false to let caller send the unrecognized-type error.
+  _handleAuthedMessage(ws, msg) {
+    const action = ACTION_DISPATCH[msg.type];
+    if (!action) return false;
+    action(this._roundActionHandler, ws._playerId, msg);
+    return true;
   }
 
   _decrementIpCount(clientIp) {

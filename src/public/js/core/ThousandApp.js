@@ -69,6 +69,31 @@ class ThousandApp {
       (err) => this._toast.show(err),
       () => this._reconnectOverlay?.show(),
     );
+
+    this._messageHandlers = {
+      connected:            (m) => this._onConnected(m),
+      lobby_update:         (m) => this._onLobbyUpdate(m),
+      game_joined:          (m) => this._onGameJoined(m),
+      player_joined:        (m) => { this._waitingRoom.updatePlayers(m.players); this._toast.show(`${m.player.nickname} joined the game.`); },
+      player_left:          (m) => { this._waitingRoom.updatePlayers(m.players); this._toast.show(`${m.nickname || 'A player'} left the game.`); },
+      game_disbanded:       (m) => this._onGameDisbanded(m),
+      session_replaced:     ( ) => this._toast.show('Connected from another tab or browser — this session ended.'),
+      error:                (m) => this._toast.show(m.message || 'An error occurred'),
+      round_started:        (m) => this._onRoundStarted(m),
+      phase_changed:        (m) => this._gameScreen.updateStatus(m.gameStatus),
+      action_rejected:      (m) => this._toast.show(m.reason),
+      bid_accepted:         (m) => this._onBidAccepted(m),
+      pass_accepted:        (m) => this._onPassAccepted(m),
+      talon_absorbed:       (m) => this._gameScreen.absorbTalon(m),
+      play_phase_ready:     (m) => this._onPlayPhaseReady(m),
+      round_aborted:        (m) => this._onRoundAborted(m),
+      player_disconnected:  (m) => { this._gameScreen.updateStatus(m.gameStatus); this._gameScreen.setPlayerDisconnected(m.playerId, true); },
+      player_reconnected:   (m) => { this._gameScreen.updateStatus(m.gameStatus); this._gameScreen.setPlayerDisconnected(m.playerId, false); },
+      round_state_snapshot: (m) => this._onRoundStateSnapshot(m),
+      sell_started:         (m) => this._gameScreen.enterSellSelection(m.gameStatus),
+      sell_exposed:         (m) => this._gameScreen.enterSellBidding(m),
+      sell_resolved:        (m) => this._gameScreen.exitSelling(m),
+    };
   }
 
   init() {
@@ -135,135 +160,100 @@ class ThousandApp {
   }
 
   _handleMessage(msg) {
-    if (!msg || typeof msg.type !== 'string') {
-      return;
-    }
+    if (!msg || typeof msg.type !== 'string') return;
     const validator = MESSAGE_VALIDATORS[msg.type];
-    if (!validator || !validator(msg)) {
-      return;
+    if (!validator || !validator(msg)) return;
+    this._messageHandlers[msg.type]?.(msg);
+  }
+
+  _onConnected(msg) {
+    this._playerId = msg.playerId;
+    this._sessionToken = msg.sessionToken;
+    this._api.setSessionToken(this._sessionToken);
+    IdentityStore.save(msg.playerId, msg.sessionToken);
+    this._reconnectOverlay.hide();
+    if (msg.restored && msg.nickname !== null) {
+      this._nickname = msg.nickname;
+      $('player-name-display').textContent = msg.nickname;
+      this._showScreen('lobby-screen');
+      this._gameList.startElapsedTimer();
+    } else {
+      this._showScreen('nickname-screen');
     }
-    switch (msg.type) {
-      case 'connected':
-        this._playerId = msg.playerId;
-        this._sessionToken = msg.sessionToken;
-        this._api.setSessionToken(this._sessionToken);
-        IdentityStore.save(msg.playerId, msg.sessionToken);
-        this._reconnectOverlay.hide();
-        if (msg.restored && msg.nickname !== null) {
-          this._nickname = msg.nickname;
-          $('player-name-display').textContent = msg.nickname;
-          this._showScreen('lobby-screen');
-          this._gameList.startElapsedTimer();
-        } else {
-          this._showScreen('nickname-screen');
-        }
-        break;
-      case 'lobby_update':
-        this._gameList.setGames(msg.games);
-        if (this._selectedGameId && !msg.games.find((g) => g.id === this._selectedGameId)) {
-          this._clearGameSelection();
-        }
-        break;
-      case 'game_joined':
-        this._gameId = msg.gameId;
-        this._inviteCode = msg.inviteCode ?? null;
-        this._clearGameSelection();
-        this._gameList.stopElapsedTimer();
-        this._waitingRoom.load(this._gameId, this._inviteCode, msg.players, msg.requiredPlayers);
-        this._showScreen('game-screen');
-        this._waitingRoom.startTimer(msg.createdAt);
-        break;
-      case 'player_joined':
-        this._waitingRoom.updatePlayers(msg.players);
-        this._toast.show(`${msg.player.nickname} joined the game.`);
-        break;
-      case 'player_left':
-        this._waitingRoom.updatePlayers(msg.players);
-        this._toast.show(`${msg.nickname || 'A player'} left the game.`);
-        break;
-      case 'game_disbanded':
-        this._gameId = null;
-        this._inviteCode = null;
-        this._waitingRoom.stopTimer();
-        this._showScreen('lobby-screen');
-        this._gameList.startElapsedTimer();
-        this._toast.show(
-          msg.reason === 'waiting_room_timeout'
-            ? 'Waiting room closed — the game wasn\'t started within 10 minutes.'
-            : 'The host left — game was disbanded.'
-        );
-        break;
-      case 'session_replaced':
-        this._toast.show('Connected from another tab or browser — this session ended.');
-        break;
-      case 'error':
-        this._toast.show(msg.message || 'An error occurred');
-        break;
-      case 'round_started':
-        this._waitingRoom.stopTimer();
-        this._showGameSubscreen('round');
-        this._gameScreen.init(msg);
-        break;
-      case 'phase_changed':
-        this._gameScreen.updateStatus(msg.gameStatus);
-        break;
-      case 'action_rejected':
-        this._toast.show(msg.reason);
-        break;
-      case 'bid_accepted':
-        this._gameScreen.updateStatus(msg.gameStatus);
-        this._gameScreen.flashPlayer(msg.playerId);
-        this._gameScreen.setBidAction(msg.playerId, msg.amount);
-        break;
-      case 'pass_accepted':
-        this._gameScreen.updateStatus(msg.gameStatus);
-        this._gameScreen.flashPlayer(msg.playerId);
-        this._gameScreen.setPassAction(msg.playerId);
-        break;
-      case 'talon_absorbed':
-        this._gameScreen.absorbTalon(msg);
-        break;
-      case 'play_phase_ready':
-        this._gameScreen.updateStatus(msg.gameStatus);
-        this._gameScreen.showRoundReady(
-          'ready',
-          { declarerNickname: msg.gameStatus.declarer?.nickname, finalBid: msg.finalBid },
-          () => this._returnFromRound(),
-        );
-        break;
-      case 'round_aborted':
-        this._roundEnded = true;
-        this._gameScreen.updateStatus(msg.gameStatus);
-        this._gameScreen.showRoundReady(
-          'aborted',
-          { disconnectedNickname: msg.disconnectedNickname, reason: msg.reason },
-          () => this._returnFromRound(),
-        );
-        break;
-      case 'player_disconnected':
-        this._gameScreen.updateStatus(msg.gameStatus);
-        this._gameScreen.setPlayerDisconnected(msg.playerId, true);
-        break;
-      case 'player_reconnected':
-        this._gameScreen.updateStatus(msg.gameStatus);
-        this._gameScreen.setPlayerDisconnected(msg.playerId, false);
-        break;
-      case 'round_state_snapshot':
-        this._waitingRoom.stopTimer();
-        this._showScreen('game-screen');
-        this._showGameSubscreen('round');
-        this._gameScreen.initFromSnapshot(msg);
-        break;
-      case 'sell_started':
-        this._gameScreen.enterSellSelection(msg.gameStatus);
-        break;
-      case 'sell_exposed':
-        this._gameScreen.enterSellBidding(msg);
-        break;
-      case 'sell_resolved':
-        this._gameScreen.exitSelling(msg);
-        break;
+  }
+
+  _onLobbyUpdate(msg) {
+    this._gameList.setGames(msg.games);
+    if (this._selectedGameId && !msg.games.find((g) => g.id === this._selectedGameId)) {
+      this._clearGameSelection();
     }
+  }
+
+  _onGameJoined(msg) {
+    this._gameId = msg.gameId;
+    this._inviteCode = msg.inviteCode ?? null;
+    this._clearGameSelection();
+    this._gameList.stopElapsedTimer();
+    this._waitingRoom.load(this._gameId, this._inviteCode, msg.players, msg.requiredPlayers);
+    this._showScreen('game-screen');
+    this._waitingRoom.startTimer(msg.createdAt);
+  }
+
+  _onGameDisbanded(msg) {
+    this._gameId = null;
+    this._inviteCode = null;
+    this._waitingRoom.stopTimer();
+    this._showScreen('lobby-screen');
+    this._gameList.startElapsedTimer();
+    this._toast.show(
+      msg.reason === 'waiting_room_timeout'
+        ? 'Waiting room closed — the game wasn\'t started within 10 minutes.'
+        : 'The host left — game was disbanded.'
+    );
+  }
+
+  _onRoundStarted(msg) {
+    this._waitingRoom.stopTimer();
+    this._showGameSubscreen('round');
+    this._gameScreen.init(msg);
+  }
+
+  _onBidAccepted(msg) {
+    this._gameScreen.updateStatus(msg.gameStatus);
+    this._gameScreen.flashPlayer(msg.playerId);
+    this._gameScreen.setBidAction(msg.playerId, msg.amount);
+  }
+
+  _onPassAccepted(msg) {
+    this._gameScreen.updateStatus(msg.gameStatus);
+    this._gameScreen.flashPlayer(msg.playerId);
+    this._gameScreen.setPassAction(msg.playerId);
+  }
+
+  _onPlayPhaseReady(msg) {
+    this._gameScreen.updateStatus(msg.gameStatus);
+    this._gameScreen.showRoundReady(
+      'ready',
+      { declarerNickname: msg.gameStatus.declarer?.nickname, finalBid: msg.finalBid },
+      () => this._returnFromRound(),
+    );
+  }
+
+  _onRoundAborted(msg) {
+    this._roundEnded = true;
+    this._gameScreen.updateStatus(msg.gameStatus);
+    this._gameScreen.showRoundReady(
+      'aborted',
+      { disconnectedNickname: msg.disconnectedNickname, reason: msg.reason },
+      () => this._returnFromRound(),
+    );
+  }
+
+  _onRoundStateSnapshot(msg) {
+    this._waitingRoom.stopTimer();
+    this._showScreen('game-screen');
+    this._showGameSubscreen('round');
+    this._gameScreen.initFromSnapshot(msg);
   }
 
   _bindUI() {

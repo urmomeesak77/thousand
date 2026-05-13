@@ -71,6 +71,35 @@ class GameScreen {
     this._talonView = new TalonView(talonEl);
   }
 
+  _seatOf(playerId) {
+    return this._seats?.players.find((p) => p.playerId === playerId)?.seat ?? null;
+  }
+
+  _opponentForSeat(seat) {
+    if (!this._seats || seat == null) return null;
+    if (seat === this._seats.left) return this._leftOpponent;
+    if (seat === this._seats.right) return this._rightOpponent;
+    return null;
+  }
+
+  _elForSeat(seat) {
+    if (!this._seats || seat == null) return null;
+    if (seat === this._seats.self) return this._handEl;
+    if (seat === this._seats.left) return this._leftEl;
+    if (seat === this._seats.right) return this._rightEl;
+    return null;
+  }
+
+  _setLastActionForSeat(seat, text) {
+    if (!this._seats || seat == null) return;
+    if (seat === this._seats.self) {
+      this._lastActionEl.textContent = text;
+      this._lastActionEl.classList.remove('hidden');
+    } else {
+      this._opponentForSeat(seat)?.setLastAction(text);
+    }
+  }
+
   // Called on round_started; seeds cardsById, lays out seats, starts the deal animation.
   init(msg) {
     this._cardTable.refresh();
@@ -187,19 +216,8 @@ class GameScreen {
 
   // Adds a brief highlight ring to the seat that just bid or passed.
   flashPlayer(playerId) {
-    if (!this._seats) return;
-    const player = this._seats.players.find((p) => p.playerId === playerId);
-    if (!player) return;
-
-    let el;
-    if (player.seat === this._seats.self) {
-      el = this._handEl;
-    } else if (player.seat === this._seats.left) {
-      el = this._leftEl;
-    } else {
-      el = this._rightEl;
-    }
-
+    const el = this._elForSeat(this._seatOf(playerId));
+    if (!el) return;
     el.classList.add('bid-flash');
     this._antlion.schedule(600, () => el.classList.remove('bid-flash'));
   }
@@ -213,25 +231,14 @@ class GameScreen {
   }
 
   _setPlayerLastAction(playerId, text) {
-    if (!this._seats) return;
-    const player = this._seats.players.find(p => p.playerId === playerId);
-    if (!player) return;
-    if (player.seat === this._seats.self) {
-      this._lastActionEl.textContent = text;
-      this._lastActionEl.classList.remove('hidden');
-    } else if (player.seat === this._seats.left) {
-      this._leftOpponent.setLastAction(text);
-    } else if (player.seat === this._seats.right) {
-      this._rightOpponent.setLastAction(text);
-    }
+    this._setLastActionForSeat(this._seatOf(playerId), text);
   }
 
   // Animates the 3 talon cards flying into the declarer's hand (FR-023, FR-024).
   absorbTalon(msg) {
     const { declarerId, talonIds, identities, gameStatus } = msg;
     const viewerSeat = this._seats?.self;
-    const declarerPlayer = this._seats?.players.find(p => p.playerId === declarerId);
-    const declarerSeat = declarerPlayer?.seat;
+    const declarerSeat = this._seatOf(declarerId);
     const viewerIsDeclarer = viewerSeat === declarerSeat;
 
     this._renderStatus(gameStatus);
@@ -258,11 +265,7 @@ class GameScreen {
         for (const id of talonIds) {
           delete this._cardsById[id];
         }
-        if (declarerSeat === this._seats?.left) {
-          this._leftOpponent.setCardCount(10);
-        } else if (declarerSeat === this._seats?.right) {
-          this._rightOpponent.setCardCount(10);
-        }
+        this._opponentForSeat(declarerSeat)?.setCardCount(10);
       }
       this._controlsLocked = false;
       this._mountControlsForPhase(this._lastGameStatus);
@@ -271,14 +274,7 @@ class GameScreen {
 
   // Updates the "Connection lost…" indicator for an opponent (FR-021).
   setPlayerDisconnected(playerId, disconnected) {
-    if (!this._seats) return;
-    const player = this._seats.players.find(p => p.playerId === playerId);
-    if (!player) return;
-    if (player.seat === this._seats.left) {
-      this._leftOpponent.setDisconnected(disconnected);
-    } else if (player.seat === this._seats.right) {
-      this._rightOpponent.setDisconnected(disconnected);
-    }
+    this._opponentForSeat(this._seatOf(playerId))?.setDisconnected(disconnected);
   }
 
   // Hides the table/controls and shows the round-ready (or aborted) screen.
@@ -426,20 +422,18 @@ class GameScreen {
     this._controlsEl.textContent = '';
 
     const viewerSeat = this._seats?.self;
-    const declarerPlayer = this._seats?.players.find(p => p.playerId === declarerId);
-    const declarerSeat = declarerPlayer?.seat;
+    const declarerSeat = this._seatOf(declarerId);
     const viewerIsDeclarer = viewerSeat === declarerSeat;
 
     if (viewerIsDeclarer) {
       const exposed = new Set(exposedIds);
       this._handView.setHand(Object.values(this._cardsById).filter(c => !exposed.has(c.id)));
     } else {
-      if (declarerSeat === this._seats?.left) this._leftOpponent.setCardCount(7);
-      else if (declarerSeat === this._seats?.right) this._rightOpponent.setCardCount(7);
+      this._opponentForSeat(declarerSeat)?.setCardCount(7);
     }
 
     const slots = this._cardTable.slotsForSeat(viewerSeat);
-    const fromSlot = (declarerSeat !== undefined ? slots[declarerSeat] : null) ?? this._cardTable.getSlot('talon');
+    const fromSlot = (declarerSeat != null ? slots[declarerSeat] : null) ?? this._cardTable.getSlot('talon');
     const toSlot = this._cardTable.getSlot('talon');
 
     this._animateSprites(exposedIds, fromSlot, toSlot, () => {
@@ -463,15 +457,13 @@ class GameScreen {
     if (this._sellBidControls) { this._controlsEl.textContent = ''; this._sellBidControls = null; }
     if (this._sellSelectionControls) { this._controlsEl.textContent = ''; this._sellSelectionControls = null; }
 
-    const oldDeclarerSeat = this._seats?.players.find(p => p.playerId === oldDeclarerId)?.seat;
-    const newDeclarerSeat = newDeclarerId
-      ? this._seats?.players.find(p => p.playerId === newDeclarerId)?.seat
-      : undefined;
+    const oldDeclarerSeat = this._seatOf(oldDeclarerId);
+    const newDeclarerSeat = newDeclarerId ? this._seatOf(newDeclarerId) : null;
 
     const slots = this._cardTable.slotsForSeat(viewerSeat);
     const talonSlot = this._cardTable.getSlot('talon');
     const destSeat = outcome === 'sold' ? newDeclarerSeat : oldDeclarerSeat;
-    const destSlot = (destSeat !== undefined ? slots[destSeat] : null) ?? talonSlot;
+    const destSlot = (destSeat != null ? slots[destSeat] : null) ?? talonSlot;
 
     this._talonView.clear();
 
@@ -491,8 +483,7 @@ class GameScreen {
         this._handView.setHand(Object.values(this._cardsById));
       } else {
         for (const id of exposedIds) delete this._cardsById[id];
-        if (oldDeclarerSeat === this._seats?.left) this._leftOpponent.setCardCount(10);
-        else if (oldDeclarerSeat === this._seats?.right) this._rightOpponent.setCardCount(10);
+        this._opponentForSeat(oldDeclarerSeat)?.setCardCount(10);
       }
     } else if (outcome === 'sold') {
       this._viewerIsNewDeclarer = (viewerSeat === newDeclarerSeat);
@@ -510,10 +501,8 @@ class GameScreen {
           this._handView.setHand(Object.values(this._cardsById));
         }
       }
-      if (newDeclarerSeat === this._seats?.left) this._leftOpponent.setCardCount(10);
-      else if (newDeclarerSeat === this._seats?.right) this._rightOpponent.setCardCount(10);
-      if (oldDeclarerSeat === this._seats?.left) this._leftOpponent.setCardCount(7);
-      else if (oldDeclarerSeat === this._seats?.right) this._rightOpponent.setCardCount(7);
+      this._opponentForSeat(newDeclarerSeat)?.setCardCount(10);
+      this._opponentForSeat(oldDeclarerSeat)?.setCardCount(7);
     }
   }
 
