@@ -237,6 +237,16 @@ class ThousandStore {
       this._deleteGame(gameId, game);
       return;
     }
+    if (game.status === 'in-progress' && game.round) {
+      game.round.abort(nickname);
+      const baseMsg = { type: 'round_aborted', reason: 'player_left', disconnectedNickname: nickname };
+      for (const pid of game.players) {
+        const recipientSeat = game.round.seatByPlayer.get(pid);
+        this.sendToPlayer(pid, { ...baseMsg, gameStatus: game.round.getViewModelFor(recipientSeat) });
+      }
+      this._cleanupRound(gameId);
+      return;
+    }
     if (game.hostId === playerId && game.status === 'waiting') {
       this._disbandGame(gameId, game);
       return;

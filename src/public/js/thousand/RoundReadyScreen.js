@@ -21,6 +21,9 @@ class RoundReadyScreen {
     if (mode === 'ready') {
       heading.textContent = 'Round ready to play';
       body.textContent = 'Round ready to play — next phase coming soon';
+    } else if (context.reason === 'player_left') {
+      heading.textContent = 'Game ended';
+      body.textContent = `${context.disconnectedNickname} left the game.`;
     } else {
       heading.textContent = 'Round aborted';
       body.textContent = `Round aborted — ${context.disconnectedNickname} did not reconnect`;

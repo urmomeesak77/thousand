@@ -234,7 +234,7 @@ class ThousandApp {
         this._gameScreen.updateStatus(msg.gameStatus);
         this._gameScreen.showRoundReady(
           'aborted',
-          { disconnectedNickname: msg.disconnectedNickname },
+          { disconnectedNickname: msg.disconnectedNickname, reason: msg.reason },
           () => this._returnFromRound(),
         );
         break;
