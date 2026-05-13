@@ -162,11 +162,13 @@ class Round {
         }
       : null;
 
-    // During selling-bidding, passedPlayers reflects sell opponents who passed (not the bidding-phase passers)
-    const passedPlayers = (this.phase === 'selling-bidding'
+    // passedBidders shown only during bidding; sell opponents shown only during selling-bidding
+    const passedSeats = this.phase === 'selling-bidding'
       ? [...this.passedSellOpponents]
-      : [...this.passedBidders]
-    ).map(s => this._store.players.get(this.seatOrder[s]).nickname);
+      : this.phase === 'bidding'
+        ? [...this.passedBidders]
+        : [];
+    const passedPlayers = passedSeats.map(s => this._store.players.get(this.seatOrder[s]).nickname);
 
     // sellAttempt is 1-based: shown during selling phases and in post-bid-decision after a failed attempt
     let sellAttempt = null;
