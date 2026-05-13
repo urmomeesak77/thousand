@@ -3,6 +3,7 @@
 // ============================================================
 
 import StatusBar from './StatusBar.js';
+import GameStatusBox from './GameStatusBox.js';
 import CardTable from './CardTable.js';
 import HandView from './HandView.js';
 import OpponentView from './OpponentView.js';
@@ -38,13 +39,17 @@ class GameScreen {
     const tableEl = document.createElement('div');
     tableEl.className = 'game-table';
     const leftEl = document.createElement('div');
+    const centerColEl = document.createElement('div');
+    centerColEl.className = 'talon-col';
+    const statusBoxEl = document.createElement('div');
     const talonEl = document.createElement('div');
+    centerColEl.append(statusBoxEl, talonEl);
     const rightEl = document.createElement('div');
     const handEl = document.createElement('div');
     this._controlsEl = document.createElement('div');
     this._controlsEl.className = 'game-controls';
 
-    tableEl.append(leftEl, talonEl, rightEl, handEl);
+    tableEl.append(leftEl, centerColEl, rightEl, handEl);
     container.append(statusBarEl, tableEl, this._controlsEl);
 
     this._tableEl = tableEl;
@@ -53,6 +58,7 @@ class GameScreen {
     this._handEl = handEl;
 
     this._statusBar = new StatusBar(statusBarEl);
+    this._statusBox = new GameStatusBox(statusBoxEl);
     this._cardTable = new CardTable(antlion, tableEl);
     this._handView = new HandView(handEl, antlion);
     this._leftOpponent = new OpponentView(leftEl);
@@ -112,7 +118,7 @@ class GameScreen {
     );
     animation.start(this._tableEl);
 
-    this._statusBar.render(msg.gameStatus);
+    this._renderStatus(msg.gameStatus);
   }
 
   // Called on round_state_snapshot; rebuilds the layout, playing the deal animation if no
@@ -146,7 +152,7 @@ class GameScreen {
     if (leftPlayer) this._leftOpponent.setNickname(leftPlayer.nickname);
     if (rightPlayer) this._rightOpponent.setNickname(rightPlayer.nickname);
 
-    this._statusBar.render(msg.gameStatus);
+    this._renderStatus(msg.gameStatus);
     this._lastGameStatus = msg.gameStatus;
 
     if (msg.dealSequence) {
@@ -206,7 +212,7 @@ class GameScreen {
   // Called on every phase_changed, bid_accepted, pass_accepted, etc.
   updateStatus(gameStatus) {
     this._lastGameStatus = gameStatus;
-    this._statusBar.render(gameStatus);
+    this._renderStatus(gameStatus);
     if (!this._controlsLocked) {
       this._mountControlsForPhase(gameStatus);
     }
@@ -251,7 +257,7 @@ class GameScreen {
     const declarerSeat = declarerPlayer?.seat;
     const viewerIsDeclarer = viewerSeat === declarerSeat;
 
-    this._statusBar.render(gameStatus);
+    this._renderStatus(gameStatus);
     this._lastGameStatus = gameStatus;
     this._controlsLocked = true;
 
@@ -431,7 +437,7 @@ class GameScreen {
   enterSellSelection(gameStatus) {
     this._sellSubPhase = 'selection';
     this._lastGameStatus = gameStatus;
-    this._statusBar.render(gameStatus);
+    this._renderStatus(gameStatus);
     if (!this._controlsLocked) this._mountControlsForPhase(gameStatus);
   }
 
@@ -448,7 +454,7 @@ class GameScreen {
 
     this._exposedCardIds = [...exposedIds];
     this._sellSubPhase = 'bidding';
-    this._statusBar.render(gameStatus);
+    this._renderStatus(gameStatus);
     this._lastGameStatus = gameStatus;
     this._controlsLocked = true;
 
@@ -486,7 +492,7 @@ class GameScreen {
     const { outcome, oldDeclarerId, newDeclarerId, exposedIds, gameStatus } = msg;
     const viewerSeat = this._seats?.self;
 
-    this._statusBar.render(gameStatus);
+    this._renderStatus(gameStatus);
     this._lastGameStatus = gameStatus;
     this._controlsLocked = true;
 
@@ -579,6 +585,34 @@ class GameScreen {
         isEligible: !viewerIsOriginalDeclarer && !viewerHasPassed,
       });
     }
+  }
+
+  _renderStatus(gameStatus) {
+    this._statusBar.render(gameStatus);
+    const { text, isActive } = this._computeStatusText(gameStatus);
+    this._statusBox.setText(text, isActive);
+  }
+
+  _computeStatusText(gameStatus) {
+    const { phase, viewerIsActive, activePlayer, declarer } = gameStatus;
+    if (phase === 'Bidding') {
+      if (viewerIsActive) return { text: 'Your turn', isActive: true };
+      return { text: `Waiting for ${activePlayer?.nickname ?? '…'}`, isActive: false };
+    }
+    if (phase === 'Declarer deciding') {
+      if (viewerIsActive) return { text: 'Take the talon or sell?', isActive: true };
+      const name = declarer?.nickname ?? activePlayer?.nickname ?? '…';
+      return { text: `Waiting for ${name}`, isActive: false };
+    }
+    if (phase === 'Selling') {
+      if (this._sellSubPhase === 'selection') {
+        if (viewerIsActive) return { text: 'Choose 3 cards to show', isActive: true };
+        return { text: `Waiting for ${declarer?.nickname ?? '…'} to choose cards`, isActive: false };
+      }
+      if (viewerIsActive) return { text: 'Your turn', isActive: true };
+      return { text: `Waiting for ${activePlayer?.nickname ?? '…'}`, isActive: false };
+    }
+    return { text: '', isActive: false };
   }
 
   // Animate an array of card ids from one slot to another; calls onComplete when done.

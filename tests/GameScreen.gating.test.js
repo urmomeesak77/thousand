@@ -40,6 +40,7 @@ before(() => {
     'DealAnimation.js',
     'BidControls.js',
     'DeclarerDecisionControls.js',
+    'GameStatusBox.js',
     'RoundReadyScreen.js',
     'GameScreen.js',
   ];

@@ -47,6 +47,7 @@ before(() => {
     path.join(publicDir, 'js', 'thousand', 'TalonView.js'),
     path.join(publicDir, 'js', 'thousand', 'BidControls.js'),
     path.join(publicDir, 'js', 'thousand', 'RoundActionDispatcher.js'),
+    path.join(publicDir, 'js', 'thousand', 'GameStatusBox.js'),
     path.join(publicDir, 'js', 'thousand', 'GameScreen.js'),
     path.join(publicDir, 'js', 'core', 'ThousandApp.js'),
     path.join(publicDir, 'js', 'index.js'),

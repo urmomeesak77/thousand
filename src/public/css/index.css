@@ -894,6 +894,51 @@ fieldset legend {
 }
 
 /* ============================================================
+   Talon column — center grid cell wrapping status box + talon
+   ============================================================ */
+
+.talon-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* push group to 1/4 from top — free space ratio 1:3 (top:bottom) */
+.talon-col::before {
+  content: '';
+  flex: 1;
+}
+
+.talon-col::after {
+  content: '';
+  flex: 3;
+}
+
+/* ============================================================
+   Game status box — prominent label above talon cards
+   ============================================================ */
+
+.game-status-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.9rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-status-box--active {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary);
+}
+
+/* ============================================================
    Talon view — central face-up card area
    ============================================================ */
 
