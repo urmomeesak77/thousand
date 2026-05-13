@@ -20,26 +20,37 @@ A persistent top status bar on every client shows phase + active player + curren
 |---|---|
 | `src/services/Round.js` | Round state machine + actions (bid, pass, sell select / cancel / bid / pass, start) |
 | `src/services/Deck.js` | 24-card factory + Fisher-Yates shuffle (pure functions; `crypto.randomInt` for entropy) |
+| `src/services/RoundPhases.js` | R-001 extraction: phase-transition helpers (talon absorption, sell-auction resolution, opponent rotation) |
+| `src/services/DealSequencer.js` | R-001 extraction: canonical 24-step destination function + initial distribution |
+| `src/services/RoundSnapshot.js` | R-001 extraction: per-viewer view-model + snapshot/seat-layout/dealSequence builders |
+| `src/services/PlayerRegistry.js` | Post-feature extraction: players Map + sessionToken index (split out of `ThousandStore`) |
 | `src/controllers/RoundActionHandler.js` | Validates and dispatches in-round WS messages; per-player 250 ms throttle; phase/turn gating; broadcasts |
 
 ### Frontend (`src/public/js/thousand/`)
 
 | File | Class / purpose |
 |---|---|
-| `GameScreen.js` | In-round screen container |
+| `GameScreen.js` | In-round screen container; owns table layout, hand/opponent/talon views, and `cardsById` |
+| `GameScreenControls.js` | Mounts/unmounts the phase-appropriate controls (Bid / Decision / SellSelection / SellBid) per FR-026 |
+| `SellPhaseView.js` | Selling-phase sub-state machine + selection / expose / resolve animations (extracted from `GameScreen`) |
 | `StatusBar.js` | Fixed top bar (FR-025) |
+| `GameStatusBox.js` | Prominent turn-indicator label rendered above the talon (post-launch addition; complements `StatusBar`) |
+| `statusText.js` | `computeStatusText()` helper consumed by `GameStatusBox` |
 | `CardTable.js` | Layout + slot positions for self/left/right/talon/deck-origin |
 | `CardSprite.js` | Single card visual (id, position, face state) |
 | `HandView.js` | Viewer's own hand: sorted, taps for sell-selection |
 | `OpponentView.js` | One opponent's face-down hand |
 | `TalonView.js` | Central talon |
 | `DealAnimation.js` | 24-step deal animation via `Antlion.onTick` |
-| `BidControls.js` | Bid input + ±5 steppers + Pass (FR-028) |
+| `BiddingControls.js` | Shared base — numeric field + ±5 steppers + Bid + Pass (FR-028); inherited by both bid-controls below |
+| `BidControls.js` | Main-bidding controls (extends `BiddingControls`) |
+| `SellBidControls.js` | Selling-bidding controls (extends `BiddingControls`) |
 | `DeclarerDecisionControls.js` | Sell / Start buttons |
 | `SellSelectionControls.js` | Sell-confirm / Cancel (FR-029) |
-| `SellBidControls.js` | Opponent's buy controls |
-| `RoundReadyScreen.js` | "Round ready to play" + Back-to-Lobby |
+| `RoundReadyScreen.js` | "Round ready to play" + Back-to-Lobby (also used for the round-aborted variant) |
 | `RoundActionDispatcher.js` | Outbound WS message wrapper |
+| `cardSymbols.js` | `SUIT_LETTER` constants |
+| `constants.js` | Bid/round numeric constants (`MIN_BID`, `MAX_BID`, `BID_STEP`) |
 
 ### Tests
 
@@ -65,7 +76,8 @@ A persistent top status bar on every client shows phase + active player + curren
 | `src/services/ThousandStore.js` | Attach `round` to each `Game`; `startRound(gameId)` flips status to `'in-progress'`, instantiates `Round`, broadcasts `round_started`; disconnect-during-round flow (pause vs continue, abort on grace expiry); cleanup on `play_phase_ready` / `round_aborted` (FR-032) |
 | `src/services/ConnectionManager.js` | New message branches: `bid`, `pass`, `sell_select`, `sell_cancel`, `sell_bid`, `sell_pass`, `start_game` — all delegated to `RoundActionHandler`. `hello` flow now sends `round_state_snapshot` (instead of `game_joined`) when restoring into an `in-progress` game |
 | `src/controllers/GameController.js` | `_admitPlayerToGame`: when the join brings `players.size === requiredPlayers`, call `store.startRound(gameId)` |
-| `src/public/js/core/ThousandApp.js` | New validators + handlers: `round_started`, `phase_changed`, `bid_accepted`, `pass_accepted`, `talon_absorbed`, `sell_started`, `sell_exposed`, `sell_resolved`, `play_phase_ready`, `round_aborted`, `action_rejected`, `round_state_snapshot`, `player_disconnected`, `player_reconnected`. Instantiate `GameScreen` alongside `WaitingRoom` in `_gameContainer`; switch based on `game.status`. Route `action_rejected.reason` to `Toast.show()` (FR-031) |
+| `src/public/js/core/ThousandApp.js` | Owns the `Toast` instance and the `_gameScreen` lifecycle; switches between WaitingRoom and GameScreen based on `game.status`. Validator + handler registration for the new server→client messages now lives in `ThousandMessageRouter.js` (extracted post-feature). |
+| `src/public/js/core/ThousandMessageRouter.js` | Server→client message routing (added post-feature). Registers validators + handlers for `round_started`, `phase_changed`, `bid_accepted`, `pass_accepted`, `talon_absorbed`, `sell_started`, `sell_exposed`, `sell_resolved`, `play_phase_ready`, `round_aborted`, `action_rejected`, `round_state_snapshot`, `player_disconnected`, `player_reconnected`. Routes `action_rejected.reason` to `app._toast.show(reason)` (FR-031). |
 | `src/public/css/index.css` | Game-screen layout: full-width container, fixed status bar, table grid, card sprites (face-up vs back), button rows, RoundReady screen. Responsive media queries; reuse existing green palette + `--touch-min` |
 
 ## Backend integration
@@ -82,13 +94,17 @@ _admitPlayerToGame(game, player, nickname) {
 // src/services/ThousandStore.js — new method
 startRound(gameId) {
   const game = this.games.get(gameId);
-  if (!game || game.status !== 'waiting' || game.players.size !== game.requiredPlayers) return;
-  game.status = 'in-progress';
+  if (!game) return;
   if (game.waitingRoomTimer) { clearTimeout(game.waitingRoomTimer); game.waitingRoomTimer = null; }
+  game.status = 'in-progress';
   game.round = new Round({ game, store: this });
   game.round.start();
+  // Pre-advance to `bidding` so the round_started payload carries phase: 'Bidding';
+  // the client still defers BidControls activation until its deal animation completes (FR-024).
+  game.round.advanceFromDealingToBidding();
   for (const pid of game.players) {
-    this.sendToPlayer(pid, game.round.getRoundStartedPayloadFor(pid));
+    const payload = game.round.getRoundStartedPayloadFor(pid);
+    if (payload) this.sendToPlayer(pid, payload);
   }
   this.broadcastLobbyUpdate();   // game leaves the public lobby
 }
@@ -119,7 +135,8 @@ handleBid(playerId, amount) {
 ## Frontend integration
 
 ```js
-// src/public/js/core/ThousandApp.js — new validator + handler
+// src/public/js/core/ThousandMessageRouter.js — validators + handlers
+// (extracted from ThousandApp.js post-feature; ThousandApp now just instantiates the router)
 const MESSAGE_VALIDATORS = {
   // ... existing ...
   round_started: (m) => Array.isArray(m.dealSequence) && m.seats && m.gameStatus,
@@ -128,22 +145,12 @@ const MESSAGE_VALIDATORS = {
   // ... see contracts/ws-messages.md for the complete validator set ...
 };
 
-_handleMessage(msg) {
-  // ... existing branches ...
-  switch (msg.type) {
-    case 'round_started':
-      this._gameScreen.init(msg);
-      this._showScreen('game');
-      break;
-    case 'phase_changed':
-      this._gameScreen.updateStatus(msg.gameStatus);
-      break;
-    case 'action_rejected':
-      this._toast.show(msg.reason);
-      break;
-    // ... other branches ...
-  }
-}
+const HANDLERS = {
+  round_started:   (m) => app._gameScreen.init(m),
+  phase_changed:   (m) => app._gameScreen.updateStatus(m.gameStatus),
+  action_rejected: (m) => app._toast.show(m.reason),
+  // ... other branches ...
+};
 
 // src/public/js/thousand/DealAnimation.js — animation skeleton
 class DealAnimation {
@@ -186,7 +193,7 @@ node --test tests/HandView.test.js tests/GameScreen.gating.test.js tests/BidCont
 2. Open three browser tabs at `http://localhost:3000/`.
 3. Set three nicknames; from tab 1 host a public 3-player game; tabs 2 and 3 join.
 4. **Auto-start (FR-001, SC-001)**: within 2 s of tab 3 joining, all three tabs swap from the WaitingRoom to the GameScreen.
-5. **Deal animation (FR-002, FR-024)**: each tab plays the same 24-card deal, interleaved P1→P2→Dealer→Talon×3 then P1→P2→Dealer×4. Cards visibly fly from the central deck; opponents' cards are card-backs; talon cards land face-up; own cards land face-up.
+5. **Deal animation (FR-002, FR-024)**: each tab plays the same 24-card deal, interleaved P1→P2→Dealer→Talon×3 then P1→P2→Dealer×4. Cards visibly fly from the central deck; opponents' cards are card-backs; **talon cards land face-down** (FR-006 post-launch change — identities are revealed to the declarer only on absorption); own cards land face-up.
 6. **Hand sort (FR-005)**: at the end of dealing, the own-hand is sorted ♣→♠→♥→♦ left-to-right, ascending 9→A within each suit.
 7. **Seating (FR-005)**: the opponent who acts immediately after the viewer in clockwise order is on the viewer's left.
 8. **Status bar (FR-025)**: top bar shows `Dealing` → `Bidding`, the active bidder, "your turn"/"waiting for…" framing, and the high-bid label rendered as **100** before any accepted bid (the wire `currentHighBid` is `null` at that point; the client renders `currentHighBid ?? 100`).

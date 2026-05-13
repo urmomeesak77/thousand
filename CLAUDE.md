@@ -1,6 +1,6 @@
 ﻿# thousand Development Guidelines
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
@@ -16,15 +16,19 @@ Last updated: 2026-05-13
 ```text
 src/server.js                          # HTTP + WebSocket server entry point
 src/services/
-  ThousandStore.js                     # game/player state (in-memory)
+  ThousandStore.js                     # game/player state (in-memory) — delegates player Map to PlayerRegistry
+  PlayerRegistry.js                    # players Map + sessionToken index (extracted from ThousandStore)
   ConnectionManager.js                 # WebSocket connection lifecycle + message dispatch
   Round.js                             # round state machine & action methods
   RoundPhases.js                       # phase-transition helpers (extracted from Round for size)
   DealSequencer.js                     # deal-sequence computation (extracted from Round for size)
+  RoundSnapshot.js                     # per-viewer view-model, seats, snapshot payload (extracted from Round for size)
   Deck.js                              # deck creation and shuffle
 src/controllers/
   RequestHandler.js                    # HTTP routing
   GameController.js                    # game CRUD handlers
+  NicknameController.js                # POST /api/nickname handler
+  nicknameLookup.js                    # `isNicknameTaken()` helper
   RoundActionHandler.js                # in-round action dispatch (bid, pass, sell, etc.)
   validators.js                        # input validation
 src/utils/
@@ -37,6 +41,8 @@ src/public/
     index.js                           # bootstrap — creates ThousandApp, starts Antlion
     core/
       ThousandApp.js                   # app coordinator — state + orchestration
+      ThousandMessageRouter.js         # server→client message routing (extracted from ThousandApp)
+      LobbyBinder.js                   # binds lobby-screen events to app/socket
     network/
       ThousandSocket.js                # WebSocket wrapper
       GameApi.js                       # REST API client
@@ -55,19 +61,26 @@ src/public/
     antlion/                           # engine layer — generic, game-agnostic
     thousand/                          # game-specific UI components
       GameScreen.js                    # root game screen; owns all sub-views
+      GameScreenControls.js            # mounts/unmounts phase-appropriate control widgets (extracted from GameScreen)
+      SellPhaseView.js                 # sell-phase sub-state + selection/expose animation (extracted from GameScreen)
       CardTable.js                     # shared card table layout
       CardSprite.js                    # individual card rendering
       HandView.js                      # player's hand of cards
       OpponentView.js                  # opponent hand stubs
       TalonView.js                     # talon/widow card display
-      StatusBar.js                     # round status line
-      BidControls.js                   # bidding-phase action buttons
+      StatusBar.js                     # fixed top status bar (FR-025)
+      GameStatusBox.js                 # status label rendered above the talon
+      statusText.js                    # `computeStatusText()` — phase/turn label helper
+      BiddingControls.js               # shared base class for BidControls + SellBidControls (FR-028)
+      BidControls.js                   # main-bidding controls (extends BiddingControls)
+      SellBidControls.js               # selling-bidding controls (extends BiddingControls)
       DeclarerDecisionControls.js      # declarer take/give controls
-      RoundReadyScreen.js              # waiting screen before play starts
-      SellBidControls.js               # sell-phase bid entry
       SellSelectionControls.js         # sell-phase card selection
+      RoundReadyScreen.js              # round-ready / round-aborted handoff screen
       DealAnimation.js                 # deal card animation sequencer
       RoundActionDispatcher.js         # client-side round action dispatch
+      cardSymbols.js                   # `SUIT_LETTER` constants
+      constants.js                     # bid/round numeric constants (MIN_BID, MAX_BID, BID_STEP)
 tests/                                 # Node.js built-in test runner (*.test.js)
 specs/                                 # feature specs, plans, and contracts (read-only at runtime)
 docs/                                  # developer documentation
@@ -111,7 +124,7 @@ See `docs/CODING_CONVENTIONS.md` for the full reference. Key points:
 
 ## Active Feature Branch
 
-**004-game-round-bidding-selling** (complete through selling phase): Implements the full round lifecycle — dealing, bidding, declarer decision, selling — with server-side `Round.js` driving phase transitions and a full frontend UI under `src/public/js/thousand/`. Branch 003 (persistent player identity) is fully merged in.
+**004-game-round-bidding-selling** (feature complete; post-feature refactor pass landed): Implements the full round lifecycle — dealing, bidding, declarer decision, selling — with server-side `Round.js` driving phase transitions and a full frontend UI under `src/public/js/thousand/`. Branches 002 (Antlion engine) and 003 (persistent player identity) are fully merged in. The R-001 size-budget mitigation produced three Round extractions (`RoundPhases.js`, `DealSequencer.js`, `RoundSnapshot.js`) and three frontend extractions (`GameScreenControls.js`, `SellPhaseView.js`, shared-base `BiddingControls.js`).
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

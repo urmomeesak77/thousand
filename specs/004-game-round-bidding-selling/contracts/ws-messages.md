@@ -311,7 +311,7 @@ The server simultaneously deletes the game record (FR-032).
 
 ### `round_aborted`
 
-Sent when any player's grace period expires without reconnection — FR-021 (a) active-player disconnect or (b) non-active-player disconnect. Applied symmetrically.
+Sent when any player's grace period expires without reconnection — FR-021 (a) active-player disconnect or (b) non-active-player disconnect — or when a player explicitly leaves an in-progress game. Applied symmetrically.
 
 ```json
 {
@@ -324,8 +324,8 @@ Sent when any player's grace period expires without reconnection — FR-021 (a) 
 
 | Field                 | Type   | Notes |
 |-----------------------|--------|-------|
-| reason                | string | Enum. Currently only `"player_grace_expired"`; reserved for future causes (e.g., `"server_error"`). |
-| disconnectedNickname  | string | Nickname of the player whose grace expired — used by the abort screen message ("Round aborted — {nickname} did not reconnect"). |
+| reason                | string | Enum: `"player_grace_expired"` (grace-period expiry per FR-021) \| `"player_left"` (player explicitly left the game while in-progress). Reserved for future causes (e.g., `"server_error"`). |
+| disconnectedNickname  | string | Nickname of the player whose grace expired (or who left) — used by the abort screen message ("Round aborted — {nickname} did not reconnect"). |
 | gameStatus            | object | View-model with `phase: 'Round aborted'`. |
 
 The server simultaneously deletes the game record (FR-032).
@@ -361,11 +361,11 @@ Sent ONLY to a reconnecting player whose game is in `in-progress` status. Replac
   "gameStatus": { /* ... */ },
   "seats": { /* ... — same shape as round_started.seats */ },
   "myHand": [{ "id": 4, "rank": "Q", "suit": "♠" }, "..."],
-  "talon": [{ "id": 3, "rank": "10", "suit": "♥" }, "..."],
   "exposed": [{ "id": 17, "rank": "K", "suit": "♣" }, "..."],
   "opponentHandSizes": { "1": 7, "2": 7 },
   "exposedSellCardIds": [4, 9, 17],
-  "talonIds": [3, 11, 21]
+  "talonIds": [3, 11, 21],
+  "dealSequence": [{ "id": 0, "to": "seat1" }, { "id": 1, "to": "seat2", "rank": "K", "suit": "♣" }, "..."]
 }
 ```
 
@@ -375,10 +375,11 @@ Sent ONLY to a reconnecting player whose game is in `in-progress` status. Replac
 | gameStatus | object | View-model |
 | seats | object | Same shape as `round_started.seats` — recipient's `self`/`left`/`right`/`dealer` |
 | myHand | array | Recipient's hand, with identities |
-| talon | array \| omitted | Present iff `phase ∈ { Dealing, Bidding }` (talon hasn't been absorbed) |
-| exposed | array \| omitted | Present iff `phase === 'Selling'` and we are in the selling-bidding sub-phase |
+| exposed | array \| omitted | Present iff `phase === 'Selling'` and we are in the selling-bidding sub-phase. Each entry has full identity (rank, suit) — exposed cards are visible to all viewers. |
 | opponentHandSizes | object | Map `seatIdx → handSize`, identities never included |
-| exposedSellCardIds, talonIds | int[] \| omitted | Provided as id-only sets so the client can render the correct number of card-back sprites even before identities (if any) are parsed |
+| talonIds | int[] \| omitted | Present iff `round.talon.length > 0` (i.e., not yet absorbed). Identities are NOT included — the talon is rendered face-down per the post-launch product change (see FR-006 / commit `dad1b57`). |
+| exposedSellCardIds | int[] \| omitted | Present iff `round.exposedSellCards.length > 0`. Companion id-only field to `exposed` so the client can lay out face-back sprites before mapping identities. |
+| dealSequence | array \| omitted | Present iff `phase === 'Bidding'` AND `currentHighBid === null` (i.e., the reconnect arrived during pre-first-bid bidding); the client replays the deal animation rather than snapping. Each step has `{ id, to }`; `rank` and `suit` are included only on steps where `to === 'seat' + recipient.seat`. Animating a partially-played round would be jarring, so this field is intentionally suppressed once the first bid has landed. |
 
 **Per-viewer payload**: every identity in this message MUST come from the recipient's currently-visible scope per the per-viewer visibility table in `data-model.md`. The server MUST NOT send identities for cards that have left the recipient's visible scope at any prior point in the round.
 
@@ -396,7 +397,7 @@ Sent when a player enters their grace period during an in-progress round. `gameS
 
 **Client behaviour**: render the "Connection lost…" badge next to the matching seat (FR-021, FR-025).
 
-If the disconnected player is the `currentTurnSeat`, the server also flips `round.pausedByDisconnect = true` and subsequently rejects all state-changing actions until reconnect or grace expiry (FR-021).
+If the disconnected player is the `currentTurnSeat`, the server also flips `round.isPausedByDisconnect = true` and subsequently rejects all state-changing actions until reconnect or grace expiry (FR-021).
 
 ---
 
@@ -410,7 +411,7 @@ Sent the instant a previously-disconnected player reconnects within their grace 
 
 **Client behaviour**: clear the "Connection lost…" badge on the matching seat.
 
-If the reconnecting player is the `currentTurnSeat`, the server flips `round.pausedByDisconnect = false` and resumes action-acceptance.
+If the reconnecting player is the `currentTurnSeat`, the server flips `round.isPausedByDisconnect = false` and resumes action-acceptance.
 
 ---
 

@@ -74,31 +74,43 @@ specs/004-game-round-bidding-selling/
 # New backend files
 src/services/Round.js                                 # Round state machine + actions
 src/services/Deck.js                                  # 24-card factory + Fisher-Yates shuffle (pure functions)
+src/services/RoundPhases.js                           # R-001 extraction: phase-transition helpers (absorbTalon, sell-auction resolution, opponent rotation)
+src/services/DealSequencer.js                         # R-001 extraction: canonical 24-step destination function + distribution builder
+src/services/RoundSnapshot.js                         # R-001 extraction: view-model + per-viewer snapshot/seat-layout/dealSequence builders
+src/services/PlayerRegistry.js                        # Post-feature extraction (split from ThousandStore): players Map + sessionToken index
 src/controllers/RoundActionHandler.js                 # Validate + dispatch in-round WS messages
 
 # Modified backend files
-src/services/ThousandStore.js                         # Attach round to game; auto-start on 3rd join; disconnect-during-round flow; cleanup on round end
+src/services/ThousandStore.js                         # Attach round to game; auto-start on 3rd join; disconnect-during-round flow; cleanup on round end; player Map delegated to PlayerRegistry
 src/services/ConnectionManager.js                     # New message branches: bid/pass/sell_select/sell_cancel/sell_bid/sell_pass/start_game; reconnect snapshot
 src/controllers/GameController.js                     # Trigger startRound() when 3rd player admitted
 
 # New frontend files (src/public/js/thousand/)
-src/public/js/thousand/GameScreen.js                  # In-round screen container
+src/public/js/thousand/GameScreen.js                  # In-round screen container; delegates control mounting to GameScreenControls and sell-phase UX to SellPhaseView
+src/public/js/thousand/GameScreenControls.js          # Mounts/unmounts phase-appropriate controls (Bid/Decision/SellSelection/SellBid) per FR-026
+src/public/js/thousand/SellPhaseView.js               # Sell-phase sub-state + selection / expose / resolve animations (extracted from GameScreen)
 src/public/js/thousand/StatusBar.js                   # Fixed top bar (FR-025)
+src/public/js/thousand/GameStatusBox.js               # Prominent turn-indicator label rendered above the talon (post-launch addition, complements StatusBar)
+src/public/js/thousand/statusText.js                  # `computeStatusText()` helper consumed by GameStatusBox
 src/public/js/thousand/CardTable.js                   # Table layout + slot positions
 src/public/js/thousand/CardSprite.js                  # Single card visual
 src/public/js/thousand/HandView.js                    # Viewer's own hand (sorted, tap-to-select for Selling)
 src/public/js/thousand/OpponentView.js                # One opponent's face-down hand
 src/public/js/thousand/TalonView.js                   # Central talon
 src/public/js/thousand/DealAnimation.js               # 24-step deal animation (Antlion.onTick)
-src/public/js/thousand/BidControls.js                 # Bid input + steppers + Pass (FR-028)
+src/public/js/thousand/BiddingControls.js             # Shared base class — numeric field + ±5 steppers + Bid + Pass (FR-028); collapses duplication between BidControls and SellBidControls
+src/public/js/thousand/BidControls.js                 # Main-bidding controls (extends BiddingControls)
+src/public/js/thousand/SellBidControls.js             # Sell-bidding controls (extends BiddingControls)
 src/public/js/thousand/DeclarerDecisionControls.js    # Sell / Start buttons
 src/public/js/thousand/SellSelectionControls.js       # Sell-confirm / Cancel
-src/public/js/thousand/SellBidControls.js             # Opponent's buy controls (reused BidControls shape)
-src/public/js/thousand/RoundReadyScreen.js            # "Round ready to play" + Back-to-Lobby
+src/public/js/thousand/RoundReadyScreen.js            # Round-ready / round-aborted handoff screen
 src/public/js/thousand/RoundActionDispatcher.js       # Outbound message wrapper
+src/public/js/thousand/cardSymbols.js                 # `SUIT_LETTER` constants
+src/public/js/thousand/constants.js                   # Bid/round numeric constants (MIN_BID, MAX_BID, BID_STEP)
 
 # Modified frontend files
-src/public/js/core/ThousandApp.js                     # New validators/handlers; instantiate GameScreen; route action_rejected to Toast
+src/public/js/core/ThousandApp.js                     # Instantiate GameScreen; route action_rejected to Toast (server→client dispatch extracted to ThousandMessageRouter)
+src/public/js/core/ThousandMessageRouter.js           # Server→client message router (extracted from ThousandApp post-feature)
 src/public/css/index.css                              # Game-screen layout, status bar, card sprites, button rows, RoundReady
 
 # New test files
@@ -136,7 +148,7 @@ Disconnect handling (FR-021, FR-027 reconnect snapshot) is implemented increment
 
 | ID    | Risk                                              | Detail                                                                                                                                                                                                                                                                                              | Mitigation                                                                                                                                                                                                                          |
 |-------|---------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| R-001 | `Round` class size (§IX signal)                   | The round state machine has 5 phases, 7 action methods, plus snapshot + view-model getters. First draft is expected to land at ~180 lines, exceeding the §IX ~100-line guideline.                                                                                                                  | Tracked task in tasks.md — measure final line count. If > 150 lines, extract phase-transition helpers into `RoundPhases.js`; if dealing logic also grows, extract `DealSequencer.js`. Document the decomposition in a code comment. |
+| R-001 | `Round` class size (§IX signal)                   | The round state machine has 5 phases, 7 action methods, plus snapshot + view-model getters. First draft is expected to land at ~180 lines, exceeding the §IX ~100-line guideline.                                                                                                                  | **Resolved.** Three extractions landed: `RoundPhases.js` (phase-transition helpers), `DealSequencer.js` (24-step destination function + distribution), and `RoundSnapshot.js` (view-model + snapshot builders). `Round.js` is currently ~310 lines and continues to be a candidate for further decomposition (the GameScreen frontend counterpart was split into `GameScreenControls.js` and `SellPhaseView.js` for the same reason). |
 | R-002 | `Antlion.onTick` performance with 24 sprites      | A 60 fps loop driving 24 card sprites + an animating one is well within modern-browser headroom, but a tight per-tick update path matters. A regression in animation smoothness during the deal would visibly degrade SC-001 perception.                                                            | Profile the deal animation on the slowest target device early in P1. Ensure `CardSprite.setPosition` writes only on actual position change (not every tick). Cache DOM references; avoid reflow-triggering reads in the tick loop.   |
 | R-003 | View-model drift between server and client        | The persistent status bar (FR-025) requires every client to render the same phase/active-player/high-bid/declarer/passed/attempt/disconnect indicators. If the server forgets to push an update on any state change, the bar goes stale.                                                            | Centralize: every `Round` action method returns a `{ broadcast: { gameStatus, ... } }` object — never let a caller forget. The `RoundActionHandler` emits one `phase_changed` per action. End-to-end test asserts equality across the 3 clients after each step. |
 | R-004 | Reconnect snapshot leaking historical identities  | FR-022 / FR-023 require the snapshot to contain only currently-visible identities. A naive snapshot that returns the full deck would leak opponent cards.                                                                                                                                          | `Round.getSnapshotFor(viewerSeat)` is the single function that builds snapshots — explicitly filtered per the visibility table in `data-model.md`. A unit test compares the snapshot bytes against the visibility table for each phase.                          |

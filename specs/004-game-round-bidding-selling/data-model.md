@@ -22,7 +22,9 @@ Attached to each `Game` record as `game.round` (initially `null`; populated when
   declarerSeat: seatIdx | null,                // null until bidding resolves
   attemptCount: 0 | 1 | 2 | 3,                 // selling attempts used so far
   attemptHistory: [{ exposedIds: number[], outcome: 'sold' | 'returned' }, ...],
-  pausedByDisconnect: boolean,                 // true while the currentTurnSeat player is in their grace period
+  isPausedByDisconnect: boolean,               // true while the currentTurnSeat player is in their grace period
+  disconnectedSeats: Set<seatIdx>,             // all seats currently within their grace period (drives `disconnectedPlayers` view-model field; superset of the single active-pause seat tracked by isPausedByDisconnect)
+  _lastSellBidderSeat: seatIdx | null,         // last opponent who placed a sell-bid this attempt; used by `submitSellPass` to distinguish the "one passed + other has bid → sale" outcome (FR-017) from the "both passed without bidding → returned" outcome (FR-016). Resets at each new selling attempt.
 }
 ```
 
@@ -124,9 +126,9 @@ This is the canonical source-of-truth for what the server MAY send `{ rank, suit
 
 | Phase | Talon cards | Declarer's hand | Each opponent's hand | Exposed (selling) cards | Notes |
 |---|---|---|---|---|---|
-| `dealing` | visible to ALL | identities visible ONLY to the seat that owns them (each viewer sees their own 7) | own-hand-only to that viewer | n/a | `Round.start()` populates hands and talon at phase entry; identities for the recipient's own seat and for the talon are delivered via `round_started` before the client begins animating. |
-| `bidding` | visible to ALL | hand size unknown until declarer determined; talon still visible | own-hand-only to that viewer | n/a | |
-| `post-bid-decision` (after absorption) | none (cards moved into declarer's hand) | identities visible ONLY to declarer; opponents see id-only face-backs | own-hand-only to that viewer | n/a | Identities of the 3 former-talon cards must be dropped client-side on opponents at the moment of the `talon_absorbed` message (FR-023). |
+| `dealing` | face-down to ALL (no identities sent) | identities visible ONLY to the seat that owns them (each viewer sees their own 7) | own-hand-only to that viewer | n/a | `Round.start()` populates hands and talon at phase entry; identities for the recipient's own seat are delivered via `round_started`. **Talon identities are NOT sent** during dealing — the talon renders as face-back card sprites for every viewer (post-launch FR-006 change, commit `dad1b57`). |
+| `bidding` | face-down to ALL (no identities sent) | hand size unknown until declarer determined; talon stays face-down | own-hand-only to that viewer | n/a | Same as dealing — talon identities remain undisclosed throughout bidding. |
+| `post-bid-decision` (after absorption) | none (cards moved into declarer's hand) | identities visible ONLY to declarer; opponents see id-only face-backs | own-hand-only to that viewer | n/a | The declarer receives the 3 former-talon identities for the first time, via the `talon_absorbed` message. Opponents never received them. |
 | `selling-selection` | none | identities visible ONLY to declarer | own-hand-only to that viewer | n/a (selection happens inside declarer's hand UI; no center exposure yet) | |
 | `selling-bidding` | none | declarer holds 7 (identities visible ONLY to declarer); the 3 exposed cards live in `exposedSellCards` and identities are visible to ALL | own-hand-only to that viewer | identities visible to ALL | |
 | `post-bid-decision` (after sell-bidding all-pass) | none | declarer holds 10 (identities visible ONLY to declarer) | own-hand-only | n/a | The 3 cards' identities must be dropped client-side on opponents at the moment of the `sell_resolved` message with `outcome: 'returned'` (FR-023). |
@@ -137,11 +139,12 @@ This is the canonical source-of-truth for what the server MAY send `{ rank, suit
 ### Reconnect snapshot (FR-027) — derived from the table above
 
 The `round_state_snapshot` message contains, for the reconnecting viewer:
-- The viewer's own hand identities.
-- The talon identities if and only if `phase ∈ { dealing, bidding }` (talon hasn't been absorbed yet).
-- The exposed-sell-cards identities if and only if `phase === 'selling-bidding'`.
-- Opponent hand sizes only (no identities).
-- The view-model.
+- The viewer's own hand identities (`myHand`).
+- The id-only `talonIds` array if and only if `round.talon.length > 0` (talon hasn't been absorbed yet). **No talon identities are sent** — the talon is face-down in dealing/bidding per FR-006, and after absorption the cards are part of the declarer's own hand (already covered by `myHand` for the declarer recipient).
+- The exposed-sell-cards identities (`exposed`) if and only if `phase === 'selling-bidding'`; the companion `exposedSellCardIds` is sent whenever `round.exposedSellCards.length > 0`.
+- Opponent hand sizes only (no identities), via `opponentHandSizes`.
+- The view-model (`gameStatus`) and seat layout (`seats`).
+- The 24-step `dealSequence` (with rank/suit only for the viewer's own seat) if and only if `phase === 'Bidding'` AND `currentHighBid === null` — so the client can replay the deal animation when reconnecting before any bid landed. After a bid is accepted the field is suppressed (replaying mid-round would be jarring).
 
 No identities of cards that have left the viewer's visible scope are ever sent (FR-023 / FR-027).
 
