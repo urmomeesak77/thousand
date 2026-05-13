@@ -766,6 +766,17 @@ fieldset legend {
   color: var(--color-text);
 }
 
+.bid-controls__input::-webkit-outer-spin-button,
+.bid-controls__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.bid-controls__input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .bid-controls__step {
   min-width: var(--touch-min);
   min-height: var(--touch-min);
