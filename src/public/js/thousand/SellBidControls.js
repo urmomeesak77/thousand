@@ -13,14 +13,14 @@ class SellBidControls {
     this._el.className = 'sell-bid-controls hidden';
     container.appendChild(this._el);
 
-    this._decreaseBtn = this._btn('−5', 'sell-bid-controls__step');
+    this._decreaseBtn = this._btn('−5', 'bid-controls__step');
     this._input = document.createElement('input');
     this._input.type = 'number';
-    this._input.className = 'sell-bid-controls__input';
+    this._input.className = 'bid-controls__input';
     this._input.value = '105';
-    this._increaseBtn = this._btn('+5', 'sell-bid-controls__step');
-    this._bidBtn = this._btn('Bid', 'sell-bid-controls__bid btn');
-    this._passBtn = this._btn('Pass', 'sell-bid-controls__pass btn btn--secondary');
+    this._increaseBtn = this._btn('+5', 'bid-controls__step');
+    this._bidBtn = this._btn('Bid', 'bid-controls__bid btn');
+    this._passBtn = this._btn('Pass', 'bid-controls__pass btn btn--secondary');
 
     this._el.append(
       this._decreaseBtn, this._input, this._increaseBtn,

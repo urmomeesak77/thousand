@@ -170,7 +170,7 @@ class Round {
 
     // sellAttempt is 1-based: shown during selling phases and in post-bid-decision after a failed attempt
     let sellAttempt = null;
-    if (this.phase === 'selling-selection' || this.phase === 'selling-bidding') {
+    if (this.phase === 'selling-bidding') {
       sellAttempt = this.attemptCount + 1;
     } else if (
       this.phase === 'post-bid-decision' &&

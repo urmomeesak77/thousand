@@ -389,7 +389,8 @@ class GameScreen {
   _mountControlsForPhase(gameStatus) {
     const { phase, viewerIsActive, passedPlayers } = gameStatus;
 
-    if (phase !== 'Bidding') this._clearLastAction();
+    const sellBiddingActive = phase === 'Selling' && this._sellSubPhase === 'bidding';
+    if (phase !== 'Bidding' && !sellBiddingActive) this._clearLastAction();
 
     if (phase === 'Bidding') {
       if (this._declarerControls) {

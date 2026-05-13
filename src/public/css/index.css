@@ -717,7 +717,8 @@ fieldset legend {
 }
 
 /* Bid controls: stepper row inside .game-controls */
-.bid-controls {
+.bid-controls,
+.sell-bid-controls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
