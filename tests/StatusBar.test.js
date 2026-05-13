@@ -169,13 +169,22 @@ describe('StatusBar — current high bid display (FR-025)', () => {
 // ---------------------------------------------------------------------------
 
 describe('StatusBar — declarer label (FR-025)', () => {
-  it('renders "Declarer: {nickname}" when declarer is set', () => {
+  it('renders "Bid won: {nickname} ({amount})" in Declarer deciding phase', () => {
     const sb = makeStatusBar();
     sb.render(status({
       phase: 'Declarer deciding',
       declarer: { seat: 0, nickname: 'Alice' },
+      currentHighBid: 120,
     }));
-    assert.equal(text(sb, '.status-bar__declarer'), 'Declarer: Alice');
+    assert.equal(text(sb, '.status-bar__bid-winner'), 'Bid won: Alice (120)');
+    assert.equal(sb._el.querySelector('.status-bar__declarer'), null);
+  });
+
+  it('omits bid-winner and shows bid when not in Declarer deciding phase', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ phase: 'Bidding', declarer: null }));
+    assert.equal(sb._el.querySelector('.status-bar__bid-winner'), null);
+    assert.notEqual(sb._el.querySelector('.status-bar__bid'), null);
   });
 
   it('omits the declarer span when declarer is null', () => {

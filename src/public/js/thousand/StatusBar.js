@@ -32,14 +32,19 @@ class StatusBar {
       this._el.appendChild(this._span('status-bar__turn', text));
     }
 
-    this._el.appendChild(
-      this._span('status-bar__bid', `Bid: ${currentHighBid ?? 100}`)
-    );
-
-    if (declarer) {
+    if (phase === 'Declarer deciding' && declarer) {
       this._el.appendChild(
-        this._span('status-bar__declarer', `Declarer: ${declarer.nickname}`)
+        this._span('status-bar__bid-winner', `Bid won: ${declarer.nickname} (${currentHighBid ?? 100})`)
       );
+    } else {
+      this._el.appendChild(
+        this._span('status-bar__bid', `Bid: ${currentHighBid ?? 100}`)
+      );
+      if (declarer) {
+        this._el.appendChild(
+          this._span('status-bar__declarer', `Declarer: ${declarer.nickname}`)
+        );
+      }
     }
 
     if (sellWinner) {
