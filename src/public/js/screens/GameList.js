@@ -34,7 +34,7 @@ class GameList extends HtmlGameObject {
       }
     }
     for (const game of this._games) {
-      let li = this._element.querySelector(`li[data-id="${HtmlUtil.escape(game.id)}"]`);
+      let li = this._element.querySelector(`li[data-id="${HtmlUtil.escapeSelector(game.id)}"]`);
       if (!li) {
         li = document.createElement('li');
         li.dataset.id = game.id;

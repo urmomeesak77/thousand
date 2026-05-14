@@ -16,7 +16,8 @@ function seatInfo(round, seat) {
   if (seat === null) {
     return null;
   }
-  return { seat, nickname: round._store.players.get(round.seatOrder[seat]).nickname };
+  const player = round._store.players.get(round.seatOrder[seat]);
+  return { seat, nickname: player?.nickname ?? null };
 }
 
 // passedBidders shown only during bidding; sell opponents shown only during selling-bidding
@@ -29,7 +30,9 @@ function passedNicknamesForCurrentPhase(round) {
   } else {
     passedSeats = [];
   }
-  return passedSeats.map((s) => round._store.players.get(round.seatOrder[s]).nickname);
+  return passedSeats
+    .map((s) => round._store.players.get(round.seatOrder[s])?.nickname)
+    .filter(Boolean);
 }
 
 // sellAttempt is 1-based: shown during selling phases and in post-bid-decision after a failed attempt
@@ -67,7 +70,7 @@ function buildSeatLayout(round, seat) {
   const players = round.seatOrder.map((pid, s) => ({
     seat: s,
     playerId: pid,
-    nickname: round._store.players.get(pid).nickname,
+    nickname: round._store.players.get(pid)?.nickname ?? null,
   }));
   return {
     self: seat,

@@ -11,15 +11,22 @@ const INVALID_NICKNAME_MSG = 'nickname must be 3–20 characters and contain no 
 const DUPLICATE_NICKNAME_MSG = 'That nickname is already taken';
 const CREATE_RATE_LIMIT_WINDOW_MS = 60000;
 const CREATE_RATE_LIMIT_MAX = 5;
+// Invite codes are 24-bit (6 hex chars); without this cap the generic 60-req/min
+// HTTP bucket leaves ~60 blind guesses/minute/IP, enough to make targeted guessing
+// against thousands of concurrent codes feasible.
+const INVITE_JOIN_RATE_LIMIT_WINDOW_MS = 60000;
+const INVITE_JOIN_RATE_LIMIT_MAX = 10;
 
 class GameController {
   constructor(store) {
     this.store = store;
     this._createLimiter = new RateLimiter(CREATE_RATE_LIMIT_WINDOW_MS, CREATE_RATE_LIMIT_MAX);
+    this._inviteJoinLimiter = new RateLimiter(INVITE_JOIN_RATE_LIMIT_WINDOW_MS, INVITE_JOIN_RATE_LIMIT_MAX);
   }
 
   cleanupRateLimiter() {
     this._createLimiter.cleanup();
+    this._inviteJoinLimiter.cleanup();
   }
 
   // Shared join preconditions for public join + invite-code join.
@@ -218,7 +225,12 @@ class GameController {
   }
 
   // T028 – POST /api/games/join-invite
-  async handleJoinInvite(req, res, player) {
+  async handleJoinInvite(req, res, player, ip) {
+    if (!this._inviteJoinLimiter.isAllowed(ip)) {
+      HttpUtil.sendError(res, 429, 'rate_limited', 'Too many invite attempts');
+      return;
+    }
+
     let body;
     try {
       body = await HttpUtil.parseBody(req);

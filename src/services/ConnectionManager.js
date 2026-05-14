@@ -47,11 +47,16 @@ class ConnectionManager {
 
     ws.on('message', (data) => this._handleMessage(ws, data));
     ws.on('close', () => {
-      clearTimeout(ws._helloTimer);
-      this._store.handlePlayerDisconnect(ws._playerId, ws);
-      this._wsMessageCounts.delete(ws);
-      this._clients.delete(ws);
-      this._decrementIpCount(clientIp);
+      // try/finally so an unexpected throw in disconnect handling doesn't leak
+      // the IP-bucket slot (which would eventually deny legitimate users).
+      try {
+        clearTimeout(ws._helloTimer);
+        this._store.handlePlayerDisconnect(ws._playerId, ws);
+        this._wsMessageCounts.delete(ws);
+        this._clients.delete(ws);
+      } finally {
+        this._decrementIpCount(clientIp);
+      }
     });
   }
 

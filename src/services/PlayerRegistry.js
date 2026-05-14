@@ -5,6 +5,15 @@ const crypto = require('crypto');
 const UUID_LENGTH = 36;
 const WS_OPEN = 1;
 
+// Length-prefixed constant-time string compare so a partial-match doesn't leak via
+// the linear fallback scan in findBySessionToken.
+function safeTokenEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) {return false;}
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return crypto.timingSafeEqual(ab, bb);
+}
+
 class PlayerRegistry {
   constructor() {
     this.players = new Map();      // playerId -> Player
@@ -37,7 +46,7 @@ class PlayerRegistry {
       return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
     }
     const player = this.players.get(playerId);
-    if (player && player.sessionToken === sessionToken) {
+    if (player && safeTokenEqual(player.sessionToken, sessionToken)) {
       // Mirror the bookkeeping create() does, so anything that later reads
       // ws._clientIp / ws._playerId (audit logging, abuse detection) sees the
       // same shape on restored sessions.
@@ -54,13 +63,13 @@ class PlayerRegistry {
     const playerId = this._tokenIndex.get(token);
     if (playerId) {
       const player = this.players.get(playerId);
-      if (player && player.sessionToken === token) {return player;}
+      if (player && safeTokenEqual(player.sessionToken, token)) {return player;}
     }
     // Fallback for code paths that mutate `players` directly without going
     // through create (tests, in-memory fixtures). Production traffic always
     // hits the index above.
     for (const [, player] of this.players) {
-      if (player.sessionToken === token) {return player;}
+      if (safeTokenEqual(player.sessionToken, token)) {return player;}
     }
     return null;
   }

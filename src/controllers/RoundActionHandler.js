@@ -40,6 +40,13 @@ class RoundActionHandler {
     }
     const round = game.round;
     const seat = this._seatOf(playerId);
+    // A null seat means the player isn't seated in this round. Reject here
+    // so per-phase round logic doesn't leak round state to non-participants
+    // via descriptive rejection messages.
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
     const result = action(round, seat);
     if (!result) {
       return;
@@ -64,12 +71,7 @@ class RoundActionHandler {
   handleBid(playerId, amount) {
     this._runRoundAction(
       playerId,
-      (round, seat) => {
-        if (round.phase === 'dealing') {
-          round.advanceFromDealingToBidding();
-        }
-        return round.submitBid(seat, amount);
-      },
+      (round, seat) => round.submitBid(seat, amount),
       (pid, gameStatus) => {
         this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
       },
@@ -197,6 +199,10 @@ class RoundActionHandler {
     }
     const round = game.round;
     const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
     const result = round.startGame(seat);
     if (result.noop) {
       return;

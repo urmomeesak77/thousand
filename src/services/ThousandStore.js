@@ -128,8 +128,12 @@ class ThousandStore {
     player.graceTimer = null;
     player.disconnectedAt = null;
     if (player.ws && player.ws.readyState === WS_OPEN) {
-      player.ws.send(JSON.stringify({ type: 'session_replaced' }));
-      player.ws.close();
+      // readyState can flip between the check and send — swallow the error so
+      // the state-update steps below still run.
+      try {
+        player.ws.send(JSON.stringify({ type: 'session_replaced' }));
+        player.ws.close();
+      } catch { /* socket already gone */ }
     }
     player.ws = ws;
     ws._playerId = playerId;
@@ -155,6 +159,12 @@ class ThousandStore {
   _purgePlayer(playerId) {
     const player = this._registry.remove(playerId);
     if (!player) {return;}
+    // Defensive: timer is normally already firing when we land here, but a future
+    // direct caller (e.g. abandon-on-leave) would leak the pending callback.
+    if (player.graceTimer) {
+      clearTimeout(player.graceTimer);
+      player.graceTimer = null;
+    }
     const { gameId, nickname } = player;
     if (!gameId) {return;}
     const game = this.games.get(gameId);

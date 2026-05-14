@@ -45,7 +45,12 @@ class HttpUtil {
         }
         const data = Buffer.concat(chunks).toString('utf8');
         try {
-          resolve(JSON.parse(data || '{}'));
+          // Reviver strips dangerous keys so `Object.assign(target, body)` in
+          // any current/future caller can't reach Object.prototype.
+          resolve(JSON.parse(data || '{}', (key, value) => {
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') {return undefined;}
+            return value;
+          }));
         } catch {
           reject(new Error('Invalid JSON'));
         }

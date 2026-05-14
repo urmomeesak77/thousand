@@ -19,6 +19,16 @@ class HtmlUtil {
       .replace(/'/g, '&#39;');
   }
 
+  // CSS attribute-selector escape with a regex fallback for environments
+  // (older jsdom in tests) that don't expose CSS.escape.
+  static escapeSelector(str) {
+    const s = String(str);
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return CSS.escape(s);
+    }
+    return s.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
+  }
+
   static formatElapsed(seconds) {
     if (seconds < 60) {
       return `${seconds}s`;

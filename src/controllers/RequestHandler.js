@@ -61,7 +61,7 @@ class RequestHandler {
     if (req.method === 'POST' && pathname === '/api/games/join-invite') {
       const player = this._requireAuth(req, res);
       if (!player) {return;}
-      return this._games.handleJoinInvite(req, res, player);
+      return this._games.handleJoinInvite(req, res, player, ip);
     }
 
     const leaveMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/leave$/);
