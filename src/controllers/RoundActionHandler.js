@@ -8,6 +8,12 @@ class RoundActionHandler {
     this._rateLimiter = new RateLimiter(250, 1);
   }
 
+  // Called by the periodic cleanup cron; without this, `_rateLimiter`'s internal
+  // Map keeps an entry for every player ID that ever submitted a round action.
+  cleanupRateLimiter() {
+    this._rateLimiter.cleanup();
+  }
+
   _gameOf(playerId) {
     const player = this._store.players.get(playerId);
     if (!player?.gameId) {

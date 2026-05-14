@@ -92,6 +92,10 @@ class ConnectionManager {
     }
   }
 
+  cleanupRateLimiter() {
+    this._roundActionHandler.cleanupRateLimiter();
+  }
+
   _handleMessage(ws, data) {
     if (this._enforceRateLimit(ws)) {return;}
     const msg = this._parseMessage(ws, data);

@@ -13,6 +13,9 @@ class HttpUtil {
     res.writeHead(status, {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(json),
+      // Hardening: prevent MIME sniffing into HTML/JS, strip Referer on cross-origin.
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'same-origin',
     });
     res.end(json);
   }

@@ -25,7 +25,7 @@
   <section class="screen" id="nickname-screen">
     <div class="card">
       <h1>Thousand</h1>
-      <p class="subtitle">Card Game for 2–4 players</p>
+      <p class="subtitle">Card Game for 3 players</p>
       <form id="nickname-form">
         <label for="nickname-input">Choose a nickname</label>
         <input
@@ -101,7 +101,7 @@
         </div>
       </div>
       <ul class="player-list" id="player-list" aria-label="Players in game"></ul>
-      <p class="waiting-hint">Waiting for players… (2–4 needed to start)</p>
+      <p class="waiting-hint">Waiting for players… (3 needed to start)</p>
       <p class="waiting-elapsed">Waiting for <span id="waiting-elapsed">0s</span></p>
       <button class="btn btn-ghost btn-sm" id="leave-game-btn">Leave Game</button>
     </div>
@@ -127,14 +127,7 @@
             Private — invite only
           </label>
         </fieldset>
-        <div class="form-row">
-          <label for="player-count">Player count</label>
-          <select id="player-count" name="player-count">
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-          </select>
-        </div>
+        <input type="hidden" id="player-count" name="player-count" value="3" />
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">Create Game</button>
           <button class="btn btn-ghost" id="modal-cancel-btn" type="button">Cancel</button>

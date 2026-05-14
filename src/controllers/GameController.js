@@ -170,7 +170,18 @@ class GameController {
   }
 
   _registerNewGame(hostId, type, requiredPlayers) {
-    const gameId = crypto.randomBytes(3).toString('hex');
+    // 24-bit space → birthday-paradox collisions are realistic at a few thousand
+    // concurrent games. Without this retry a colliding `set()` silently wipes the
+    // existing game and strands its players (their `player.gameId` still points
+    // at the now-overwritten room).
+    let gameId;
+    let attempts = 0;
+    do {
+      if (++attempts > 1000) {
+        throw new Error('Game ID space exhausted');
+      }
+      gameId = crypto.randomBytes(3).toString('hex');
+    } while (this.store.games.has(gameId));
     const inviteCode = type === 'private' ? this.store.generateInviteCode() : null;
     const game = {
       id: gameId, type, hostId,

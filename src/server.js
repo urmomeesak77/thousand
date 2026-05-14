@@ -61,7 +61,10 @@ if (require.main === module) {
     console.log(`Server running at http://localhost:${PORT}`);
   });
 
-  const rateLimiterCleanupTimer = setInterval(() => handler.cleanupRateLimiters(), 60000);
+  const rateLimiterCleanupTimer = setInterval(() => {
+    handler.cleanupRateLimiters();
+    connectionManager.cleanupRateLimiter();
+  }, 60000);
   rateLimiterCleanupTimer.unref();
   connectionManager.startHeartbeat();
 }

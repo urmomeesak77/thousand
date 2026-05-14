@@ -47,7 +47,21 @@ class StaticServer {
         res.end('Not Found');
         return;
       }
-      res.writeHead(200, { 'Content-Type': contentType });
+      const headers = {
+        'Content-Type': contentType,
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'same-origin',
+      };
+      // HTML responses also carry a CSP header — index.html embeds an identical
+      // policy in <meta>, but the header form is the canonical source and
+      // applies before the <head> parses (also covers non-rendered responses).
+      if (contentType === 'text/html') {
+        headers['Content-Security-Policy']
+          = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+          + "connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; "
+          + "form-action 'self'; frame-ancestors 'none'";
+      }
+      res.writeHead(200, headers);
       res.end(data);
     });
   }

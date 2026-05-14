@@ -87,11 +87,7 @@ class Round {
     this.bidHistory.push({ seat, amount });
     this.currentHighBid = amount;
 
-    let next = (seat + 1) % 3;
-    while (this.passedBidders.has(next)) {
-      next = (next + 1) % 3;
-    }
-    this.currentTurnSeat = next;
+    this.currentTurnSeat = this._nextActiveBidder(seat);
 
     return { rejected: false };
   }
@@ -114,12 +110,22 @@ class Round {
       const { talonIds, identities } = this._absorbTalon();
       return { rejected: false, resolved: true, talonIds, identities };
     } else {
-      let next = (seat + 1) % 3;
-      while (this.passedBidders.has(next)) {next = (next + 1) % 3;}
-      this.currentTurnSeat = next;
+      this.currentTurnSeat = this._nextActiveBidder(seat);
     }
 
     return { rejected: false };
+  }
+
+  // Bounded version of "advance until non-passed seat" — `bidding` is unreachable
+  // when all three seats have passed (submitPass would have resolved to declarer
+  // at length-1), but a bounded loop documents the invariant and prevents future
+  // changes to the resolution logic from creating an infinite loop here.
+  _nextActiveBidder(fromSeat) {
+    for (let i = 1; i <= 3; i++) {
+      const candidate = (fromSeat + i) % 3;
+      if (!this.passedBidders.has(candidate)) {return candidate;}
+    }
+    return fromSeat;
   }
 
   // T026
