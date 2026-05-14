@@ -8,7 +8,12 @@ const $ = (id) => document.getElementById(id);
 const isObj = (v) => v !== null && typeof v === 'object';
 
 const MESSAGE_VALIDATORS = {
-  connected: (m) => typeof m.playerId === 'string' && typeof m.sessionToken === 'string' && typeof m.restored === 'boolean' && (m.nickname === null || typeof m.nickname === 'string'),
+  connected: (m) => (
+    typeof m.playerId === 'string'
+    && typeof m.sessionToken === 'string'
+    && typeof m.restored === 'boolean'
+    && (m.nickname === null || typeof m.nickname === 'string')
+  ),
   session_replaced: () => true,
   lobby_update: (m) => Array.isArray(m.games),
   game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players) && typeof m.requiredPlayers === 'number',
@@ -16,18 +21,39 @@ const MESSAGE_VALIDATORS = {
   player_left: (m) => Array.isArray(m.players) && (m.nickname === null || typeof m.nickname === 'string'),
   game_disbanded: () => true,
   error: (m) => m.message === undefined || typeof m.message === 'string',
-  round_started: (m) => isObj(m.seats) && typeof m.seats.self === 'number' && Array.isArray(m.seats.players) && Array.isArray(m.dealSequence) && isObj(m.gameStatus),
+  round_started: (m) => (
+    isObj(m.seats)
+    && typeof m.seats.self === 'number'
+    && Array.isArray(m.seats.players)
+    && Array.isArray(m.dealSequence)
+    && isObj(m.gameStatus)
+  ),
   phase_changed: (m) => typeof m.phase === 'string' && isObj(m.gameStatus),
   bid_accepted: (m) => typeof m.playerId === 'string' && typeof m.amount === 'number' && isObj(m.gameStatus),
   pass_accepted: (m) => typeof m.playerId === 'string' && isObj(m.gameStatus),
   talon_absorbed: (m) => typeof m.declarerId === 'string' && Array.isArray(m.talonIds) && isObj(m.gameStatus),
   sell_started: (m) => isObj(m.gameStatus),
   sell_exposed: (m) => typeof m.declarerId === 'string' && Array.isArray(m.exposedIds) && isObj(m.gameStatus),
-  sell_resolved: (m) => typeof m.outcome === 'string' && typeof m.oldDeclarerId === 'string' && Array.isArray(m.exposedIds) && isObj(m.gameStatus),
+  sell_resolved: (m) => (
+    typeof m.outcome === 'string'
+    && typeof m.oldDeclarerId === 'string'
+    && Array.isArray(m.exposedIds)
+    && isObj(m.gameStatus)
+  ),
   play_phase_ready: (m) => typeof m.declarerId === 'string' && typeof m.finalBid === 'number' && isObj(m.gameStatus),
-  round_aborted: (m) => typeof m.reason === 'string' && typeof m.disconnectedNickname === 'string' && isObj(m.gameStatus),
+  round_aborted: (m) => (
+    typeof m.reason === 'string'
+    && typeof m.disconnectedNickname === 'string'
+    && isObj(m.gameStatus)
+  ),
   action_rejected: (m) => typeof m.reason === 'string',
-  round_state_snapshot: (m) => typeof m.phase === 'string' && isObj(m.gameStatus) && isObj(m.seats) && Array.isArray(m.myHand) && isObj(m.opponentHandSizes),
+  round_state_snapshot: (m) => (
+    typeof m.phase === 'string'
+    && isObj(m.gameStatus)
+    && isObj(m.seats)
+    && Array.isArray(m.myHand)
+    && isObj(m.opponentHandSizes)
+  ),
   player_disconnected: (m) => typeof m.playerId === 'string' && isObj(m.gameStatus),
   player_reconnected: (m) => typeof m.playerId === 'string' && isObj(m.gameStatus),
 };
@@ -39,8 +65,8 @@ class ThousandMessageRouter {
       connected:            (m) => this._onConnected(m),
       lobby_update:         (m) => this._onLobbyUpdate(m),
       game_joined:          (m) => this._onGameJoined(m),
-      player_joined:        (m) => { app._waitingRoom.updatePlayers(m.players); app._toast.show(`${m.player.nickname} joined the game.`); },
-      player_left:          (m) => { app._waitingRoom.updatePlayers(m.players); app._toast.show(`${m.nickname || 'A player'} left the game.`); },
+      player_joined:        (m) => this._onPlayerJoined(m),
+      player_left:          (m) => this._onPlayerLeft(m),
       game_disbanded:       (m) => this._onGameDisbanded(m),
       session_replaced:     ( ) => this._onSessionReplaced(),
       error:                (m) => app._toast.show(m.message || 'An error occurred'),
@@ -52,8 +78,8 @@ class ThousandMessageRouter {
       talon_absorbed:       (m) => app._gameScreen.sellPhase.absorbTalon(m),
       play_phase_ready:     (m) => this._onPlayPhaseReady(m),
       round_aborted:        (m) => this._onRoundAborted(m),
-      player_disconnected:  (m) => { app._gameScreen.updateStatus(m.gameStatus); app._gameScreen.setPlayerDisconnected(m.playerId, true); },
-      player_reconnected:   (m) => { app._gameScreen.updateStatus(m.gameStatus); app._gameScreen.setPlayerDisconnected(m.playerId, false); },
+      player_disconnected:  (m) => this._onPlayerDisconnected(m),
+      player_reconnected:   (m) => this._onPlayerReconnected(m),
       round_state_snapshot: (m) => this._onRoundStateSnapshot(m),
       sell_started:         (m) => app._gameScreen.sellPhase.enterSellSelection(m.gameStatus),
       sell_exposed:         (m) => app._gameScreen.sellPhase.enterSellBidding(m),
@@ -131,6 +157,18 @@ class ThousandMessageRouter {
     );
   }
 
+  _onPlayerJoined(msg) {
+    const app = this._app;
+    app._waitingRoom.updatePlayers(msg.players);
+    app._toast.show(`${msg.player.nickname} joined the game.`);
+  }
+
+  _onPlayerLeft(msg) {
+    const app = this._app;
+    app._waitingRoom.updatePlayers(msg.players);
+    app._toast.show(`${msg.nickname || 'A player'} left the game.`);
+  }
+
   _onRoundStarted(msg) {
     const app = this._app;
     app._waitingRoom.stopTimer();
@@ -171,6 +209,18 @@ class ThousandMessageRouter {
       { disconnectedNickname: msg.disconnectedNickname, reason: msg.reason },
       () => app._returnFromRound(),
     );
+  }
+
+  _onPlayerDisconnected(msg) {
+    const app = this._app;
+    app._gameScreen.updateStatus(msg.gameStatus);
+    app._gameScreen.setPlayerDisconnected(msg.playerId, true);
+  }
+
+  _onPlayerReconnected(msg) {
+    const app = this._app;
+    app._gameScreen.updateStatus(msg.gameStatus);
+    app._gameScreen.setPlayerDisconnected(msg.playerId, false);
   }
 
   _onRoundStateSnapshot(msg) {

@@ -162,7 +162,9 @@ class Round {
     if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can start selling' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
-    if (this.attemptHistory.some(a => a.outcome === 'sold')) {return { rejected: true, reason: 'Selling is no longer available' };}
+    if (this.attemptHistory.some((a) => a.outcome === 'sold')) {
+      return { rejected: true, reason: 'Selling is no longer available' };
+    }
     if (this.attemptCount >= MAX_SELL_ATTEMPTS) {return { rejected: true, reason: 'No selling attempts remaining' };}
     this.phase = 'selling-selection';
     return { rejected: false };
@@ -301,7 +303,12 @@ class Round {
 
   // T041 helper — moves talon into declarerSeat's hand; called at every bidding resolution site
   _absorbTalon() {
-    const result = absorbTalon({ hands: this.hands, talon: this.talon, deck: this.deck, declarerSeat: this.declarerSeat });
+    const result = absorbTalon({
+      hands: this.hands,
+      talon: this.talon,
+      deck: this.deck,
+      declarerSeat: this.declarerSeat,
+    });
     this.talon = [];
     return result;
   }
