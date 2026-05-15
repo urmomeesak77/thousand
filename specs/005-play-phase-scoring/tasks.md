@@ -32,7 +32,7 @@ description: "Task list for feature 005 — Play Phase, Scoring, Multi-Round & V
 
 **Purpose**: Confirm baseline before touching any feature files.
 
-- [ ] T001 Run `npm test` and `npm run lint` on the current branch (`005-play-phase-scoring`) to confirm a clean baseline before changes
+- [x] T001 Run `npm test` and `npm run lint` on the current branch (`005-play-phase-scoring`) to confirm a clean baseline before changes
 
 ---
 
@@ -40,10 +40,10 @@ description: "Task list for feature 005 — Play Phase, Scoring, Multi-Round & V
 
 **Purpose**: Shared constants and phase-enum extensions that every user story below depends on. These MUST land before any US phase.
 
-- [ ] T002 [P] Add `CARD_POINT_VALUE` (A=11, 10=10, K=4, Q=3, J=2, 9=0), `MARRIAGE_BONUS` (♣=100, ♠=80, ♥=60, ♦=40), and `RANK_ORDER` ({'9':0,'J':1,'Q':2,'K':3,'10':4,'A':5}) constants to `src/public/js/thousand/constants.js` (client-side) per FR-008 / FR-013 / Decision 4
-- [ ] T003 [P] Add server-side `CARD_POINT_VALUE`, `MARRIAGE_BONUS`, `RANK_ORDER` constants exported from `src/services/Scoring.js` (new file scaffold — pure-function module; method bodies filled in US1/US2/US3) per Decision 3 / Decision 4
-- [ ] T004 Extend the `Round.phase` enum in `src/services/Round.js` with `'card-exchange'`, `'trick-play'`, `'round-summary'` per data-model.md state machine
-- [ ] T005 [P] Add the new phase-label cases (`'Card exchange'`, `'Trick play'`, `'Round complete'`, `'Game over'`, `'Game aborted'`) to the status-text helper in `src/public/js/thousand/statusText.js` per FR-018
+- [x] T002 [P] Add `CARD_POINT_VALUE` (A=11, 10=10, K=4, Q=3, J=2, 9=0), `MARRIAGE_BONUS` (♣=100, ♠=80, ♥=60, ♦=40), and `RANK_ORDER` ({'9':0,'J':1,'Q':2,'K':3,'10':4,'A':5}) constants to `src/public/js/thousand/constants.js` (client-side) per FR-008 / FR-013 / Decision 4
+- [x] T003 [P] Add server-side `CARD_POINT_VALUE`, `MARRIAGE_BONUS`, `RANK_ORDER` constants exported from `src/services/Scoring.js` (new file scaffold — pure-function module; method bodies filled in US1/US2/US3) per Decision 3 / Decision 4
+- [x] T004 Extend the `Round.phase` enum in `src/services/Round.js` with `'card-exchange'`, `'trick-play'`, `'round-summary'` per data-model.md state machine
+- [x] T005 [P] Add the new phase-label cases (`'Card exchange'`, `'Trick play'`, `'Round complete'`, `'Game over'`, `'Game aborted'`) to the status-text helper in `src/public/js/thousand/statusText.js` per FR-018
 
 **Checkpoint**: Constants and phase strings exist on both sides. User stories can now begin.
 
@@ -59,49 +59,49 @@ description: "Task list for feature 005 — Play Phase, Scoring, Multi-Round & V
 
 > Per the constitution's TDD posture, write the test that defines the contract first, then make it pass.
 
-- [ ] T006 [P] [US1] Write `tests/Scoring.test.js` covering FR-013 card-point totals and FR-014 declarer made/missed + opponent deltas (penalties param accepted but unused yet)
-- [ ] T007 [P] [US1] Write `tests/Round.cardexchange.test.js` covering FR-002 / FR-003 pass validation, final-on-commit, second-pass destination restriction
-- [ ] T008 [P] [US1] Write `tests/Round.trickplay.test.js` covering FR-006 / FR-007 follow-suit and FR-008 winner determination — include a table-driven "Ten beats King and Queen, Ace beats Ten" check per R-003
-- [ ] T009 [P] [US1] Write `tests/CardExchangeView.test.js` covering FR-002 tap-to-select UI and post-first-pass destination restriction
-- [ ] T010 [P] [US1] Write `tests/TrickPlayView.test.js` covering FR-007 client-side card-disable and FR-008 collected-stack growth + badge update
-- [ ] T011 [P] [US1] Write `tests/RoundSummaryScreen.test.js` covering FR-015 made/missed rendering and Back-to-Lobby variant (no Continue button yet)
-- [ ] T012 [P] [US1] Write `tests/StatusBar.005.test.js` covering FR-018 new fields rendered (trick number, exchange-pass count, cumulative-scores zero-state)
-- [ ] T013 [P] [US1] Write `tests/round-messages.005.test.js` covering end-to-end `exchange_pass` → `play_card` × 24 → `round_summary` via `ConnectionManager`
+- [x] T006 [P] [US1] Write `tests/Scoring.test.js` covering FR-013 card-point totals and FR-014 declarer made/missed + opponent deltas (penalties param accepted but unused yet)
+- [x] T007 [P] [US1] Write `tests/Round.cardexchange.test.js` covering FR-002 / FR-003 pass validation, final-on-commit, second-pass destination restriction
+- [x] T008 [P] [US1] Write `tests/Round.trickplay.test.js` covering FR-006 / FR-007 follow-suit and FR-008 winner determination — include a table-driven "Ten beats King and Queen, Ace beats Ten" check per R-003
+- [x] T009 [P] [US1] Write `tests/CardExchangeView.test.js` covering FR-002 tap-to-select UI and post-first-pass destination restriction
+- [x] T010 [P] [US1] Write `tests/TrickPlayView.test.js` covering FR-007 client-side card-disable and FR-008 collected-stack growth + badge update
+- [x] T011 [P] [US1] Write `tests/RoundSummaryScreen.test.js` covering FR-015 made/missed rendering and Back-to-Lobby variant (no Continue button yet)
+- [x] T012 [P] [US1] Write `tests/StatusBar.005.test.js` covering FR-018 new fields rendered (trick number, exchange-pass count, cumulative-scores zero-state)
+- [x] T013 [P] [US1] Write `tests/round-messages.005.test.js` covering end-to-end `exchange_pass` → `play_card` × 24 → `round_summary` via `ConnectionManager`
 
 ### Implementation for User Story 1
 
 #### Server (US1)
 
-- [ ] T014 [P] [US1] Implement `cardPoints(cards)` and `roundScores(round)` pure functions in `src/services/Scoring.js` per FR-013 (sums trick-card values per seat; marriage bonus column zero until US2)
-- [ ] T015 [P] [US1] Implement `roundDeltas(roundScores, declarerSeat, bid, penalties = [])` in `src/services/Scoring.js` per FR-014 — declarer `+bid` / `−bid`; opponent `+roundScore`; penalties param is plumbing for US4
-- [ ] T016 [US1] Create `src/services/TrickPlay.js` with `initialize(round, declarerSeat)`, `playCard(seat, cardId)` (follow-suit-aware), `resolveTrick()` per FR-006 / FR-007 first clause / FR-008 (no trump path yet) — owns `currentTrick`, `trickNumber`, `currentTrickLeaderSeat`, `collectedTricks`, `collectedTrickCounts`
-- [ ] T017 [US1] Add `submitExchangePass(seat, cardId, destSeat)` method to `src/services/Round.js` per FR-002 / FR-003 — validates card-in-hand + destination + non-duplicate, mutates `hands`, increments `exchangePassesCommitted`, transitions to `trick-play` on the second commit
-- [ ] T018 [US1] Wire `Round` to delegate trick actions to `TrickPlay` (instantiate on entry to `trick-play`; expose `Round.playCard(seat, cardId, opts)` that proxies through) in `src/services/Round.js`
-- [ ] T019 [US1] Add `Round.buildSummary()` to `src/services/Round.js` per FR-015 — assembles `RoundSummary` view-model (no marriage bonus column populated yet; `victoryReached` always `false` in this milestone)
-- [ ] T020 [US1] Extend `src/services/RoundPhases.js` with `post-bid-decision → card-exchange` transition (replaces FR-001 superseded `play-phase-ready` path) and `card-exchange → trick-play → round-summary` transitions
-- [ ] T021 [US1] Extend `src/services/RoundSnapshot.js` to include card-exchange snapshot fields (`exchangePassesCommitted`, `myHand`, optional `receivedFromExchange` identity for recipients) per FR-019 / FR-026
-- [ ] T022 [US1] Extend `src/services/RoundSnapshot.js` to include trick-play snapshot fields (`trickNumber`, `currentTrickLeaderSeat`, `currentTrick` with face-up identities, `collectedTrickCounts`, `myHand`) per FR-019 / FR-026
-- [ ] T023 [US1] Extend `src/services/RoundSnapshot.js` to include round-summary snapshot fields (`summary`, per-viewer-filtered `viewerCollectedCards`) per FR-019 / FR-026
-- [ ] T024 [US1] Extend the GameStatus view-model emitter in `src/services/Round.js` with `trickNumber`, `collectedTrickCounts`, `exchangePassesCommitted`, and a placeholder `cumulativeScores: {0:0, 1:0, 2:0}` per FR-018 (full multi-round behaviour lands in US3)
-- [ ] T025 [US1] Replace the `play_phase_ready` emission in `handleStartGame` of `src/controllers/RoundActionHandler.js` with a transition into `card-exchange` and a `card_exchange_started` broadcast per FR-001 / R-007 (note: the round-end purge in this milestone is temporary and is removed by T067 in US3)
-- [ ] T026 [US1] Add `exchange_pass` message branch to `src/controllers/RoundActionHandler.js` — throttle check, seat-is-declarer check, calls `Round.submitExchangePass`, broadcasts `card_passed` (per-viewer identity filter per FR-019) and `phase_changed`
-- [ ] T027 [US1] Add `play_card` message branch (no `declareMarriage` yet) to `src/controllers/RoundActionHandler.js` — throttle, `seat === currentTurnSeat` check, calls `Round.playCard`, broadcasts `card_played`, on trick-fill broadcasts `trick_resolved`, on round-end runs `Scoring.roundScores` + `Scoring.roundDeltas` and broadcasts `round_summary`
-- [ ] T028 [US1] Register `exchange_pass` and `play_card` in the message-type dispatch table of `src/services/ConnectionManager.js` per contracts/ws-messages.md
+- [x] T014 [P] [US1] Implement `cardPoints(cards)` and `roundScores(round)` pure functions in `src/services/Scoring.js` per FR-013 (sums trick-card values per seat; marriage bonus column zero until US2)
+- [x] T015 [P] [US1] Implement `roundDeltas(roundScores, declarerSeat, bid, penalties = [])` in `src/services/Scoring.js` per FR-014 — declarer `+bid` / `−bid`; opponent `+roundScore`; penalties param is plumbing for US4
+- [x] T016 [US1] Create `src/services/TrickPlay.js` with `initialize(round, declarerSeat)`, `playCard(seat, cardId)` (follow-suit-aware), `resolveTrick()` per FR-006 / FR-007 first clause / FR-008 (no trump path yet) — owns `currentTrick`, `trickNumber`, `currentTrickLeaderSeat`, `collectedTricks`, `collectedTrickCounts`
+- [x] T017 [US1] Add `submitExchangePass(seat, cardId, destSeat)` method to `src/services/Round.js` per FR-002 / FR-003 — validates card-in-hand + destination + non-duplicate, mutates `hands`, increments `exchangePassesCommitted`, transitions to `trick-play` on the second commit
+- [x] T018 [US1] Wire `Round` to delegate trick actions to `TrickPlay` (instantiate on entry to `trick-play`; expose `Round.playCard(seat, cardId, opts)` that proxies through) in `src/services/Round.js`
+- [x] T019 [US1] Add `Round.buildSummary()` to `src/services/Round.js` per FR-015 — assembles `RoundSummary` view-model (no marriage bonus column populated yet; `victoryReached` always `false` in this milestone)
+- [x] T020 [US1] Extend `src/services/RoundPhases.js` with `post-bid-decision → card-exchange` transition (replaces FR-001 superseded `play-phase-ready` path) and `card-exchange → trick-play → round-summary` transitions
+- [x] T021 [US1] Extend `src/services/RoundSnapshot.js` to include card-exchange snapshot fields (`exchangePassesCommitted`, `myHand`, optional `receivedFromExchange` identity for recipients) per FR-019 / FR-026
+- [x] T022 [US1] Extend `src/services/RoundSnapshot.js` to include trick-play snapshot fields (`trickNumber`, `currentTrickLeaderSeat`, `currentTrick` with face-up identities, `collectedTrickCounts`, `myHand`) per FR-019 / FR-026
+- [x] T023 [US1] Extend `src/services/RoundSnapshot.js` to include round-summary snapshot fields (`summary`, per-viewer-filtered `viewerCollectedCards`) per FR-019 / FR-026
+- [x] T024 [US1] Extend the GameStatus view-model emitter in `src/services/Round.js` with `trickNumber`, `collectedTrickCounts`, `exchangePassesCommitted`, and a placeholder `cumulativeScores: {0:0, 1:0, 2:0}` per FR-018 (full multi-round behaviour lands in US3)
+- [x] T025 [US1] Replace the `play_phase_ready` emission in `handleStartGame` of `src/controllers/RoundActionHandler.js` with a transition into `card-exchange` and a `card_exchange_started` broadcast per FR-001 / R-007 (note: the round-end purge in this milestone is temporary and is removed by T067 in US3)
+- [x] T026 [US1] Add `exchange_pass` message branch to `src/controllers/RoundActionHandler.js` — throttle check, seat-is-declarer check, calls `Round.submitExchangePass`, broadcasts `card_passed` (per-viewer identity filter per FR-019) and `phase_changed`
+- [x] T027 [US1] Add `play_card` message branch (no `declareMarriage` yet) to `src/controllers/RoundActionHandler.js` — throttle, `seat === currentTurnSeat` check, calls `Round.playCard`, broadcasts `card_played`, on trick-fill broadcasts `trick_resolved`, on round-end runs `Scoring.roundScores` + `Scoring.roundDeltas` and broadcasts `round_summary`
+- [x] T028 [US1] Register `exchange_pass` and `play_card` in the message-type dispatch table of `src/services/ConnectionManager.js` per contracts/ws-messages.md
 
 #### Client (US1)
 
-- [ ] T029 [P] [US1] Create `src/public/js/thousand/CardExchangeView.js` — declarer 10-card hand with tap-to-select then two destination buttons; opponent waiting state per FR-002 / FR-020 (hidden for opponents)
-- [ ] T030 [P] [US1] Create `src/public/js/thousand/TrickPlayView.js` — centre slot, lead/follow prompt, hand with FR-007 follow-suit pre-disable, mounts the per-seat `CollectedTricksStack` widgets per FR-020
-- [ ] T031 [P] [US1] Create `src/public/js/thousand/CollectedTricksStack.js` — per-seat face-down stack + `× N` count badge per FR-008
-- [ ] T032 [P] [US1] Create `src/public/js/thousand/RoundSummaryScreen.js` — per-player rows (nickname, trick points, round total, delta, cumulativeAfter), declarer made/missed indicator, single Back-to-Lobby button per FR-015 (Continue button lands in US3)
-- [ ] T033 [US1] Add phase routing for `'Card exchange'`, `'Trick play'`, `'Round complete'` to `src/public/js/thousand/GameScreen.js`
-- [ ] T034 [US1] Add mount/unmount of `CardExchangeView`, `TrickPlayView`, `RoundSummaryScreen` to `src/public/js/thousand/GameScreenControls.js` per FR-020
-- [ ] T035 [US1] Extend `src/public/js/thousand/StatusBar.js` with `trickNumber` ("Trick N of 8"), `collectedTrickCounts`, `exchangePassesCommitted` ("0/2 cards passed"), and a placeholder zero-state `cumulativeScores` row per FR-018
-- [ ] T036 [US1] Add `sendExchangePass(cardId, toSeat)` and `sendPlayCard(cardId, opts = {})` outbound wrappers to `src/public/js/thousand/RoundActionDispatcher.js` — consults the `inFlightAnimation` gate per FR-030 / R-008
-- [ ] T037 [US1] Add validators + handlers for `card_exchange_started`, `card_passed`, `trick_play_started`, `card_played`, `trick_resolved`, `round_summary` to `src/public/js/core/ThousandMessageRouter.js` per contracts/ws-messages.md
-- [ ] T038 [US1] Implement the three card-motion animations (250 ms hand→recipient on exchange; 250 ms hand→centre on play; 350 ms pause + 250 ms centre→winner-stack on resolve) via `Antlion.onTick` and `Antlion.schedule` in `src/public/js/thousand/CardExchangeView.js` / `TrickPlayView.js` per FR-030 / Decision 10
-- [ ] T039 [US1] Implement `cardsById` identity-drop rules in `src/public/js/core/ThousandApp.js` (or wherever `cardsById` is centrally mutated) per FR-019: declarer drops on pass-land; all 3 clients drop on trick-resolve-land; recipient adds on pass-land; third opponent never adds
-- [ ] T040 [P] [US1] Add CSS for destination buttons, centre trick slot, per-seat collected-tricks stacks + badges, and round-summary table to `src/public/css/index.css`
+- [x] T029 [P] [US1] Create `src/public/js/thousand/CardExchangeView.js` — declarer 10-card hand with tap-to-select then two destination buttons; opponent waiting state per FR-002 / FR-020 (hidden for opponents)
+- [x] T030 [P] [US1] Create `src/public/js/thousand/TrickPlayView.js` — centre slot, lead/follow prompt, hand with FR-007 follow-suit pre-disable, mounts the per-seat `CollectedTricksStack` widgets per FR-020
+- [x] T031 [P] [US1] Create `src/public/js/thousand/CollectedTricksStack.js` — per-seat face-down stack + `× N` count badge per FR-008
+- [x] T032 [P] [US1] Create `src/public/js/thousand/RoundSummaryScreen.js` — per-player rows (nickname, trick points, round total, delta, cumulativeAfter), declarer made/missed indicator, single Back-to-Lobby button per FR-015 (Continue button lands in US3)
+- [x] T033 [US1] Add phase routing for `'Card exchange'`, `'Trick play'`, `'Round complete'` to `src/public/js/thousand/GameScreen.js`
+- [x] T034 [US1] Add mount/unmount of `CardExchangeView`, `TrickPlayView`, `RoundSummaryScreen` to `src/public/js/thousand/GameScreenControls.js` per FR-020
+- [x] T035 [US1] Extend `src/public/js/thousand/StatusBar.js` with `trickNumber` ("Trick N of 8"), `collectedTrickCounts`, `exchangePassesCommitted` ("0/2 cards passed"), and a placeholder zero-state `cumulativeScores` row per FR-018
+- [x] T036 [US1] Add `sendExchangePass(cardId, toSeat)` and `sendPlayCard(cardId, opts = {})` outbound wrappers to `src/public/js/thousand/RoundActionDispatcher.js` — consults the `inFlightAnimation` gate per FR-030 / R-008
+- [x] T037 [US1] Add validators + handlers for `card_exchange_started`, `card_passed`, `trick_play_started`, `card_played`, `trick_resolved`, `round_summary` to `src/public/js/core/ThousandMessageRouter.js` per contracts/ws-messages.md
+- [x] T038 [US1] Implement the three card-motion animations (250 ms hand→recipient on exchange; 250 ms hand→centre on play; 350 ms pause + 250 ms centre→winner-stack on resolve) via `Antlion.onTick` and `Antlion.schedule` in `src/public/js/thousand/CardExchangeView.js` / `TrickPlayView.js` per FR-030 / Decision 10
+- [x] T039 [US1] Implement `cardsById` identity-drop rules in `src/public/js/core/ThousandApp.js` (or wherever `cardsById` is centrally mutated) per FR-019: declarer drops on pass-land; all 3 clients drop on trick-resolve-land; recipient adds on pass-land; third opponent never adds
+- [x] T040 [P] [US1] Add CSS for destination buttons, centre trick slot, per-seat collected-tricks stacks + badges, and round-summary table to `src/public/css/index.css`
 
 **Checkpoint**: A single round plays end-to-end. Game cleanup still happens at round-end on this milestone (it will be deferred to game-end in US3).
 
