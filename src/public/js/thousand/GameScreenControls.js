@@ -206,11 +206,11 @@ class GameScreenControls {
   }
 
   _mountCardExchange(gameStatus) {
-    // Tear down unrelated controls from earlier phases
-    if (this._drop('_bidControls')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_declarerControls')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_trickPlayView')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_roundSummaryScreen')) { this._controlsEl.textContent = ''; }
+    const hadAny = ['_bidControls', '_declarerControls', '_trickPlayView', '_roundSummaryScreen']
+      .some((f) => this._drop(f));
+    if (hadAny) {
+      this._controlsEl.textContent = '';
+    }
 
     if (!this._cardExchangeView) {
       this._controlsEl.textContent = '';
@@ -228,11 +228,11 @@ class GameScreenControls {
   }
 
   _mountTrickPlay(gameStatus) {
-    // Tear down unrelated controls from earlier phases
-    if (this._drop('_bidControls')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_declarerControls')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_cardExchangeView')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_roundSummaryScreen')) { this._controlsEl.textContent = ''; }
+    const hadAny = ['_bidControls', '_declarerControls', '_cardExchangeView', '_roundSummaryScreen']
+      .some((f) => this._drop(f));
+    if (hadAny) {
+      this._controlsEl.textContent = '';
+    }
 
     if (!this._trickPlayView) {
       this._controlsEl.textContent = '';
@@ -250,11 +250,11 @@ class GameScreenControls {
   }
 
   _mountRoundSummary(gameStatus) {
-    // Tear down controls from earlier phases
-    if (this._drop('_bidControls')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_declarerControls')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_cardExchangeView')) { this._controlsEl.textContent = ''; }
-    if (this._drop('_trickPlayView')) { this._controlsEl.textContent = ''; }
+    const hadAny = ['_bidControls', '_declarerControls', '_cardExchangeView', '_trickPlayView']
+      .some((f) => this._drop(f));
+    if (hadAny) {
+      this._controlsEl.textContent = '';
+    }
 
     if (!this._roundSummaryScreen) {
       this._controlsEl.textContent = '';
