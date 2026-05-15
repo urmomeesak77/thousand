@@ -4,6 +4,7 @@ export const BID_STEP = 5;
 export const MIN_SELL_BID = MIN_BID + BID_STEP;
 export const SELL_SELECTION_SIZE = 3;
 export const MAX_SELL_ATTEMPTS = 3;
+export const BARREL_BID_FLOOR = 120;
 
 // FR-013: card point values for trick scoring
 export const CARD_POINT_VALUE = { A: 11, '10': 10, K: 4, Q: 3, J: 2, '9': 0 };
