@@ -18,7 +18,7 @@ const ACTION_DISPATCH = {
   sell_pass:     (h, pid)    => h.handleSellPass(pid),
   start_game:    (h, pid)    => h.handleStartGame(pid),
   exchange_pass: (h, pid, m) => h.handleExchangePass(pid, m.cardId, m.toSeat),
-  play_card:     (h, pid, m) => h.handlePlayCard(pid, m.cardId),
+  play_card:     (h, pid, m) => h.handlePlayCard(pid, m.cardId, m.declareMarriage === true),
 };
 
 class ConnectionManager {

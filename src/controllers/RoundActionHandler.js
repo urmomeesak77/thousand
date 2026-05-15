@@ -265,7 +265,7 @@ class RoundActionHandler {
   }
 
   // Bypasses _runRoundAction for the same rate-limiter reason as handleExchangePass.
-  handlePlayCard(playerId, cardId) {
+  handlePlayCard(playerId, cardId, declareMarriage = false) {
     const game = this._gameOf(playerId);
     if (!game?.round) {
       this._reject(playerId, 'Not in a round');
@@ -277,6 +277,18 @@ class RoundActionHandler {
       this._reject(playerId, 'Not in a round');
       return;
     }
+
+    // T045: If the client set declareMarriage, process it atomically before playCard.
+    // declareMarriage mutates currentTrumpSuit which affects follow-suit validation in playCard.
+    let marriageResult = null;
+    if (declareMarriage) {
+      marriageResult = round.declareMarriage(seat, cardId);
+      if (marriageResult.rejected) {
+        this._reject(playerId, marriageResult.reason);
+        return;
+      }
+    }
+
     const result = round.playCard(seat, cardId);
     if (!result || result.noop) {
       return;
@@ -291,9 +303,27 @@ class RoundActionHandler {
       round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);
       round.buildSummary(game);
     }
+    const playerNickname = this._store.players.get(playerId)?.nickname ?? null;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
+      if (marriageResult) {
+        this._store.sendToPlayer(pid, {
+          type: 'marriage_declared',
+          playerSeat: seat,
+          playerNickname,
+          suit: marriageResult.suit,
+          bonus: marriageResult.bonus,
+          trickNumber: round.trickNumber,
+          newTrumpSuit: marriageResult.newTrumpSuit,
+          gameStatus,
+        });
+        this._store.sendToPlayer(pid, {
+          type: 'trump_changed',
+          newTrumpSuit: marriageResult.newTrumpSuit,
+          gameStatus,
+        });
+      }
       this._store.sendToPlayer(pid, { type: 'card_played', gameStatus });
       if (isRoundComplete) {
         this._store.sendToPlayer(pid, { type: 'round_summary', summary: round.summary, gameStatus });
