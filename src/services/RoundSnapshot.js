@@ -66,6 +66,13 @@ function buildViewModel(round, seat) {
     passedPlayers: passedNicknamesForCurrentPhase(round),
     sellAttempt: currentSellAttempt(round),
     disconnectedPlayers: disconnectedNicknames(round),
+    trickNumber: round.trickNumber > 0 ? round.trickNumber : null,
+    currentTrumpSuit: round.currentTrumpSuit ?? null,
+    cumulativeScores: { 0: 0, 1: 0, 2: 0 },
+    collectedTrickCounts: round.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 },
+    exchangePassesCommitted: round.phase === 'card-exchange' ? round.exchangePassesCommitted : null,
+    continuePressedSeats: null,
+    roundNumber: 1,
   };
 }
 
@@ -144,6 +151,35 @@ function buildSnapshot(round, seat) {
 
   if (round.exposedSellCards.length > 0) {
     payload.exposedSellCardIds = [...round.exposedSellCards];
+  }
+
+  if (round.phase === 'card-exchange') {
+    payload.exchangePassesCommitted = round.exchangePassesCommitted;
+    payload.myHand = buildHandIdentitiesFor(round, seat);
+    payload.receivedFromExchange = null;
+  }
+
+  if (round.phase === 'trick-play') {
+    payload.trickNumber = round.trickNumber;
+    payload.currentTrickLeaderSeat = round.currentTrickLeaderSeat;
+    payload.currentTrick = round.currentTrick.map(({ seat: s, cardId }) => {
+      const card = round.deck[cardId];
+      return { seat: s, cardId, rank: card.rank, suit: card.suit };
+    });
+    payload.currentTrumpSuit = round.currentTrumpSuit;
+    payload.declaredMarriages = [...round.declaredMarriages];
+    payload.collectedTrickCounts = { ...round.collectedTrickCounts };
+    payload.myHand = buildHandIdentitiesFor(round, seat);
+  }
+
+  if (round.phase === 'round-summary') {
+    payload.summary = round.summary;
+    const myCollected = round.collectedTricks?.[seat] ?? [];
+    payload.viewerCollectedCards = myCollected.map((id) => {
+      const card = round.deck[id];
+      return { rank: card.rank, suit: card.suit };
+    });
+    payload.continuePressedSeats = [];
   }
 
   return payload;
