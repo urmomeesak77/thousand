@@ -1,0 +1,9 @@
+'use strict';
+
+module.exports = {
+  BARREL_MIN: 880,
+  BARREL_MAX: 1000,
+  SPECIAL_PENALTY: 120,
+  BARREL_ROUND_LIMIT: 3,
+  ZERO_ROUND_LIMIT: 3,
+};

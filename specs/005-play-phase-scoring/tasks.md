@@ -185,7 +185,7 @@ description: "Task list for feature 005 â€” Play Phase, Scoring, Multi-Roun
 - [x] T079 [US3] Add terminal-screen lifecycle routing for `final_results` and `game_aborted` (Game-aborted variant of `RoundReadyScreen`) to `src/public/js/core/ThousandApp.js` â€” individual Back-to-Lobby navigation per FR-029
 - [x] T080 [US3] Add `sendContinueToNextRound()` outbound wrapper to `src/public/js/thousand/RoundActionDispatcher.js`
 - [x] T081 [US3] Update `src/public/js/thousand/StatusBar.js` to render `cumulativeScores` at all times (from round 1 bidding through Game over) and the `roundNumber` field per FR-018 (replaces the US1 placeholder zero-state)
-- [ ] T082 [P] [US3] Add CSS for the final-results ranking + history table, the Continue button, the "Continued âœ“" indicator, and the Game-aborted variant of the round-ready screen to `src/public/css/index.css`
+- [x] T082 [P] [US3] Add CSS for the final-results ranking + history table, the Continue button, the “Continued âœ”” indicator, and the Game-aborted variant of the round-ready screen to `src/public/css/index.css`
 
 **Checkpoint**: Games run multi-round until someone reaches 1000+. Game record persists across rounds and is purged only on the three terminal broadcasts.
 
@@ -199,20 +199,20 @@ description: "Task list for feature 005 â€” Play Phase, Scoring, Multi-Roun
 
 ### Tests for User Story 4
 
-- [ ] T083 [P] [US4] Write `tests/Game.barrel.test.js` covering FR-021 / FR-022 / FR-023 â€” entry/exit transitions, bid-floor in main bidding and selling, 3-round penalty and reset, FR-022 (d) auto-declarer 120 when dealer is on barrel
-- [ ] T084 [P] [US4] Write `tests/Game.consecutivezeros.test.js` covering FR-024 zero-counter, penalty + reset, and the simultaneous-barrel-and-zeros case (both fire â€” total âˆ’240 on the same round)
+- [x] T083 [P] [US4] Write `tests/Game.barrel.test.js` covering FR-021 / FR-022 / FR-023 â€” entry/exit transitions, bid-floor in main bidding and selling, 3-round penalty and reset, FR-022 (d) auto-declarer 120 when dealer is on barrel
+- [x] T084 [P] [US4] Write `tests/Game.consecutivezeros.test.js` covering FR-024 zero-counter, penalty + reset, and the simultaneous-barrel-and-zeros case (both fire â€” total âˆ’240 on the same round)
 
 ### Implementation for User Story 4
 
 #### Server (US4)
 
-- [ ] T085 [US4] Add `barrelState` and `consecutiveZeros` fields to the `Game` constructor in `src/services/Game.js` per data-model.md
-- [ ] T086 [US4] Extend `Game.applyRoundEnd` in `src/services/Game.js` with FR-021 / FR-023 barrel transitions (advance counter; on counter === 3 with score still in [880, 1000), apply âˆ’120, reset counter) and FR-024 zero-counter (advance on `roundTotal === 0`; on counter === 3, apply âˆ’120, reset); emit a `penalties: [...]` array on each affected player's history entry so the summary can surface them
-- [ ] T087 [US4] Extend `Round.submitBid` in `src/services/Round.js` with the FR-022 barrel bid-floor (reject `< 120` from on-barrel players with reason "Players on barrel must bid at least 120.")
-- [ ] T088 [US4] Extend `Round.submitSellBid` in `src/services/Round.js` with the same FR-022 barrel bid-floor in the selling-bidding flow
-- [ ] T089 [US4] Extend the auto-declarer rule in `src/services/Round.js` (the FR-011 callsite from feature 004): if all three pass on the opening 100 AND the dealer is on barrel, the auto-declared bid is `120` not `100` per FR-022 (d)
-- [ ] T090 [US4] Extend the GameStatus view-model emitter in `src/services/Round.js` with `barrelMarkers` (per-seat `{ onBarrel, barrelRoundsUsed }` map; absent when `onBarrel === false`) per FR-018
-- [ ] T091 [US4] Extend `Round.buildSummary` in `src/services/Round.js` to surface barrel and zero penalty line items per FR-023 / FR-024 ("Barrel penalty: âˆ’120", "Zero-round penalty: âˆ’120") on the affected player's row
+- [x] T085 [US4] Add `barrelState` and `consecutiveZeros` fields to the `Game` constructor in `src/services/Game.js` per data-model.md
+- [x] T086 [US4] Extend `Game.applyRoundEnd` in `src/services/Game.js` with FR-021 / FR-023 barrel transitions (advance counter; on counter === 3 with score still in [880, 1000), apply âˆ’120, reset counter) and FR-024 zero-counter (advance on `roundTotal === 0`; on counter === 3, apply âˆ’120, reset); emit a `penalties: [...]` array on each affected player’s history entry so the summary can surface them
+- [x] T087 [US4] Extend `Round.submitBid` in `src/services/Round.js` with the FR-022 barrel bid-floor (reject `< 120` from on-barrel players with reason "Players on barrel must bid at least 120.")
+- [x] T088 [US4] Extend `Round.submitSellBid` in `src/services/Round.js` with the same FR-022 barrel bid-floor in the selling-bidding flow
+- [x] T089 [US4] Extend the auto-declarer rule in `src/services/Round.js` (the FR-011 callsite from feature 004): if all three pass on the opening 100 AND the dealer is on barrel, the auto-declared bid is `120` not `100` per FR-022 (d)
+- [x] T090 [US4] Extend the GameStatus view-model emitter in `src/services/Round.js` with `barrelMarkers` (per-seat `{ onBarrel, barrelRoundsUsed }` map; absent when `onBarrel === false`) per FR-018
+- [x] T091 [US4] Extend `Round.buildSummary` in `src/services/Round.js` to surface barrel and zero penalty line items per FR-023 / FR-024 ("Barrel penalty: âˆ’120", "Zero-round penalty: âˆ’120") on the affected player’s row
 
 #### Client (US4)
 

@@ -11,9 +11,12 @@ const {
 const RoundSnapshot = require('./RoundSnapshot');
 const TrickPlay = require('./TrickPlay');
 
+const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT } = require('./GameRules');
+
 const MIN_BID = 100;
 const MAX_BID = 300;
 const BID_STEP = 5;
+const BARREL_BID_FLOOR = 120;
 const SELL_SELECTION_SIZE = 3;
 const MAX_SELL_ATTEMPTS = 3;
 
@@ -101,6 +104,9 @@ class Round {
     if (!Number.isInteger(amount)) {return { rejected: true, reason: 'Bid must be an integer' };}
     if (amount % BID_STEP !== 0) {return { rejected: true, reason: `Bid must be a multiple of ${BID_STEP}` };}
     if (amount > MAX_BID) {return { rejected: true, reason: `Bid cannot exceed ${MAX_BID}` };}
+    if (this._game.session?.barrelState?.[seat]?.onBarrel && amount < BARREL_BID_FLOOR) {
+      return { rejected: true, reason: `Players on barrel must bid at least ${BARREL_BID_FLOOR}.` };
+    }
     const smallest = this.currentHighBid === null ? MIN_BID : this.currentHighBid + BID_STEP;
     if (amount < smallest) {return { rejected: true, reason: `Bid must be at least ${smallest}` };}
 
@@ -124,7 +130,10 @@ class Round {
     const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
     if (remaining.length === 1) {
       this.declarerSeat = remaining[0];
-      if (this.currentHighBid === null) {this.currentHighBid = MIN_BID;}
+      if (this.currentHighBid === null) {
+        const dealerOnBarrel = this._game.session?.barrelState?.[this.declarerSeat]?.onBarrel === true;
+        this.currentHighBid = dealerOnBarrel ? BARREL_BID_FLOOR : MIN_BID;
+      }
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = remaining[0];
       const { talonIds, identities } = this._absorbTalon();
@@ -299,17 +308,53 @@ class Round {
       const marriageBonus = marriageBonusBySeat[seat];
       const roundTotal = scores ? scores[seat] : 0;
       const trickPoints = roundTotal - marriageBonus;
+      const delta = deltas ? deltas[seat] : 0;
       perPlayer[seat] = {
         nickname: player?.nickname ?? null,
         seat,
         trickPoints,
         marriageBonus,
         roundTotal,
-        delta: deltas ? deltas[seat] : 0,
-        cumulativeAfter: deltas ? deltas[seat] : 0,  // US3 replaces
+        delta,
+        cumulativeAfter: delta,  // US3 replaces
         penalties: [],
       };
     }
+
+    // T091 — FR-023/FR-024: pre-compute which penalties will fire this round
+    // when session state is available (before applyRoundEnd runs).
+    const session = this._game?.session;
+    if (session && deltas) {
+      for (const seat of [0, 1, 2]) {
+        const row = perPlayer[seat];
+        const { trickPoints, marriageBonus } = row;
+
+        // Barrel penalty (FR-023): fires when the player has been on barrel for
+        // BARREL_ROUND_LIMIT rounds AND the score after this round's delta stays
+        // in the barrel range [BARREL_MIN, BARREL_MAX).
+        const bs = session.barrelState[seat];
+        if (bs && bs.onBarrel) {
+          const willBeThirdBarrelRound = (bs.barrelRoundsUsed + 1) === BARREL_ROUND_LIMIT;
+          if (willBeThirdBarrelRound) {
+            const scoreAfterDelta = session.cumulativeScores[seat] + deltas[seat];
+            if (scoreAfterDelta >= BARREL_MIN && scoreAfterDelta < BARREL_MAX) {
+              row.penalties.push('barrel');
+              row.delta -= SPECIAL_PENALTY;
+            }
+          }
+        }
+
+        // Zero-round penalty (FR-024): fires when consecutiveZeros reaches ZERO_ROUND_LIMIT.
+        const roundScore = trickPoints + marriageBonus;
+        const currentZeros = session.consecutiveZeros[seat] ?? 0;
+        const newZeroCount = currentZeros + (roundScore === 0 ? 1 : 0);
+        if (newZeroCount === ZERO_ROUND_LIMIT) {
+          row.penalties.push('three-zeros');
+          row.delta -= SPECIAL_PENALTY;
+        }
+      }
+    }
+
     this.summary = {
       roundNumber: 1,  // US3 replaces with game.currentRoundNumber
       declarerSeat: this.declarerSeat,
@@ -386,6 +431,9 @@ class Round {
     if (!Number.isInteger(amount)) {return { rejected: true, reason: 'Bid must be an integer' };}
     if (amount % BID_STEP !== 0) {return { rejected: true, reason: `Bid must be a multiple of ${BID_STEP}` };}
     if (amount > MAX_BID) {return { rejected: true, reason: `Bid cannot exceed ${MAX_BID}` };}
+    if (this._game.session?.barrelState?.[seat]?.onBarrel && amount < BARREL_BID_FLOOR) {
+      return { rejected: true, reason: `Players on barrel must bid at least ${BARREL_BID_FLOOR}.` };
+    }
     const smallest = this.currentHighBid === null ? MIN_BID : this.currentHighBid + BID_STEP;
     if (amount < smallest) {return { rejected: true, reason: `Bid must be at least ${smallest}` };}
 

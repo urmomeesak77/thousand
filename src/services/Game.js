@@ -1,5 +1,7 @@
 'use strict';
 
+const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT } = require('./GameRules');
+
 class Game {
   constructor({ gameId, seatOrder, dealerSeat }) {
     this.gameId = gameId;
@@ -20,51 +22,65 @@ class Game {
   }
 
   applyRoundEnd(roundDeltas, summaryEntry) {
-    // Update cumulativeScores by adding each delta
     for (const seat in roundDeltas) {
       this.cumulativeScores[seat] += roundDeltas[seat];
     }
 
-    // Update barrelState for each seat
+    // Barrel counter advances every round the player was on barrel (FR-023).
+    // Counter reset happens regardless of whether penalty fired.
     for (const seat in this.cumulativeScores) {
-      const newScore = this.cumulativeScores[seat];
-      const newOnBarrel = newScore >= 880 && newScore < 1000;
-      const wasOnBarrel = this.barrelState[seat].onBarrel;
+      if (!this.barrelState[seat].onBarrel) { continue; }
 
-      // If exiting barrel: reset barrelRoundsUsed to 0
-      if (wasOnBarrel && !newOnBarrel) {
+      this.barrelState[seat].barrelRoundsUsed += 1;
+
+      if (this.barrelState[seat].barrelRoundsUsed === BARREL_ROUND_LIMIT) {
+        const score = this.cumulativeScores[seat];
+        if (score >= BARREL_MIN && score < BARREL_MAX) {
+          this.cumulativeScores[seat] -= SPECIAL_PENALTY;
+        }
         this.barrelState[seat].barrelRoundsUsed = 0;
       }
-
-      // Update onBarrel status
-      this.barrelState[seat].onBarrel = newOnBarrel;
     }
 
-    // Append summaryEntry to history
-    this.history.push(summaryEntry);
+    // Three consecutive rounds with zero round score (trickPoints + marriageBonus)
+    // triggers a −120 penalty, independent of barrel state (FR-024).
+    for (const seat in this.cumulativeScores) {
+      const { trickPoints, marriageBonus } = summaryEntry.perPlayer[seat];
+      if (trickPoints + marriageBonus === 0) {
+        this.consecutiveZeros[seat] += 1;
+      } else {
+        this.consecutiveZeros[seat] = 0;
+      }
 
-    // Return the updated cumulativeScores
+      if (this.consecutiveZeros[seat] === ZERO_ROUND_LIMIT) {
+        this.cumulativeScores[seat] -= SPECIAL_PENALTY;
+        this.consecutiveZeros[seat] = 0;
+      }
+    }
+
+    // Re-evaluate onBarrel after all penalties are applied so the invariant holds:
+    // onBarrel === (cumulativeScores[seat] >= BARREL_MIN && < BARREL_MAX)
+    for (const seat in this.cumulativeScores) {
+      const score = this.cumulativeScores[seat];
+      const nowOnBarrel = score >= BARREL_MIN && score < BARREL_MAX;
+      if (this.barrelState[seat].onBarrel && !nowOnBarrel) {
+        this.barrelState[seat].barrelRoundsUsed = 0;
+      }
+      this.barrelState[seat].onBarrel = nowOnBarrel;
+    }
+
+    this.history.push(summaryEntry);
     return this.cumulativeScores;
   }
 
   recordContinuePress(seat) {
-    // Short-circuit if gameStatus is not 'in-progress'
-    if (this.gameStatus !== 'in-progress') {
-      return;
-    }
-
-    // Add seat to continuePresses (Set.add is idempotent)
+    if (this.gameStatus !== 'in-progress') { return; }
     this.continuePresses.add(seat);
   }
 
   startNextRound() {
-    // Increment currentRoundNumber
     this.currentRoundNumber++;
-
-    // Rotate dealerSeat clockwise: (this.dealerSeat + 1) % 3
     this.dealerSeat = (this.dealerSeat + 1) % 3;
-
-    // Clear continuePresses to empty Set
     this.continuePresses = new Set();
   }
 }

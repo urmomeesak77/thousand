@@ -335,12 +335,6 @@ class RoundActionHandler {
       if (session) {
         const deltas = round.roundDeltas;
 
-        // Compute cumulativeAfter for each seat = current cumulative + delta
-        for (const seat of [0, 1, 2]) {
-          round.summary.perPlayer[seat].cumulativeAfter =
-            session.cumulativeScores[seat] + deltas[seat];
-        }
-
         // Build the RoundHistoryEntry for Game.history
         const declarerPid = round.seatOrder[round.declarerSeat];
         const summaryEntry = {
@@ -355,6 +349,13 @@ class RoundActionHandler {
 
         // Apply round end: mutates cumulativeScores, barrelState, appends history
         session.applyRoundEnd(deltas, summaryEntry);
+
+        // Compute cumulativeAfter AFTER applyRoundEnd so penalties are reflected
+        for (const seat of [0, 1, 2]) {
+          round.summary.perPlayer[seat].cumulativeAfter = session.cumulativeScores[seat];
+          summaryEntry.perPlayer[seat].cumulativeAfter = session.cumulativeScores[seat];
+          summaryEntry.perPlayer[seat].penalties = round.summary.perPlayer[seat].penalties;
+        }
 
         // Patch summary roundNumber with the session's current round number
         round.summary.roundNumber = session.currentRoundNumber;

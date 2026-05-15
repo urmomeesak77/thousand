@@ -76,6 +76,12 @@ function buildViewModel(round, seat) {
     exchangePassesCommitted: round.phase === 'card-exchange' ? round.exchangePassesCommitted : null,
     continuePressedSeats: isPhaseFinal && session ? [...session.continuePresses] : null,
     roundNumber: session ? session.currentRoundNumber : 1,
+    // Absent when no player is on barrel (null entry per seat when onBarrel === false)
+    barrelMarkers: session
+      ? Object.fromEntries([0, 1, 2].map(s => [s, session.barrelState[s].onBarrel
+        ? { onBarrel: true, barrelRoundsUsed: session.barrelState[s].barrelRoundsUsed }
+        : null]))
+      : null,
   };
 }
 
