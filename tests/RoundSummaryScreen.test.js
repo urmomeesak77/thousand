@@ -26,12 +26,28 @@ before(() => {
 // Factory helpers
 // ---------------------------------------------------------------------------
 
+function makeMockAntlion() {
+  const handlers = {};
+  return {
+    bindInput(el, event, type) {
+      el.addEventListener(event, (e) => { if (handlers[type]) handlers[type](e); });
+    },
+    onInput(type, handler) { handlers[type] = handler; },
+    onTick() {},
+    schedule() { return 0; },
+    cancelScheduled() {},
+    emit() {},
+    stop() {},
+  };
+}
+
 function makeRoundSummaryScreen(onBackToLobby) {
   const doc = dom.window.document;
   const el = doc.createElement('div');
   doc.body.appendChild(el);
   const cb = onBackToLobby || (() => {});
-  const screen = new dom.window.RoundSummaryScreen(el, { onBackToLobby: cb });
+  const antlion = makeMockAntlion();
+  const screen = new dom.window.RoundSummaryScreen(el, { antlion, onBackToLobby: cb });
   return { screen, el };
 }
 

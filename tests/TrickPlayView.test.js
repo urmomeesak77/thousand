@@ -29,13 +29,17 @@ before(() => {
 // ---------------------------------------------------------------------------
 
 function makeMockAntlion() {
+  const handlers = {};
   return {
-    bindInput() {},
-    onInput() {},
+    bindInput(el, event, type) {
+      el.addEventListener(event, (e) => { if (handlers[type]) handlers[type](e); });
+    },
+    onInput(type, handler) { handlers[type] = handler; },
     onTick() {},
     schedule() { return 0; },
     cancelScheduled() {},
     emit() {},
+    stop() {},
   };
 }
 

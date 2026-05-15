@@ -1,10 +1,7 @@
-// ============================================================
-// RoundSummaryScreen — post-round score table (FR-015)
-// ============================================================
-
 class RoundSummaryScreen {
-  constructor(el, { onBackToLobby }) {
+  constructor(el, { antlion, onBackToLobby }) {
     this._el = el;
+    this._antlion = antlion;
     this._onBackToLobby = onBackToLobby;
   }
 
@@ -74,7 +71,8 @@ class RoundSummaryScreen {
     const btn = document.createElement('button');
     btn.className = 'round-summary__back-btn';
     btn.textContent = 'Back to Lobby';
-    btn.addEventListener('click', () => this._onBackToLobby());
+    this._antlion.bindInput(btn, 'click', 'round-summary-back-click');
+    this._antlion.onInput('round-summary-back-click', () => this._onBackToLobby());
     this._el.appendChild(btn);
   }
 

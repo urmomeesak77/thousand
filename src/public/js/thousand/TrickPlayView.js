@@ -1,13 +1,17 @@
-// ============================================================
-// TrickPlayView — trick-play phase UI (FR-007, FR-008)
-// ============================================================
-
 class TrickPlayView {
   constructor(el, { antlion, dispatcher, seats }) {
     this._el = el;
     this._antlion = antlion;
     this._dispatcher = dispatcher;
-    this._seats = seats; // { self, left, right } or array
+    this._seats = seats;
+
+    this._antlion.bindInput(this._el, 'click', 'trick-play-card-click');
+    this._antlion.onInput('trick-play-card-click', (e) => {
+      const btn = e.target.closest('.trick-play__card');
+      if (!btn || btn.classList.contains('card--disabled')) return;
+      const cardId = parseInt(btn.dataset.cardId, 10);
+      this._dispatcher.sendPlayCard(cardId);
+    });
   }
 
   render(snapshot) {
@@ -33,10 +37,6 @@ class TrickPlayView {
       const disabled = !isMyTurn || !legalSet.has(card.id);
       if (disabled) {
         btn.classList.add('card--disabled');
-      } else {
-        btn.addEventListener('click', () => {
-          this._dispatcher.sendPlayCard(card.id);
-        });
       }
 
       handEl.appendChild(btn);

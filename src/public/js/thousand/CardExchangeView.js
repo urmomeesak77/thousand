@@ -1,9 +1,3 @@
-// ============================================================
-// CardExchangeView — card-exchange phase UI (FR-002, FR-020)
-// ============================================================
-
-import CardSprite from './CardSprite.js';
-
 class CardExchangeView {
   constructor(el, { antlion, dispatcher, seats }) {
     this._el = el;
@@ -11,11 +5,26 @@ class CardExchangeView {
     this._dispatcher = dispatcher;
     this._seats = seats; // { self, left, right, declarerSeat }
     this._selectedCardId = null;
+    this._exchangePassesCommitted = 0;
+
+    this._antlion.bindInput(this._el, 'click', 'card-exchange-click');
+    this._antlion.onInput('card-exchange-click', (e) => {
+      const cardBtn = e.target.closest('.card-exchange__card');
+      if (cardBtn) {
+        this._onCardClick(parseInt(cardBtn.dataset.cardId, 10));
+        return;
+      }
+      const destBtn = e.target.closest('.card-exchange__dest-btn');
+      if (destBtn) {
+        this._dispatcher.sendExchangePass(this._selectedCardId, parseInt(destBtn.dataset.seat, 10));
+      }
+    });
   }
 
   render(snapshot) {
     this._el.innerHTML = '';
     this._selectedCardId = null;
+    this._exchangePassesCommitted = snapshot.exchangePassesCommitted;
 
     if (snapshot.isDeclarerView) {
       this._renderDeclarer(snapshot);
@@ -25,7 +34,7 @@ class CardExchangeView {
   }
 
   _renderDeclarer(snapshot) {
-    const { myHand, exchangePassesCommitted } = snapshot;
+    const { myHand } = snapshot;
 
     const handEl = document.createElement('div');
     handEl.className = 'card-exchange__hand';
@@ -35,33 +44,25 @@ class CardExchangeView {
       btn.className = 'card-exchange__card';
       btn.dataset.cardId = card.id;
       btn.textContent = `${card.rank}${card.suit}`;
-      btn.addEventListener('click', () => this._onCardClick(card.id, exchangePassesCommitted));
       handEl.appendChild(btn);
     }
 
     this._el.appendChild(handEl);
   }
 
-  _onCardClick(cardId, exchangePassesCommitted) {
+  _onCardClick(cardId) {
     this._selectedCardId = cardId;
-    this._renderDestButtons(exchangePassesCommitted);
+    this._renderDestButtons(this._exchangePassesCommitted);
   }
 
   _renderDestButtons(exchangePassesCommitted) {
-    // Remove any existing dest buttons
     const existing = this._el.querySelector('.card-exchange__dest-row');
     if (existing) {
       existing.remove();
     }
 
-    const { self, left, right } = this._seats;
-    // Destination seats = all non-self seats
+    const { left, right } = this._seats;
     const allDests = [left, right];
-
-    // After first pass (exchangePassesCommitted >= 1), only 1 seat remains
-    // The used seat is determined by which seat was already passed to.
-    // We show seats that haven't been used yet: total - committed = remaining
-    // committed=0 → show both; committed=1 → show 1; committed=2 → show 0
     const remaining = allDests.slice(exchangePassesCommitted);
 
     if (remaining.length === 0) {
@@ -76,9 +77,6 @@ class CardExchangeView {
       btn.className = 'card-exchange__dest-btn';
       btn.dataset.seat = seat;
       btn.textContent = `Seat ${seat}`;
-      btn.addEventListener('click', () => {
-        this._dispatcher.sendExchangePass(this._selectedCardId, seat);
-      });
       row.appendChild(btn);
     }
 
@@ -88,17 +86,7 @@ class CardExchangeView {
   _renderWaiting(snapshot) {
     const div = document.createElement('div');
     div.className = 'card-exchange__waiting';
-    // Find declarer nickname from seats
-    const declarerSeat = this._seats.declarerSeat;
-    // Try to find nickname — seats may be an array or plain object
-    let declarerNickname = `seat ${declarerSeat}`;
-    if (Array.isArray(this._seats)) {
-      const found = this._seats.find(s => s.seat === declarerSeat);
-      if (found) {
-        declarerNickname = found.nickname;
-      }
-    }
-    div.textContent = `Waiting for ${declarerNickname} to exchange cards…`;
+    div.textContent = 'Waiting for the declarer to exchange cards…';
     this._el.appendChild(div);
   }
 
