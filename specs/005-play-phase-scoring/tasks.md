@@ -152,39 +152,39 @@ description: "Task list for feature 005 â€” Play Phase, Scoring, Multi-Roun
 
 ### Tests for User Story 3
 
-- [ ] T057 [P] [US3] Write `tests/Game.multiround.test.js` covering FR-016 dealer rotation (R-002: `game.session` is the same instance across 3 rounds), FR-029 cleanup at game-end only (R-007: no purge on `play_phase_ready` path), cumulative carry-over including negatives
-- [ ] T058 [P] [US3] Write `tests/FinalResultsScreen.test.js` covering FR-017 descending-ranking sort, winner highlight, history-table rendering
-- [ ] T059 [P] [US3] Write `tests/Round.disconnect.play.test.js` covering FR-025 trick-play active-player pause/continue, round-summary sticky press, grace-expiry abort variants (R-006 both orderings: third press before vs after grace expiry)
-- [ ] T060 [P] [US3] Extend `tests/Scoring.test.js` with FR-017 `determineWinner` tiebreak coverage (single winner; declarer-among-tied wins; seat-order fallback)
+- [x] T057 [P] [US3] Write `tests/Game.multiround.test.js` covering FR-016 dealer rotation (R-002: `game.session` is the same instance across 3 rounds), FR-029 cleanup at game-end only (R-007: no purge on `play_phase_ready` path), cumulative carry-over including negatives
+- [x] T058 [P] [US3] Write `tests/FinalResultsScreen.test.js` covering FR-017 descending-ranking sort, winner highlight, history-table rendering
+- [x] T059 [P] [US3] Write `tests/Round.disconnect.play.test.js` covering FR-025 trick-play active-player pause/continue, round-summary sticky press, grace-expiry abort variants (R-006 both orderings: third press before vs after grace expiry)
+- [x] T060 [P] [US3] Extend `tests/Scoring.test.js` with FR-017 `determineWinner` tiebreak coverage (single winner; declarer-among-tied wins; seat-order fallback)
 
 ### Implementation for User Story 3
 
 #### Server (US3)
 
-- [ ] T061 [P] [US3] Create `src/services/Game.js` per data-model.md â€” fields: `gameId`, `seatOrder`, `dealerSeat`, `currentRoundNumber`, `cumulativeScores`, `continuePresses` (Set), `history` (array), `gameStatus`; constructor only (mutation methods land in T062 / T063)
-- [ ] T062 [US3] Add `Game.applyRoundEnd(roundDeltas, summaryEntry)` to `src/services/Game.js` â€” mutates `cumulativeScores`, appends one `RoundHistoryEntry` to `history` per Decision 9
-- [ ] T063 [US3] Add `Game.recordContinuePress(seat)` (sticky-press semantics per Decision 7 / R-006: short-circuits if `gameStatus !== 'in-progress'` or if any disconnected seat is past grace) and `Game.startNextRound()` (rotates `dealerSeat` clockwise, increments `currentRoundNumber`, clears `continuePresses`) to `src/services/Game.js`
-- [ ] T064 [P] [US3] Implement `Scoring.determineWinner(game)` in `src/services/Scoring.js` per Decision 11 â€” max score â†’ declarer-among-tied tiebreak â†’ seat-order fallback
-- [ ] T065 [P] [US3] Implement `Scoring.buildFinalResults(game)` in `src/services/Scoring.js` per FR-017 â€” `finalRanking` sorted descending, `isWinner` flag, history pass-through
-- [ ] T066 [US3] Update `src/services/ThousandStore.js` so the existing `startRound(gameId)` callsite instantiates `game.session = new Game(...)` on round 1 only; subsequent rounds reuse `game.session` and call `Game.startNextRound()` per Decision 2 / R-002
-- [ ] T067 [US3] Update `_admitPlayerToGame` in `src/controllers/GameController.js` to set `game.session = null` at admission (the Game instance is created later by `store.startRound`) per Decision 2
-- [ ] T068 [US3] Remove the temporary round-end purge introduced in T025; move cleanup callsites in `src/controllers/RoundActionHandler.js` to fire only on `final_results`, `round_aborted`, and `game_aborted` broadcasts per FR-029 / Decision 8
-- [ ] T069 [US3] Add the `continue_to_next_round` message branch to `src/controllers/RoundActionHandler.js` â€” throttle, validates `Round.phase === 'round-summary'` and `Game.gameStatus === 'in-progress'`, calls `Game.recordContinuePress`, broadcasts `continue_press_recorded`; on the third press calls `Game.startNextRound()`, instantiates a fresh `Round`, and broadcasts `next_round_started`
-- [ ] T070 [US3] Add the victory-check pipeline in the round-summary builder (called from the `play_card` round-end branch in `src/controllers/RoundActionHandler.js`): after `Game.applyRoundEnd`, if any `cumulativeScores[seat] >= 1000` then set `Game.gameStatus = 'game-over'`, call `Scoring.buildFinalResults`, broadcast `final_results`, and purge the game record per FR-017 / FR-029
-- [ ] T071 [US3] Add the grace-expiry-on-round-summary handler in `src/services/ConnectionManager.js` (or wherever grace timers live) â€” on expiry of a player whose seat is NOT in `Game.continuePresses`, set `Game.gameStatus = 'aborted'`, broadcast `game_aborted` (with `disconnectedNickname` and `reason: 'player_grace_expired'`), purge per FR-025 / FR-029
-- [ ] T072 [US3] Register `continue_to_next_round` in the message-type dispatch table of `src/services/ConnectionManager.js`; add broadcast helpers for `continue_press_recorded`, `next_round_started`, `final_results`, `game_aborted` per contracts/ws-messages.md
-- [ ] T073 [US3] Extend the GameStatus view-model emitter in `src/services/Round.js` to read `cumulativeScores`, `roundNumber`, and `continuePressedSeats` from `game.session` (replacing the US1 placeholder zero-state) per FR-018
-- [ ] T074 [US3] Extend `src/services/RoundSnapshot.js` with the final-results snapshot (`finalResults: FinalResults` payload) and add `continuePressedSeats` to the round-summary snapshot per FR-026
+- [x] T061 [P] [US3] Create `src/services/Game.js` per data-model.md â€” fields: `gameId`, `seatOrder`, `dealerSeat`, `currentRoundNumber`, `cumulativeScores`, `continuePresses` (Set), `history` (array), `gameStatus`; constructor only (mutation methods land in T062 / T063)
+- [x] T062 [US3] Add `Game.applyRoundEnd(roundDeltas, summaryEntry)` to `src/services/Game.js` â€” mutates `cumulativeScores`, appends one `RoundHistoryEntry` to `history` per Decision 9
+- [x] T063 [US3] Add `Game.recordContinuePress(seat)` (sticky-press semantics per Decision 7 / R-006: short-circuits if `gameStatus !== 'in-progress'` or if any disconnected seat is past grace) and `Game.startNextRound()` (rotates `dealerSeat` clockwise, increments `currentRoundNumber`, clears `continuePresses`) to `src/services/Game.js`
+- [x] T064 [P] [US3] Implement `Scoring.determineWinner(game)` in `src/services/Scoring.js` per Decision 11 â€” max score â†’ declarer-among-tied tiebreak â†’ seat-order fallback
+- [x] T065 [P] [US3] Implement `Scoring.buildFinalResults(game)` in `src/services/Scoring.js` per FR-017 â€” `finalRanking` sorted descending, `isWinner` flag, history pass-through
+- [x] T066 [US3] Update `src/services/ThousandStore.js` so the existing `startRound(gameId)` callsite instantiates `game.session = new Game(...)` on round 1 only; subsequent rounds reuse `game.session` and call `Game.startNextRound()` per Decision 2 / R-002
+- [x] T067 [US3] Update `_admitPlayerToGame` in `src/controllers/GameController.js` to set `game.session = null` at admission (the Game instance is created later by `store.startRound`) per Decision 2
+- [x] T068 [US3] Remove the temporary round-end purge introduced in T025; move cleanup callsites in `src/controllers/RoundActionHandler.js` to fire only on `final_results`, `round_aborted`, and `game_aborted` broadcasts per FR-029 / Decision 8
+- [x] T069 [US3] Add the `continue_to_next_round` message branch to `src/controllers/RoundActionHandler.js` â€” throttle, validates `Round.phase === 'round-summary'` and `Game.gameStatus === 'in-progress'`, calls `Game.recordContinuePress`, broadcasts `continue_press_recorded`; on the third press calls `Game.startNextRound()`, instantiates a fresh `Round`, and broadcasts `next_round_started`
+- [x] T070 [US3] Add the victory-check pipeline in the round-summary builder (called from the `play_card` round-end branch in `src/controllers/RoundActionHandler.js`): after `Game.applyRoundEnd`, if any `cumulativeScores[seat] >= 1000` then set `Game.gameStatus = 'game-over'`, call `Scoring.buildFinalResults`, broadcast `final_results`, and purge the game record per FR-017 / FR-029
+- [x] T071 [US3] Add the grace-expiry-on-round-summary handler in `src/services/ConnectionManager.js` (or wherever grace timers live) â€” on expiry of a player whose seat is NOT in `Game.continuePresses`, set `Game.gameStatus = 'aborted'`, broadcast `game_aborted` (with `disconnectedNickname` and `reason: 'player_grace_expired'`), purge per FR-025 / FR-029
+- [x] T072 [US3] Register `continue_to_next_round` in the message-type dispatch table of `src/services/ConnectionManager.js`; add broadcast helpers for `continue_press_recorded`, `next_round_started`, `final_results`, `game_aborted` per contracts/ws-messages.md
+- [x] T073 [US3] Extend the GameStatus view-model emitter in `src/services/Round.js` to read `cumulativeScores`, `roundNumber`, and `continuePressedSeats` from `game.session` (replacing the US1 placeholder zero-state) per FR-018
+- [x] T074 [US3] Extend `src/services/RoundSnapshot.js` with the final-results snapshot (`finalResults: FinalResults` payload) and add `continuePressedSeats` to the round-summary snapshot per FR-026
 
 #### Client (US3)
 
-- [ ] T075 [P] [US3] Create `src/public/js/thousand/FinalResultsScreen.js` â€” `finalRanking` rows (descending, winner highlighted), per-round history table (round / declarer / bid / per-player {delta, cumulativeAfter, penalties}), single Back-to-Lobby button per FR-017
-- [ ] T076 [US3] Extend `src/public/js/thousand/RoundSummaryScreen.js` to swap the Back-to-Lobby control for `Continue to Next Round` when `summary.victoryReached === false`; render a "Continued âœ“" indicator next to each seat in `continuePressedSeats`; the local viewer's button becomes non-operable after their own press per FR-015 / FR-016
-- [ ] T077 [US3] Add `'Game over'` phase routing in `src/public/js/thousand/GameScreen.js` â†’ mount `FinalResultsScreen`
-- [ ] T078 [US3] Add validators + handlers for `continue_press_recorded`, `next_round_started`, `final_results`, `game_aborted` to `src/public/js/core/ThousandMessageRouter.js` per contracts/ws-messages.md
-- [ ] T079 [US3] Add terminal-screen lifecycle routing for `final_results` and `game_aborted` (Game-aborted variant of `RoundReadyScreen`) to `src/public/js/core/ThousandApp.js` â€” individual Back-to-Lobby navigation per FR-029
-- [ ] T080 [US3] Add `sendContinueToNextRound()` outbound wrapper to `src/public/js/thousand/RoundActionDispatcher.js`
-- [ ] T081 [US3] Update `src/public/js/thousand/StatusBar.js` to render `cumulativeScores` at all times (from round 1 bidding through Game over) and the `roundNumber` field per FR-018 (replaces the US1 placeholder zero-state)
+- [x] T075 [P] [US3] Create `src/public/js/thousand/FinalResultsScreen.js` â€” `finalRanking` rows (descending, winner highlighted), per-round history table (round / declarer / bid / per-player {delta, cumulativeAfter, penalties}), single Back-to-Lobby button per FR-017
+- [x] T076 [US3] Extend `src/public/js/thousand/RoundSummaryScreen.js` to swap the Back-to-Lobby control for `Continue to Next Round` when `summary.victoryReached === false`; render a "Continued âœ“" indicator next to each seat in `continuePressedSeats`; the local viewer's button becomes non-operable after their own press per FR-015 / FR-016
+- [x] T077 [US3] Add `'Game over'` phase routing in `src/public/js/thousand/GameScreen.js` â†’ mount `FinalResultsScreen`
+- [x] T078 [US3] Add validators + handlers for `continue_press_recorded`, `next_round_started`, `final_results`, `game_aborted` to `src/public/js/core/ThousandMessageRouter.js` per contracts/ws-messages.md
+- [x] T079 [US3] Add terminal-screen lifecycle routing for `final_results` and `game_aborted` (Game-aborted variant of `RoundReadyScreen`) to `src/public/js/core/ThousandApp.js` â€” individual Back-to-Lobby navigation per FR-029
+- [x] T080 [US3] Add `sendContinueToNextRound()` outbound wrapper to `src/public/js/thousand/RoundActionDispatcher.js`
+- [x] T081 [US3] Update `src/public/js/thousand/StatusBar.js` to render `cumulativeScores` at all times (from round 1 bidding through Game over) and the `roundNumber` field per FR-018 (replaces the US1 placeholder zero-state)
 - [ ] T082 [P] [US3] Add CSS for the final-results ranking + history table, the Continue button, the "Continued âœ“" indicator, and the Game-aborted variant of the round-ready screen to `src/public/css/index.css`
 
 **Checkpoint**: Games run multi-round until someone reaches 1000+. Game record persists across rounds and is purged only on the three terminal broadcasts.
