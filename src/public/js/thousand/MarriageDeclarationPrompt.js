@@ -11,55 +11,53 @@ class MarriageDeclarationPrompt {
     return false;
   }
 
-  constructor(el, options) {
+  constructor(el, { antlion, dispatcher }) {
     this._el = el;
-    this._dispatcher = options.dispatcher;
-    const NodeObject = Object.getPrototypeOf(options).constructor;
-    this._makeOpts = function (props) {
-      const o = new NodeObject();
-      for (const k in props) { o[k] = props[k]; }
-      return o;
-    };
+    this._dispatcher = dispatcher;
+    this._cardId = null;
+
+    antlion.bindInput(el, 'click', 'marriage-prompt-click');
+    antlion.onInput('marriage-prompt-click', (e) => {
+      const action = e.target.dataset.action;
+      if (action === 'declare') {
+        this._dispatcher.sendPlayCard(this._cardId, { declareMarriage: true });
+        this.hide();
+      } else if (action === 'play') {
+        this._dispatcher.sendPlayCard(this._cardId);
+        this.hide();
+      } else if (action === 'cancel') {
+        this.hide();
+      }
+    });
   }
 
   show(cardId, suit, bonus) {
-    this._el.innerHTML = '';
+    this._cardId = cardId;
+    this._el.replaceChildren();
     this._el.style.display = 'block';
 
     const info = document.createElement('div');
     info.textContent = 'Marriage ' + suit + ' (+' + bonus + ')';
     this._el.appendChild(info);
 
-    const makeOpts = this._makeOpts;
-    const dispatcher = this._dispatcher;
-    const self = this;
-
     const declareBtn = document.createElement('button');
     declareBtn.textContent = 'Declare and play';
-    declareBtn.addEventListener('click', function () {
-      dispatcher.sendPlayCard(cardId, makeOpts({ declareMarriage: true }));
-      self.hide();
-    });
+    declareBtn.dataset.action = 'declare';
     this._el.appendChild(declareBtn);
 
     const playBtn = document.createElement('button');
     playBtn.textContent = 'Play without declaring';
-    playBtn.addEventListener('click', function () {
-      dispatcher.sendPlayCard(cardId);
-      self.hide();
-    });
+    playBtn.dataset.action = 'play';
     this._el.appendChild(playBtn);
 
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
-    cancelBtn.addEventListener('click', function () {
-      self.hide();
-    });
+    cancelBtn.dataset.action = 'cancel';
     this._el.appendChild(cancelBtn);
   }
 
   hide() {
-    this._el.innerHTML = '';
+    this._el.replaceChildren();
     this._el.style.display = 'none';
   }
 }

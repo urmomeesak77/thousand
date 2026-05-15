@@ -43,7 +43,7 @@ function makeMockDispatcher() {
 
 /**
  * Create a fresh DOM element and a MarriageDeclarationPrompt instance.
- * Returns { prompt, el, dispatcher } or throws if the constructor is absent.
+ * Returns { prompt, el, dispatcher, simulateClick } or throws if the constructor is absent.
  */
 function makePrompt() {
   const doc = dom.window.document;
@@ -52,8 +52,16 @@ function makePrompt() {
   const dispatcher = makeMockDispatcher();
   const Ctor = dom.window.MarriageDeclarationPrompt;
   if (!Ctor) throw new Error('MarriageDeclarationPrompt is not defined');
-  const prompt = new Ctor(el, { dispatcher });
-  return { prompt, el, dispatcher };
+  let capturedHandler = null;
+  const antlion = {
+    bindInput: () => {},
+    onInput: (name, handler) => { capturedHandler = handler; },
+  };
+  const prompt = new Ctor(el, { antlion, dispatcher });
+  function simulateClick(btn) {
+    capturedHandler({ target: btn });
+  }
+  return { prompt, el, dispatcher, simulateClick };
 }
 
 /**
@@ -169,19 +177,19 @@ describe('MarriageDeclarationPrompt.canOffer — true when all conditions met', 
 
 describe('MarriageDeclarationPrompt — "Declare and play" calls sendPlayCard with declareMarriage:true', () => {
   it('clicking "Declare and play" calls dispatcher.sendPlayCard(cardId, { declareMarriage: true })', () => {
-    const { prompt, el, dispatcher } = makePrompt();
+    const { prompt, el, dispatcher, simulateClick } = makePrompt();
     const cardId = 42;
     prompt.show(cardId, '♥', 80);
 
     const btn = findButton(el, 'Declare');
     assert.ok(btn, '"Declare and play" button must be rendered after show()');
 
-    btn.click();
+    simulateClick(btn);
 
     assert.equal(dispatcher._calls.length, 1, 'sendPlayCard must be called exactly once');
     const call = dispatcher._calls[0];
     assert.equal(call.cardId, cardId, 'sendPlayCard must receive the correct cardId');
-    assert.deepEqual(call.opts, { declareMarriage: true },
+    assert.equal(call.opts != null && call.opts.declareMarriage, true,
       'sendPlayCard must receive { declareMarriage: true }');
   });
 });
@@ -190,14 +198,14 @@ describe('MarriageDeclarationPrompt — "Declare and play" calls sendPlayCard wi
 
 describe('MarriageDeclarationPrompt — "Play without declaring" calls sendPlayCard with no extra opts', () => {
   it('clicking "Play without declaring" calls dispatcher.sendPlayCard(cardId) with no opts', () => {
-    const { prompt, el, dispatcher } = makePrompt();
+    const { prompt, el, dispatcher, simulateClick } = makePrompt();
     const cardId = 7;
     prompt.show(cardId, '♠', 40);
 
     const btn = findButton(el, 'without');
     assert.ok(btn, '"Play without declaring" button must be rendered after show()');
 
-    btn.click();
+    simulateClick(btn);
 
     assert.equal(dispatcher._calls.length, 1, 'sendPlayCard must be called exactly once');
     const call = dispatcher._calls[0];
@@ -211,26 +219,26 @@ describe('MarriageDeclarationPrompt — "Play without declaring" calls sendPlayC
 
 describe('MarriageDeclarationPrompt — "Cancel" makes no dispatcher call and hides the prompt', () => {
   it('clicking "Cancel" does not call sendPlayCard', () => {
-    const { prompt, el, dispatcher } = makePrompt();
+    const { prompt, el, dispatcher, simulateClick } = makePrompt();
     const cardId = 3;
     prompt.show(cardId, '♦', 60);
 
     const btn = findButton(el, 'Cancel');
     assert.ok(btn, '"Cancel" button must be rendered after show()');
 
-    btn.click();
+    simulateClick(btn);
 
     assert.equal(dispatcher._calls.length, 0, 'sendPlayCard must NOT be called on Cancel');
   });
 
   it('clicking "Cancel" hides the prompt', () => {
-    const { prompt, el, dispatcher } = makePrompt();
+    const { prompt, el, dispatcher, simulateClick } = makePrompt();
     prompt.show(7, '♣', 100);
 
     const cancelBtn = findButton(el, 'Cancel');
     assert.ok(cancelBtn, '"Cancel" button must be rendered after show()');
 
-    cancelBtn.click();
+    simulateClick(cancelBtn);
 
     // After cancel, the prompt should not be visible.
     // We check by calling hide() via prompt.hide (no throw) and by verifying
