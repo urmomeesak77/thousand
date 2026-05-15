@@ -63,6 +63,9 @@ class RoundSummaryScreen {
     for (const data of Object.values(perPlayer)) {
       const row = this._makePlayerRow(data);
       tbody.appendChild(row);
+      for (const penaltyRow of this._makePenaltyRows(data)) {
+        tbody.appendChild(penaltyRow);
+      }
     }
     table.appendChild(tbody);
 
@@ -92,6 +95,23 @@ class RoundSummaryScreen {
     }
 
     return row;
+  }
+
+  _makePenaltyRows(data) {
+    const PENALTY_LABELS = {
+      barrel: 'Barrel penalty: −120',
+      'three-zeros': 'Zero-round penalty: −120',
+    };
+    return (data.penalties ?? []).map((token) => {
+      const tr = document.createElement('tr');
+      tr.className = 'round-summary__penalty-row';
+      tr.setAttribute('data-seat', data.seat);
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.textContent = PENALTY_LABELS[token] ?? token;
+      tr.appendChild(td);
+      return tr;
+    });
   }
 
   _renderBackButton() {
