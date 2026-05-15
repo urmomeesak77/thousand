@@ -9,16 +9,17 @@ const MESSAGE_RATE_LIMIT = 30;
 const MESSAGE_RATE_WINDOW_MS = 10000;
 
 const ACTION_DISPATCH = {
-  bid:           (h, pid, m) => h.handleBid(pid, m.amount),
-  pass:          (h, pid)    => h.handlePass(pid),
-  sell_start:    (h, pid)    => h.handleSellStart(pid),
-  sell_select:   (h, pid, m) => h.handleSellSelect(pid, m.cardIds),
-  sell_cancel:   (h, pid)    => h.handleSellCancel(pid),
-  sell_bid:      (h, pid, m) => h.handleSellBid(pid, m.amount),
-  sell_pass:     (h, pid)    => h.handleSellPass(pid),
-  start_game:    (h, pid)    => h.handleStartGame(pid),
-  exchange_pass: (h, pid, m) => h.handleExchangePass(pid, m.cardId, m.toSeat),
-  play_card:     (h, pid, m) => h.handlePlayCard(pid, m.cardId, m.declareMarriage === true),
+  bid:                    (h, pid, m) => h.handleBid(pid, m.amount),
+  pass:                   (h, pid)    => h.handlePass(pid),
+  sell_start:             (h, pid)    => h.handleSellStart(pid),
+  sell_select:            (h, pid, m) => h.handleSellSelect(pid, m.cardIds),
+  sell_cancel:            (h, pid)    => h.handleSellCancel(pid),
+  sell_bid:               (h, pid, m) => h.handleSellBid(pid, m.amount),
+  sell_pass:              (h, pid)    => h.handleSellPass(pid),
+  start_game:             (h, pid)    => h.handleStartGame(pid),
+  exchange_pass:          (h, pid, m) => h.handleExchangePass(pid, m.cardId, m.toSeat),
+  play_card:              (h, pid, m) => h.handlePlayCard(pid, m.cardId, m.declareMarriage === true),
+  continue_to_next_round: (h, pid)    => h.handleContinueToNextRound(pid),
 };
 
 class ConnectionManager {

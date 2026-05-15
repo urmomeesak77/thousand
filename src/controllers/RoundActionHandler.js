@@ -1,7 +1,9 @@
 'use strict';
 
 const RateLimiter = require('../utils/RateLimiter');
-const { roundScores, roundDeltas } = require('../services/Scoring');
+const { roundScores, roundDeltas, buildFinalResults } = require('../services/Scoring');
+const Round = require('../services/Round');
+const RoundSnapshot = require('../services/RoundSnapshot');
 
 class RoundActionHandler {
   constructor({ store }) {
@@ -193,7 +195,6 @@ class RoundActionHandler {
     );
   }
 
-  // round stays alive for card-exchange phase (old code cleaned up the round here)
   handleStartGame(playerId) {
     if (!this._rateLimiter.isAllowed(playerId)) {
       return;
@@ -321,10 +322,52 @@ class RoundActionHandler {
       return;
     }
     const isRoundComplete = result.trickResolved && result.roundComplete;
+    let victoryReached = false;
+    let finalResults = null;
     if (isRoundComplete) {
       round.roundScores = roundScores(round);
       round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);
+
+      // Build the round summary view-model (populates perPlayer with trickPoints, marriageBonus, etc.)
       round.buildSummary(game);
+
+      const session = game.session;
+      if (session) {
+        const deltas = round.roundDeltas;
+
+        // Compute cumulativeAfter for each seat = current cumulative + delta
+        for (const seat of [0, 1, 2]) {
+          round.summary.perPlayer[seat].cumulativeAfter =
+            session.cumulativeScores[seat] + deltas[seat];
+        }
+
+        // Build the RoundHistoryEntry for Game.history
+        const declarerPid = round.seatOrder[round.declarerSeat];
+        const summaryEntry = {
+          roundNumber: session.currentRoundNumber,
+          declarerSeat: round.declarerSeat,
+          declarerNickname: this._store.players.get(declarerPid)?.nickname ?? null,
+          bid: round.currentHighBid,
+          perPlayer: Object.fromEntries(
+            [0, 1, 2].map((seat) => [seat, { ...round.summary.perPlayer[seat] }])
+          ),
+        };
+
+        // Apply round end: mutates cumulativeScores, barrelState, appends history
+        session.applyRoundEnd(deltas, summaryEntry);
+
+        // Patch summary roundNumber with the session's current round number
+        round.summary.roundNumber = session.currentRoundNumber;
+
+        // Check victory: any seat at >= 1000
+        victoryReached = [0, 1, 2].some((s) => session.cumulativeScores[s] >= 1000);
+        round.summary.victoryReached = victoryReached;
+
+        if (victoryReached) {
+          session.gameStatus = 'game-over';
+          finalResults = buildFinalResults(session);
+        }
+      }
     }
     const trickNumber = round.trickNumber;
     for (const pid of game.players) {
@@ -336,6 +379,101 @@ class RoundActionHandler {
       this._store.sendToPlayer(pid, { type: 'card_played', gameStatus });
       if (isRoundComplete) {
         this._broadcastRoundSummary(pid, gameStatus, round.summary);
+        if (victoryReached) {
+          this._store.sendToPlayer(pid, {
+            type: 'final_results',
+            finalResults,
+            gameStatus: 'game-over',
+          });
+        }
+      }
+    }
+    // FR-029: purge the game record after broadcasting final_results
+    if (isRoundComplete && victoryReached) {
+      this._store._deleteGame(game.id, game);
+    }
+  }
+
+  // T069 — FR-016: continue to next round
+  handleContinueToNextRound(playerId) {
+    if (!this._rateLimiter.isAllowed(playerId)) {
+      return;
+    }
+    const player = this._store.players.get(playerId);
+    if (!player?.gameId) {
+      this._reject(playerId, 'Not in a game');
+      return;
+    }
+    const gameId = player.gameId;
+    const game = this._store.games.get(gameId);
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const round = game.round;
+    const session = game.session;
+
+    // Validate phase and game status
+    if (round.phase !== 'round-summary') {
+      this._reject(playerId, 'Not in round-summary phase');
+      return;
+    }
+    if (!session || session.gameStatus !== 'in-progress') {
+      this._reject(playerId, 'Game is not in progress');
+      return;
+    }
+
+    // Get the sender's seat
+    const seat = round.seatByPlayer.get(playerId);
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+
+    // Record the press (idempotent)
+    session.recordContinuePress(seat);
+
+    const continuePressedSeats = [...session.continuePresses];
+
+    // Broadcast continue_press_recorded + phase_changed to all players
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      this._store.sendToPlayer(pid, {
+        type: 'continue_press_recorded',
+        seat,
+        continuePressedSeats,
+        gameStatus,
+      });
+      this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
+    }
+
+    // If all 3 players have pressed, start the next round
+    if (session.continuePresses.size === 3) {
+      // Rotate dealer + increment round number + clear continuePresses
+      session.startNextRound();
+
+      // Create a new round
+      game.round = new Round({ game, store: this._store });
+      game.round.start();
+      game.round.advanceFromDealingToBidding();
+
+      const newRound = game.round;
+      const roundNumber = session.currentRoundNumber;
+
+      // Broadcast next_round_started to each player (per-viewer payload)
+      for (const pid of game.players) {
+        const selfSeat = newRound.seatByPlayer.get(pid);
+        const gameStatus = newRound.getViewModelFor(selfSeat);
+        const seats = RoundSnapshot.buildSeatLayout(newRound, selfSeat);
+        const dealSequence = RoundSnapshot.buildDealSequenceFor(newRound, selfSeat);
+        this._store.sendToPlayer(pid, {
+          type: 'next_round_started',
+          roundNumber,
+          seats,
+          dealSequence,
+          gameStatus,
+        });
       }
     }
   }
