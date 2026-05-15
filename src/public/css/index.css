@@ -1442,6 +1442,193 @@ fieldset legend {
 }
 
 /* ============================================================
+   Continue to Next Round button (.round-summary__continue-btn)
+   ============================================================ */
+
+.round-summary__continue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 0 1.5rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+  margin-top: 1rem;
+}
+
+.round-summary__continue-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.round-summary__continue-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Continued indicator (.round-summary__continued-indicator)
+   ============================================================ */
+
+.round-summary__continued-indicator {
+  display: inline-block;
+  color: var(--color-success);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+/* ============================================================
+   Final Results Screen (.final-results__*)
+   ============================================================ */
+
+/* Ranking section wrapper */
+.final-results__ranking {
+  width: 100%;
+  max-width: 32rem;
+  margin-bottom: 2rem;
+}
+
+/* Ranking row — displays player name and cumulative score */
+.final-results__ranking-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+/* Winner highlight with warm gold/yellow accent */
+.final-results__ranking-row--winner {
+  background: var(--color-surface);
+  border-color: #d4a574;
+  box-shadow: 0 0 12px rgba(212, 165, 116, 0.2);
+}
+
+/* Player nickname in ranking */
+.final-results__ranking-nickname {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Final score in ranking row */
+.final-results__ranking-score {
+  color: var(--color-primary-hover);
+  font-weight: 700;
+  font-size: 1.1rem;
+  font-family: monospace;
+}
+
+/* History table for per-round results */
+.final-results__history-table {
+  width: 100%;
+  max-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.final-results__history-table tbody {
+  display: block;
+  overflow-x: auto;
+  max-height: 20rem;
+}
+
+/* Per-round history row */
+.final-results__history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition);
+}
+
+.final-results__history-row:hover {
+  background: var(--color-surface-alt);
+}
+
+/* Round number cell */
+.final-results__history-round {
+  min-width: 4rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+/* Declarer name cell */
+.final-results__history-declarer {
+  flex: 1;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* Bid amount cell */
+.final-results__history-bid {
+  min-width: 3.5rem;
+  text-align: right;
+  color: var(--color-text-muted);
+}
+
+/* Per-player delta (round points) */
+.final-results__history-delta {
+  min-width: 3.5rem;
+  text-align: right;
+  color: var(--color-text);
+}
+
+/* Per-player cumulative score after the round */
+.final-results__history-cumulative {
+  min-width: 4rem;
+  text-align: right;
+  color: var(--color-primary-hover);
+  font-weight: 600;
+}
+
+/* Back to Lobby button */
+.final-results__back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 0 1.5rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+  margin-top: 1.5rem;
+}
+
+.final-results__back-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+/* ============================================================
+   Status bar Round Number display (.status-bar__round-number)
+   ============================================================ */
+
+.status-bar__round-number {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ============================================================
    Play-phase animations
    ============================================================ */
 
