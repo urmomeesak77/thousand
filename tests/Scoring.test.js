@@ -4,7 +4,6 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const Scoring = require('../src/services/Scoring');
 
-// FR-013: card point values — constants already exported
 describe('Scoring — CARD_POINT_VALUE constants (FR-013)', () => {
   it('A is worth 11', () => {
     assert.equal(Scoring.CARD_POINT_VALUE['A'], 11);
@@ -31,7 +30,6 @@ describe('Scoring — CARD_POINT_VALUE constants (FR-013)', () => {
   });
 });
 
-// FR-013: cardPoints(cards) sums point values for an array of { rank, suit } objects
 describe('Scoring.cardPoints — FR-013', () => {
   it('empty array returns 0', () => {
     assert.equal(Scoring.cardPoints([]), 0);
@@ -74,7 +72,6 @@ describe('Scoring.cardPoints — FR-013', () => {
   });
 });
 
-// FR-013: roundScores(round) computes per-seat totals from collectedTricks + deck + declaredMarriages
 describe('Scoring.roundScores — FR-013', () => {
   // Build a minimal round-like object with deck, collectedTricks, and declaredMarriages.
   // deck[id] = { id, rank, suit } — mirrors Round.deck layout after round.start().
@@ -173,7 +170,6 @@ describe('Scoring.roundScores — FR-013', () => {
   });
 });
 
-// FR-014: roundDeltas(roundScores, declarerSeat, bid, penalties=[])
 describe('Scoring.roundDeltas — FR-014', () => {
   it('declarer receives +bid when roundScore meets the bid', () => {
     // declarerSeat=0, bid=100, declarer has exactly 100 points

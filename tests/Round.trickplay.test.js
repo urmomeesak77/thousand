@@ -30,7 +30,6 @@ function makeRound() {
   return round;
 }
 
-// Returns the card id for a given rank+suit from the (shuffled) deck.
 function findCardId(deck, rank, suit) {
   const card = deck.find(c => c.rank === rank && c.suit === suit);
   if (!card) {throw new Error(`Card ${rank}${suit} not found in deck`);}
@@ -59,7 +58,6 @@ function makeTrickPlayRound() {
   return round;
 }
 
-// Assign specific card ids to a seat's hand (replaces auto-dealt cards)
 function setHand(round, seat, cardIds) {
   round.hands[seat] = [...cardIds];
 }
@@ -250,7 +248,6 @@ describe('Round.trickplay — trick winner determination (FR-008 / R-003)', () =
 describe('Round.trickplay — trick resolution (FR-008)', () => {
   it('after all 3 cards played, currentTrick is cleared', () => {
     const round = makeTrickPlayRound();
-    const cards = [round.hands[0][0], round.hands[1][0], round.hands[2][0]];
     // Give seat 1 and 2 off-suit so no follow-suit constraint blocks us in this test
     // (Just need the trick to resolve — use all same suit if possible)
     const club9 = findCardId(round.deck, '9', '♣');
