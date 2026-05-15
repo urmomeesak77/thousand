@@ -149,6 +149,15 @@ describe('Scoring.roundScores — FR-013', () => {
     assert.equal(scores[1], 60);
   });
 
+  it('declaredMarriage in ♠ adds 80 bonus to the declaring seat', () => {
+    const round = makeRoundStub({
+      collectedBySeats: { 0: [], 1: [], 2: [] },
+      declaredMarriages: [{ seat: 0, suit: '♠' }],
+    });
+    const scores = Scoring.roundScores(round);
+    assert.equal(scores[0], 80);
+  });
+
   it('multiple marriages on different seats accumulate independently', () => {
     const round = makeRoundStub({
       collectedBySeats: { 0: [], 1: [], 2: [] },
