@@ -53,6 +53,7 @@ class Round {
     this.currentTrumpSuit = null;
     this.declaredMarriages = [];
     this.collectedTricks = { 0: [], 1: [], 2: [] };
+    this.collectedTrickCounts = { 0: 0, 1: 0, 2: 0 };
     this.exchangePassesCommitted = 0;
     this._usedExchangeDestSeats = null;
     this.roundScores = null;
@@ -187,6 +188,7 @@ class Round {
   submitExchangePass(seat, cardId, destSeat) {
     if (this.phase !== 'card-exchange') {return { rejected: true, reason: 'Not in card-exchange phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can pass cards' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
     if (!this.hands[seat].includes(cardId)) {return { rejected: true, reason: 'Card not in hand' };}
     if (destSeat === this.declarerSeat) {return { rejected: true, reason: 'Cannot pass to yourself' };}
     if (this._usedExchangeDestSeats && this._usedExchangeDestSeats.has(destSeat)) {
@@ -242,6 +244,7 @@ class Round {
     this.currentTurnSeat = this._trickPlay.currentTurnSeat;
     this.currentTrick = this._trickPlay.currentTrick;
     this.collectedTricks = this._trickPlay.collectedTricks;
+    this.collectedTrickCounts = this._trickPlay.collectedTrickCounts;
 
     if (result.trickResolved && result.roundComplete) {
       this.phase = 'round-summary';
