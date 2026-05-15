@@ -94,66 +94,9 @@ function setupPostBidGame() {
 // T013 — Phase 3 message protocol tests
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Current state: exchange_pass is unrecognized — returns error
-// ---------------------------------------------------------------------------
-
-describe('round-messages.005 — exchange_pass currently returns Unrecognized message type error', () => {
-  it('sending exchange_pass when not in ACTION_DISPATCH returns error type', () => {
-    const { ws, pids } = setupPostBidGame();
-
-    // exchange_pass is not yet in ACTION_DISPATCH → error
-    sendMsg(ws[0], { type: 'exchange_pass', cardId: 0, toSeat: 1 });
-
-    const err = ws[0]._sent.find((m) => m.type === 'error');
-    assert.ok(err, 'server must respond with error for unrecognized exchange_pass type');
-    assert.equal(err.code, 'invalid_message', 'error code must be invalid_message');
-    assert.ok(
-      err.message && err.message.includes('Unrecognized'),
-      'error message must mention Unrecognized'
-    );
-  });
-
-  it('exchange_pass error does not broadcast to other players', () => {
-    const { ws } = setupPostBidGame();
-
-    sendMsg(ws[0], { type: 'exchange_pass', cardId: 0, toSeat: 1 });
-
-    // Other players must receive nothing
-    assert.equal(ws[1]._sent.length, 0, 'Bob must not receive any message');
-    assert.equal(ws[2]._sent.length, 0, 'Charlie must not receive any message');
-  });
-});
-
-describe('round-messages.005 — play_card currently returns Unrecognized message type error', () => {
-  it('sending play_card when not in ACTION_DISPATCH returns error type', () => {
-    const { ws } = setupPostBidGame();
-
-    // play_card is not yet in ACTION_DISPATCH → error
-    sendMsg(ws[0], { type: 'play_card', cardId: 5 });
-
-    const err = ws[0]._sent.find((m) => m.type === 'error');
-    assert.ok(err, 'server must respond with error for unrecognized play_card type');
-    assert.equal(err.code, 'invalid_message', 'error code must be invalid_message');
-  });
-
-  it('play_card error does not broadcast to other players', () => {
-    const { ws } = setupPostBidGame();
-
-    sendMsg(ws[0], { type: 'play_card', cardId: 5 });
-
-    assert.equal(ws[1]._sent.length, 0, 'Bob must not receive any message');
-    assert.equal(ws[2]._sent.length, 0, 'Charlie must not receive any message');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Positive-path tests — these fail now, pass once implementation lands
-// ---------------------------------------------------------------------------
-
 // After start_game + card exchange:
 // exchange_pass messages must broadcast card_passed to all 3 players
-describe('round-messages.005 — exchange_pass broadcasts card_passed (will pass after implementation)', () => {
+describe('round-messages.005 — exchange_pass broadcasts card_passed', () => {
   it('after start_game, sending exchange_pass broadcasts card_passed to all 3 players', () => {
     // Arrange: Drive round to card-exchange phase via Round direct mutation.
     // start_game deletes the game record; we need to work with round state directly.
@@ -211,7 +154,7 @@ describe('round-messages.005 — exchange_pass broadcasts card_passed (will pass
 });
 
 // After trick_play_started, play_card broadcasts card_played to all 3 players
-describe('round-messages.005 — play_card broadcasts card_played (will pass after implementation)', () => {
+describe('round-messages.005 — play_card broadcasts card_played', () => {
   it('after trick-play starts, play_card from the leading player broadcasts card_played to all 3', () => {
     const { store, ws, gameId } = setupPostBidGame();
     const round = store.games.get(gameId).round;
@@ -272,7 +215,7 @@ describe('round-messages.005 — play_card broadcasts card_played (will pass aft
 });
 
 // After all 8 tricks are resolved, round_summary is broadcast to all 3
-describe('round-messages.005 — round_summary broadcast after trick 8 (will pass after implementation)', () => {
+describe('round-messages.005 — round_summary broadcast after trick 8', () => {
   it('after the 8th trick resolves, round_summary is broadcast to all 3 players', () => {
     const { store, ws, pids, gameId } = setupPostBidGame();
     const round = store.games.get(gameId).round;
