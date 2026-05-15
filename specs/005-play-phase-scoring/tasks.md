@@ -115,30 +115,30 @@ description: "Task list for feature 005 â€” Play Phase, Scoring, Multi-Roun
 
 ### Tests for User Story 2
 
-- [ ] T041 [P] [US2] Write `tests/Round.marriage.test.js` covering FR-009 (no prompt on tricks 1 / 7 / 8 â€” server rejects), FR-010 marriage conditions and trump replacement on current trick, FR-011 play-without-declaring path, FR-012 stacking + most-recent-declaration-wins
-- [ ] T042 [P] [US2] Write `tests/MarriageDeclarationPrompt.test.js` covering FR-009 Cancel returns to selection (no server message), combined `play_card` outbound payload on Declare-and-play
+- [x] T041 [P] [US2] Write `tests/Round.marriage.test.js` covering FR-009 (no prompt on tricks 1 / 7 / 8 â€” server rejects), FR-010 marriage conditions and trump replacement on current trick, FR-011 play-without-declaring path, FR-012 stacking + most-recent-declaration-wins
+- [x] T042 [P] [US2] Write `tests/MarriageDeclarationPrompt.test.js` covering FR-009 Cancel returns to selection (no server message), combined `play_card` outbound payload on Declare-and-play
 
 ### Implementation for User Story 2
 
 #### Server (US2)
 
-- [ ] T043 [US2] Add `currentTrumpSuit` and `declaredMarriages` fields to `src/services/TrickPlay.js`; extend `playCard` to enforce FR-007 second clause (out-of-led-suit MUST play trump if any held); extend `resolveTrick` with trump-priority winner check per FR-008
-- [ ] T044 [US2] Add `declareMarriage(seat, cardId)` to `src/services/TrickPlay.js` â€” re-validates FR-010 (a) holds both K and Q of suit, (b) trick number in [2, 6], (c) player is leading; sets trump; appends `declaredMarriages` entry
-- [ ] T045 [US2] Extend the `play_card` branch in `src/controllers/RoundActionHandler.js` to accept the optional `declareMarriage` flag; on `true` runs `TrickPlay.declareMarriage` before `TrickPlay.playCard`; atomic accept/reject per Decision 5; broadcasts `marriage_declared` + `trump_changed` before the corresponding `card_played`
-- [ ] T046 [US2] Register no new message types in `src/services/ConnectionManager.js` (the marriage flag piggybacks on `play_card`); add outbound broadcast helpers for `marriage_declared` and `trump_changed` per contracts/ws-messages.md
-- [ ] T047 [US2] Extend `roundScores` in `src/services/Scoring.js` to add each player's marriage-bonus sum to their round total per FR-013
-- [ ] T048 [US2] Extend `Round.buildSummary` in `src/services/Round.js` to populate the `marriageBonus` column for each player and surface declarer made/missed using `trickPoints + marriageBonus` per FR-015
-- [ ] T049 [US2] Add `currentTrumpSuit` and `declaredMarriages` to the trick-play snapshot in `src/services/RoundSnapshot.js` per FR-026
-- [ ] T050 [US2] Extend the GameStatus view-model emitter in `src/services/Round.js` with `currentTrumpSuit` per FR-018
+- [x] T043 [US2] Add `currentTrumpSuit` and `declaredMarriages` fields to `src/services/TrickPlay.js`; extend `playCard` to enforce FR-007 second clause (out-of-led-suit MUST play trump if any held); extend `resolveTrick` with trump-priority winner check per FR-008
+- [x] T044 [US2] Add `declareMarriage(seat, cardId)` to `src/services/TrickPlay.js` â€” re-validates FR-010 (a) holds both K and Q of suit, (b) trick number in [2, 6], (c) player is leading; sets trump; appends `declaredMarriages` entry
+- [x] T045 [US2] Extend the `play_card` branch in `src/controllers/RoundActionHandler.js` to accept the optional `declareMarriage` flag; on `true` runs `TrickPlay.declareMarriage` before `TrickPlay.playCard`; atomic accept/reject per Decision 5; broadcasts `marriage_declared` + `trump_changed` before the corresponding `card_played`
+- [x] T046 [US2] Register no new message types in `src/services/ConnectionManager.js` (the marriage flag piggybacks on `play_card`); add outbound broadcast helpers for `marriage_declared` and `trump_changed` per contracts/ws-messages.md
+- [x] T047 [US2] Extend `roundScores` in `src/services/Scoring.js` to add each player's marriage-bonus sum to their round total per FR-013
+- [x] T048 [US2] Extend `Round.buildSummary` in `src/services/Round.js` to populate the `marriageBonus` column for each player and surface declarer made/missed using `trickPoints + marriageBonus` per FR-015
+- [x] T049 [US2] Add `currentTrumpSuit` and `declaredMarriages` to the trick-play snapshot in `src/services/RoundSnapshot.js` per FR-026
+- [x] T050 [US2] Extend the GameStatus view-model emitter in `src/services/Round.js` with `currentTrumpSuit` per FR-018
 
 #### Client (US2)
 
-- [ ] T051 [P] [US2] Create `src/public/js/thousand/MarriageDeclarationPrompt.js` â€” Declare-and-play / Play-without-declaring / Cancel modal with the `canOffer(player, trickNumber)` gate from R-005 (trick âˆˆ [2, 6], hand.length â‰¥ 3, holds both K and Q of suit)
-- [ ] T052 [US2] Extend `src/public/js/thousand/TrickPlayView.js` to open `MarriageDeclarationPrompt` on K/Q tap when leading and conditions hold; on Declare-and-play, dispatch `sendPlayCard(cardId, { declareMarriage: true })`; on Play-without-declaring, dispatch `sendPlayCard(cardId)`; on Cancel, dismiss with no server message
-- [ ] T053 [US2] Extend the FR-007 pre-disable logic in `src/public/js/thousand/TrickPlayView.js` with the trump-priority rule (out-of-led-suit must play trump if held)
-- [ ] T054 [US2] Extend `src/public/js/thousand/StatusBar.js` with the `currentTrumpSuit` indicator ("No trump" when null, suit glyph otherwise) per FR-018
-- [ ] T055 [US2] Add validators + handlers for `marriage_declared` and `trump_changed` to `src/public/js/core/ThousandMessageRouter.js` per contracts/ws-messages.md
-- [ ] T056 [P] [US2] Add CSS for the marriage prompt modal, the trump-suit status chip, and the per-player marriage-bonus column in the round summary to `src/public/css/index.css`
+- [x] T051 [P] [US2] Create `src/public/js/thousand/MarriageDeclarationPrompt.js` â€” Declare-and-play / Play-without-declaring / Cancel modal with the `canOffer(player, trickNumber)` gate from R-005 (trick âˆˆ [2, 6], hand.length â‰¥ 3, holds both K and Q of suit)
+- [x] T052 [US2] Extend `src/public/js/thousand/TrickPlayView.js` to open `MarriageDeclarationPrompt` on K/Q tap when leading and conditions hold; on Declare-and-play, dispatch `sendPlayCard(cardId, { declareMarriage: true })`; on Play-without-declaring, dispatch `sendPlayCard(cardId)`; on Cancel, dismiss with no server message
+- [x] T053 [US2] Extend the FR-007 pre-disable logic in `src/public/js/thousand/TrickPlayView.js` with the trump-priority rule (out-of-led-suit must play trump if held)
+- [x] T054 [US2] Extend `src/public/js/thousand/StatusBar.js` with the `currentTrumpSuit` indicator (“No trump” when null, suit glyph otherwise) per FR-018
+- [x] T055 [US2] Add validators + handlers for `marriage_declared` and `trump_changed` to `src/public/js/core/ThousandMessageRouter.js` per contracts/ws-messages.md
+- [x] T056 [P] [US2] Add CSS for the marriage prompt modal, the trump-suit status chip, and the per-player marriage-bonus column in the round summary to `src/public/css/index.css`
 
 **Checkpoint**: Marriages and trump fully work within a single round.
 
