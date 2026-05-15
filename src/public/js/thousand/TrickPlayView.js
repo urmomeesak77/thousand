@@ -42,19 +42,14 @@ class TrickPlayView {
     });
   }
 
-  // Returns true when clicking this card should offer a marriage declaration.
   _canOfferMarriage(cardId) {
     const snap = this._snapshot;
     if (!snap.isMyTurn) { return false; }
-    // Must be leading (currentTrick is empty)
     if (!snap.currentTrick || snap.currentTrick.length !== 0) { return false; }
-    // Global canOffer gate (trick number, hand size)
     if (!MarriageDeclarationPrompt.canOffer(snap.myHand, snap.trickNumber)) { return false; }
-    // Clicked card must be K or Q
     const card = snap.myHand.find((c) => c.id === cardId);
     if (!card) { return false; }
     if (card.rank !== 'K' && card.rank !== 'Q') { return false; }
-    // Hand must hold both K and Q of this suit
     const hasK = snap.myHand.some((c) => c.rank === 'K' && c.suit === card.suit);
     const hasQ = snap.myHand.some((c) => c.rank === 'Q' && c.suit === card.suit);
     return hasK && hasQ;
