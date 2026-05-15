@@ -220,7 +220,7 @@ description: "Task list for feature 005 â€” Play Phase, Scoring, Multi-Roun
 - [x] T093 [US4] Extend the shared base class `src/public/js/thousand/BiddingControls.js` (or its subclass `BidControls.js`) with a barrel-aware stepper clamp: `min = max(smallestLegalBid, 120)`, initial value at `min`, max `300`; Pass remains always operable per FR-022
 - [x] T094 [US4] Apply the same barrel-aware clamp to `src/public/js/thousand/SellBidControls.js` per FR-022
 - [x] T095 [US4] Extend `src/public/js/thousand/RoundSummaryScreen.js` to render the "Barrel penalty: âˆ’120" and "Zero-round penalty: âˆ’120" rows as separate line items on the affected player’s column per FR-023 / FR-024
-- [ ] T096 [P] [US4] Add CSS for the on-barrel marker badge and the penalty line-item styling to `src/public/css/index.css`
+- [x] T096 [P] [US4] Add CSS for the on-barrel marker badge and the penalty line-item styling to `src/public/css/index.css`
 
 **Checkpoint**: All four user stories functional; rulebook coverage complete.
 

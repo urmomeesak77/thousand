@@ -1484,6 +1484,33 @@ fieldset legend {
 }
 
 /* ============================================================
+   Barrel penalty row (.round-summary__penalty-row)
+   ============================================================ */
+
+.round-summary__penalty-row td {
+  color: var(--color-error);
+  font-size: 0.85rem;
+  font-style: italic;
+  padding-top: 0;
+  padding-left: 1.5rem;
+}
+
+/* ============================================================
+   On-barrel marker badge (.status-bar__barrel-marker)
+   ============================================================ */
+
+.status-bar__barrel-marker {
+  background: #3d2a06;
+  border: 1px solid #8a5c10;
+  border-radius: var(--radius);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  color: #d4a843;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* ============================================================
    Final Results Screen (.final-results__*)
    ============================================================ */
 
