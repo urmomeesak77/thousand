@@ -192,8 +192,7 @@ class RoundActionHandler {
     );
   }
 
-  // T043 — special-case: no per-seat broadcast loop; emits a single shared payload
-  // and then drops the round entirely.
+  // T025 — emits card_exchange_started; round stays alive for card-exchange phase
   handleStartGame(playerId) {
     if (!this._rateLimiter.isAllowed(playerId)) {
       return;
@@ -218,13 +217,87 @@ class RoundActionHandler {
       return;
     }
     const { declarerId, finalBid } = result;
-    const gameId = game.id;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'play_phase_ready', declarerId, finalBid, gameStatus });
+      this._store.sendToPlayer(pid, { type: 'card_exchange_started', declarerId, finalBid, gameStatus });
     }
-    this._store._cleanupRound(gameId);
+  }
+
+  // T026 — handles exchange_pass from the declarer during card-exchange phase.
+  // Does not go through _runRoundAction because two passes arrive in quick succession
+  // and the shared per-player rate limiter (250 ms / 1) would silently drop the second.
+  handleExchangePass(playerId, cardId, toSeat) {
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const round = game.round;
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const result = round.submitExchangePass(seat, cardId, toSeat);
+    if (!result || result.noop) {
+      return;
+    }
+    if (result.rejected) {
+      this._reject(playerId, result.reason);
+      return;
+    }
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      this._store.sendToPlayer(pid, { type: 'card_passed', gameStatus });
+      if (result.transitionedToTrickPlay) {
+        const trickStatus = round.getViewModelFor(pSeat);
+        this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus: trickStatus });
+      }
+    }
+  }
+
+  // T027 — handles play_card during trick-play phase.
+  // Does not go through _runRoundAction for the same rate-limiter reason as handleExchangePass
+  // (multiple cards per trick arrive from different players in quick succession during testing).
+  handlePlayCard(playerId, cardId) {
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const round = game.round;
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const result = round.playCard(seat, cardId);
+    if (!result || result.noop) {
+      return;
+    }
+    if (result.rejected) {
+      this._reject(playerId, result.reason);
+      return;
+    }
+    const isRoundComplete = result.trickResolved && result.roundComplete;
+    if (isRoundComplete) {
+      round.buildSummary(game);
+    }
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      this._store.sendToPlayer(pid, { type: 'card_played', gameStatus });
+      if (isRoundComplete) {
+        this._store.sendToPlayer(pid, {
+          type: 'round_summary',
+          perPlayer: round.summary.perPlayer,
+          summary: round.summary,
+          gameStatus,
+        });
+      }
+    }
   }
 }
 
