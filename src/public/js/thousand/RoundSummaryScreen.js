@@ -1,3 +1,10 @@
+import { SPECIAL_PENALTY } from './constants.js';
+
+const PENALTY_LABELS = {
+  barrel: `Barrel penalty: −${SPECIAL_PENALTY}`,
+  'three-zeros': `Zero-round penalty: −${SPECIAL_PENALTY}`,
+};
+
 class RoundSummaryScreen {
   constructor(el, { antlion, viewerSeat, onBackToLobby, onContinue }) {
     this._el = el;
@@ -69,6 +76,7 @@ class RoundSummaryScreen {
     }
     table.appendChild(tbody);
 
+    this._el.querySelector('.round-summary__table')?.remove();
     this._el.appendChild(table);
   }
 
@@ -98,10 +106,6 @@ class RoundSummaryScreen {
   }
 
   _makePenaltyRows(data) {
-    const PENALTY_LABELS = {
-      barrel: 'Barrel penalty: −120',
-      'three-zeros': 'Zero-round penalty: −120',
-    };
     return (data.penalties ?? []).map((token) => {
       const tr = document.createElement('tr');
       tr.className = 'round-summary__penalty-row';
