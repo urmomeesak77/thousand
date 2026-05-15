@@ -32,7 +32,7 @@ class StatusBar {
       this._renderTrumpSuit(gameStatus.currentTrumpSuit);
     }
     this._renderExchangePasses(gameStatus.exchangePassesCommitted);
-    this._renderCumulativeScores(gameStatus.cumulativeScores);
+    this._renderCumulativeScores(gameStatus.cumulativeScores, gameStatus.barrelMarkers);
   }
 
   _renderRoundNumber(roundNumber) {
@@ -109,7 +109,7 @@ class StatusBar {
     );
   }
 
-  _renderCumulativeScores(cumulativeScores) {
+  _renderCumulativeScores(cumulativeScores, barrelMarkers) {
     if (cumulativeScores == null) {
       return;
     }
@@ -119,6 +119,15 @@ class StatusBar {
       const span = this._span('status-bar__cumulative-score', `${cumulativeScores[seat]} pts`);
       span.dataset.seat = seat;
       div.appendChild(span);
+
+      // Add barrel marker if on barrel
+      if (barrelMarkers?.[seat]) {
+        const marker = barrelMarkers[seat];
+        const round = marker.barrelRoundsUsed + 1;
+        const barrelSpan = this._span('status-bar__barrel-marker', `On barrel — round ${round} of 3`);
+        barrelSpan.dataset.seat = seat;
+        div.appendChild(barrelSpan);
+      }
     }
     this._el.appendChild(div);
   }
