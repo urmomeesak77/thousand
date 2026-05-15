@@ -421,55 +421,40 @@ describe('round-messages — talon_absorbed on bidding resolution (US2)', () => 
 });
 
 // ---------------------------------------------------------------------------
-// T056 — US2: start_game from declarer produces play_phase_ready + cleanup
+// T056 — US2: start_game from declarer produces card_exchange_started (Phase 3)
 // ---------------------------------------------------------------------------
 
 describe('round-messages — start_game from declarer (US2)', () => {
-  it('start_game from the declarer sends play_phase_ready to all 3 players', () => {
-    const { ws, pids } = setupPostBidGame(); // Alice (ws[0], seat 0) is declarer
+  it('start_game from the declarer sends card_exchange_started to all 3 players', () => {
+    const { ws } = setupPostBidGame(); // Alice (ws[0], seat 0) is declarer
 
     sendMsg(ws[0], { type: 'start_game' });
 
     for (const w of ws) {
-      const msg = w._sent.find((m) => m.type === 'play_phase_ready');
-      assert.ok(msg, 'every player must receive play_phase_ready');
+      const msg = w._sent.find((m) => m.type === 'card_exchange_started');
+      assert.ok(msg, 'every player must receive card_exchange_started');
       assert.equal(msg.finalBid, 100, 'finalBid must be 100 (all-pass result)');
     }
   });
 
-  it('start_game cleans up the game record (FR-032)', () => {
-    const { store, ws, pids, gameId } = setupPostBidGame();
+  it('start_game keeps the game record alive for card-exchange phase', () => {
+    const { store, ws, gameId } = setupPostBidGame();
 
     sendMsg(ws[0], { type: 'start_game' });
 
-    assert.equal(store.games.has(gameId), false, 'game record must be deleted after start_game');
+    // Game record must survive — it is needed for card-exchange and trick-play
+    assert.ok(store.games.has(gameId), 'game record must remain after start_game (Phase 3)');
   });
 
-  it('start_game nulls out every player gameId (FR-032)', () => {
-    const { store, ws, pids, gameId } = setupPostBidGame();
+  it('start_game keeps all player gameIds set during card-exchange phase', () => {
+    const { store, ws, pids } = setupPostBidGame();
 
     sendMsg(ws[0], { type: 'start_game' });
 
     for (const pid of pids) {
       const player = store.players.get(pid);
-      assert.equal(player?.gameId, null, `${pid} gameId must be null after cleanup`);
+      assert.notEqual(player?.gameId, null, `${pid} gameId must remain set during card-exchange`);
     }
-  });
-
-  it('start_game triggers a lobby_update broadcast (FR-020)', () => {
-    const { store, ws, pids, gameId } = setupPostBidGame();
-
-    // A 4th player watching the lobby needs to receive lobby_update.
-    // The store broadcasts to players with gameId=null; none of the 3 game
-    // players qualify before cleanup but they do after. Any lobby_update after
-    // start_game confirms the broadcast ran.
-    const ws4 = makeWs();
-    store.players.set('p-lobby', { id: 'p-lobby', nickname: 'Watcher', gameId: null, ws: ws4, sessionToken: 'tok4', disconnectedAt: null, graceTimer: null });
-
-    sendMsg(ws[0], { type: 'start_game' });
-
-    const lobbyUpdate = ws4._sent.find((m) => m.type === 'lobby_update');
-    assert.ok(lobbyUpdate, 'lobby watcher must receive lobby_update after cleanup');
   });
 });
 

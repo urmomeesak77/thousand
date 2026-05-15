@@ -284,13 +284,13 @@ describe('round-messages.005 — round_summary broadcast after trick 8', () => {
     sendMsg(ws[1], { type: 'play_card', cardId: deck[6].id });
     sendMsg(ws[2], { type: 'play_card', cardId: deck[12].id });
 
-    const summary = ws[0]._sent.find((m) => m.type === 'round_summary');
-    assert.ok(summary, 'round_summary must be broadcast after final trick');
-    assert.ok(summary.perPlayer, 'round_summary must include perPlayer data');
+    const msg = ws[0]._sent.find((m) => m.type === 'round_summary');
+    assert.ok(msg, 'round_summary must be broadcast after final trick');
+    assert.ok(msg.summary?.perPlayer, 'round_summary must include summary.perPlayer data');
 
     // Must have entries for all 3 seats
-    assert.ok(summary.perPlayer[0] !== undefined, 'perPlayer must include seat 0');
-    assert.ok(summary.perPlayer[1] !== undefined, 'perPlayer must include seat 1');
-    assert.ok(summary.perPlayer[2] !== undefined, 'perPlayer must include seat 2');
+    assert.ok(msg.summary.perPlayer[0] !== undefined, 'perPlayer must include seat 0');
+    assert.ok(msg.summary.perPlayer[1] !== undefined, 'perPlayer must include seat 1');
+    assert.ok(msg.summary.perPlayer[2] !== undefined, 'perPlayer must include seat 2');
   });
 });

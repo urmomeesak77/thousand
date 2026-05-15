@@ -192,7 +192,7 @@ class RoundActionHandler {
     );
   }
 
-  // T025 — emits card_exchange_started; round stays alive for card-exchange phase
+  // round stays alive for card-exchange phase (old code cleaned up the round here)
   handleStartGame(playerId) {
     if (!this._rateLimiter.isAllowed(playerId)) {
       return;
@@ -224,9 +224,8 @@ class RoundActionHandler {
     }
   }
 
-  // T026 — handles exchange_pass from the declarer during card-exchange phase.
-  // Does not go through _runRoundAction because two passes arrive in quick succession
-  // and the shared per-player rate limiter (250 ms / 1) would silently drop the second.
+  // Bypasses _runRoundAction: two passes arrive in quick succession and the shared
+  // per-player rate limiter (250 ms / 1) would silently drop the second.
   handleExchangePass(playerId, cardId, toSeat) {
     const game = this._gameOf(playerId);
     if (!game?.round) {
@@ -252,15 +251,12 @@ class RoundActionHandler {
       const gameStatus = round.getViewModelFor(pSeat);
       this._store.sendToPlayer(pid, { type: 'card_passed', gameStatus });
       if (result.transitionedToTrickPlay) {
-        const trickStatus = round.getViewModelFor(pSeat);
-        this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus: trickStatus });
+        this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
       }
     }
   }
 
-  // T027 — handles play_card during trick-play phase.
-  // Does not go through _runRoundAction for the same rate-limiter reason as handleExchangePass
-  // (multiple cards per trick arrive from different players in quick succession during testing).
+  // Bypasses _runRoundAction for the same rate-limiter reason as handleExchangePass.
   handlePlayCard(playerId, cardId) {
     const game = this._gameOf(playerId);
     if (!game?.round) {
@@ -290,12 +286,7 @@ class RoundActionHandler {
       const gameStatus = round.getViewModelFor(pSeat);
       this._store.sendToPlayer(pid, { type: 'card_played', gameStatus });
       if (isRoundComplete) {
-        this._store.sendToPlayer(pid, {
-          type: 'round_summary',
-          perPlayer: round.summary.perPlayer,
-          summary: round.summary,
-          gameStatus,
-        });
+        this._store.sendToPlayer(pid, { type: 'round_summary', summary: round.summary, gameStatus });
       }
     }
   }
