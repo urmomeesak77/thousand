@@ -1335,6 +1335,112 @@ fieldset legend {
   white-space: nowrap;
 }
 
+/* Trump suit indicator chip */
+.status-bar__trump {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* ============================================================
+   Marriage prompt modal
+   ============================================================ */
+
+/* Container for marriage declaration prompt — hidden by default */
+.trick-play__marriage-prompt {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  min-width: 20rem;
+}
+
+/* Inner info text in marriage prompt */
+.trick-play__marriage-prompt > div:first-child {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Buttons in marriage prompt */
+.trick-play__marriage-prompt button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  min-height: 2.5rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  margin-bottom: 0.5rem;
+}
+
+.trick-play__marriage-prompt button:last-child {
+  margin-bottom: 0;
+}
+
+/* Declare and play button — prominent success color */
+.trick-play__marriage-prompt button[data-action="declare"] {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.trick-play__marriage-prompt button[data-action="declare"]:hover {
+  filter: brightness(1.1);
+}
+
+/* Play without declaring button — neutral secondary */
+.trick-play__marriage-prompt button[data-action="play"] {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.trick-play__marriage-prompt button[data-action="play"]:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+/* Cancel button — muted red/error */
+.trick-play__marriage-prompt button[data-action="cancel"] {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+.trick-play__marriage-prompt button[data-action="cancel"]:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ============================================================
+   Round summary marriage bonus column
+   ============================================================ */
+
+/* Marriage bonus cell in round summary table */
+.round-summary__marriage-bonus {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
 /* ============================================================
    Play-phase animations
    ============================================================ */
