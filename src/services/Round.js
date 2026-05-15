@@ -4,6 +4,7 @@
 // snapshot/view-model serialization → RoundSnapshot.js
 const { makeDeck, shuffle } = require('./Deck');
 const { buildDealDistribution } = require('./DealSequencer');
+const { MARRIAGE_BONUS } = require('./Scoring');
 const {
   absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned,
 } = require('./RoundPhases');
@@ -284,16 +285,26 @@ class Round {
   // T019 — FR-015: assemble RoundSummary view-model
   buildSummary(_game) {
     const { roundScores: scores, roundDeltas: deltas } = this;
+
+    // T048: compute per-seat marriage bonus from declaredMarriages
+    const marriageBonusBySeat = { 0: 0, 1: 0, 2: 0 };
+    for (const m of this.declaredMarriages) {
+      marriageBonusBySeat[m.playerSeat] += MARRIAGE_BONUS[m.suit] ?? 0;
+    }
+
     const perPlayer = {};
     for (const seat of [0, 1, 2]) {
       const pid = this.seatOrder[seat];
       const player = this._store.players.get(pid);
+      const marriageBonus = marriageBonusBySeat[seat];
+      const roundTotal = scores ? scores[seat] : 0;
+      const trickPoints = roundTotal - marriageBonus;
       perPlayer[seat] = {
         nickname: player?.nickname ?? null,
         seat,
-        trickPoints: scores ? scores[seat] : 0,
-        marriageBonus: 0,  // filled in US2
-        roundTotal: scores ? scores[seat] : 0,
+        trickPoints,
+        marriageBonus,
+        roundTotal,
         delta: deltas ? deltas[seat] : 0,
         cumulativeAfter: deltas ? deltas[seat] : 0,  // US3 replaces
         penalties: [],
