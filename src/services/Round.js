@@ -8,6 +8,7 @@ const {
   absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned,
 } = require('./RoundPhases');
 const RoundSnapshot = require('./RoundSnapshot');
+const TrickPlay = require('./TrickPlay');
 
 const MIN_BID = 100;
 const MAX_BID = 300;
@@ -44,6 +45,20 @@ class Round {
     this.attemptHistory = [];
     this.isPausedByDisconnect = false;
     this.disconnectedSeats = new Set();
+
+    // Phase 3 fields (card-exchange + trick-play + round-summary)
+    this.trickNumber = 0;
+    this.currentTrickLeaderSeat = null;
+    this.currentTrick = [];
+    this.currentTrumpSuit = null;
+    this.declaredMarriages = [];
+    this.collectedTricks = { 0: [], 1: [], 2: [] };
+    this.exchangePassesCommitted = 0;
+    this._usedExchangeDestSeats = null;
+    this.roundScores = null;
+    this.roundDeltas = null;
+    this.summary = null;
+    this._trickPlay = null;  // TrickPlay instance, set on entry to trick-play phase
   }
 
   // T021
@@ -159,11 +174,113 @@ class Round {
 
   // T042
   startGame(seat) {
-    if (this.phase === 'play-phase-ready') {return { noop: true };}
+    if (this.phase === 'card-exchange') {return { noop: true };}
     if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can start the game' };}
-    this.phase = 'play-phase-ready';
+    this.phase = 'card-exchange';
+    this.currentTurnSeat = this.declarerSeat;
+    this.exchangePassesCommitted = 0;
     return { noop: false, declarerId: this.seatOrder[this.declarerSeat], finalBid: this.currentHighBid };
+  }
+
+  // T017 — FR-002/FR-003: card exchange
+  submitExchangePass(seat, cardId, destSeat) {
+    if (this.phase !== 'card-exchange') {return { rejected: true, reason: 'Not in card-exchange phase' };}
+    if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can pass cards' };}
+    if (!this.hands[seat].includes(cardId)) {return { rejected: true, reason: 'Card not in hand' };}
+    if (destSeat === this.declarerSeat) {return { rejected: true, reason: 'Cannot pass to yourself' };}
+    if (this._usedExchangeDestSeats && this._usedExchangeDestSeats.has(destSeat)) {
+      return { rejected: true, reason: 'Already passed to that opponent' };
+    }
+
+    // Initialize used destinations tracker if needed
+    if (!this._usedExchangeDestSeats) {this._usedExchangeDestSeats = new Set();}
+
+    // Move card from declarer to recipient
+    this.hands[seat] = this.hands[seat].filter(id => id !== cardId);
+    this.hands[destSeat].push(cardId);
+    this._usedExchangeDestSeats.add(destSeat);
+    this.exchangePassesCommitted += 1;
+
+    // On second pass: transition to trick-play
+    if (this.exchangePassesCommitted === 2) {
+      this.phase = 'trick-play';
+      this.trickNumber = 1;
+      this.currentTrickLeaderSeat = this.declarerSeat;
+      this.currentTurnSeat = this.declarerSeat;
+      this._trickPlay = new TrickPlay(this.declarerSeat, this.deck);
+      return { rejected: false, transitionedToTrickPlay: true, cardId, destSeat };
+    }
+
+    return { rejected: false, cardId, destSeat };
+  }
+
+  // T018 — delegate to TrickPlay
+  playCard(seat, cardId, opts = {}) {
+    if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+
+    // Lazily init TrickPlay if forced into trick-play phase without going through submitExchangePass
+    if (!this._trickPlay) {
+      this._trickPlay = new TrickPlay(this.currentTrickLeaderSeat ?? this.declarerSeat, this.deck);
+      // Sync any pre-set state into the new TrickPlay instance
+      this._trickPlay.trickNumber = this.trickNumber;
+      this._trickPlay.currentTrickLeaderSeat = this.currentTrickLeaderSeat;
+      this._trickPlay.currentTurnSeat = this.currentTurnSeat;
+      this._trickPlay.currentTrick = this.currentTrick;
+      this._trickPlay.collectedTricks = this.collectedTricks;
+      this._trickPlay.currentTrumpSuit = this.currentTrumpSuit;
+      this._trickPlay.declaredMarriages = this.declaredMarriages;
+    }
+
+    const result = this._trickPlay.playCard(this.hands, seat, cardId, opts);
+    if (result.rejected) {return result;}
+
+    // Sync trickPlay state back to Round fields for snapshot/view-model
+    this.trickNumber = this._trickPlay.trickNumber;
+    this.currentTrickLeaderSeat = this._trickPlay.currentTrickLeaderSeat;
+    this.currentTurnSeat = this._trickPlay.currentTurnSeat;
+    this.currentTrick = this._trickPlay.currentTrick;
+    this.collectedTricks = this._trickPlay.collectedTricks;
+
+    if (result.trickResolved && result.roundComplete) {
+      this.phase = 'round-summary';
+      this.currentTurnSeat = null;
+      // roundScores and buildSummary will be called by the controller (T027)
+    }
+
+    return result;
+  }
+
+  // T019 — FR-015: assemble RoundSummary view-model
+  buildSummary(_game) {
+    const { roundScores: scores, roundDeltas: deltas } = this;
+    const perPlayer = {};
+    for (const seat of [0, 1, 2]) {
+      const pid = this.seatOrder[seat];
+      const player = this._store.players.get(pid);
+      perPlayer[seat] = {
+        nickname: player?.nickname ?? null,
+        seat,
+        trickPoints: scores ? scores[seat] : 0,
+        marriageBonus: 0,  // filled in US2
+        roundTotal: scores ? scores[seat] : 0,
+        delta: deltas ? deltas[seat] : 0,
+        cumulativeAfter: deltas ? deltas[seat] : 0,  // US3 replaces
+        penalties: [],
+      };
+    }
+    this.summary = {
+      roundNumber: 1,  // US3 replaces with game.currentRoundNumber
+      declarerSeat: this.declarerSeat,
+      declarerNickname: this._store.players.get(this.seatOrder[this.declarerSeat])?.nickname ?? null,
+      bid: this.currentHighBid,
+      declarerMadeBid: scores ? scores[this.declarerSeat] >= this.currentHighBid : false,
+      perPlayer,
+      viewerCollectedCards: [],  // per-viewer, filled by RoundSnapshot
+      victoryReached: false,  // US3 replaces
+    };
+    return this.summary;
   }
 
   // T059
