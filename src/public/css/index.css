@@ -1077,6 +1077,289 @@ fieldset legend {
 }
 
 /* ============================================================
+   Card exchange phase (.card-exchange__*)
+   ============================================================ */
+
+.card-exchange__hand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  min-height: calc(var(--card-height) + 1rem);
+}
+
+/* Card button in exchange — shares card-sprite sizing; position relative
+   so it flows in the flex row (same pattern as hand-view__card) */
+.card-exchange__card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.card-exchange__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+.card-exchange__card--selected {
+  transform: translateY(-18px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--color-primary);
+  z-index: 1;
+}
+
+/* Card animates off to its recipient when exchange is confirmed */
+.card-exchange__card--leaving {
+  animation: card-leave 250ms ease-out forwards;
+}
+
+/* Row of destination seat buttons rendered below the hand */
+.card-exchange__dest-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  flex-wrap: wrap;
+}
+
+/* Individual destination seat button */
+.card-exchange__dest-btn {
+  min-height: var(--touch-min);
+  padding: 0 1.25rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.card-exchange__dest-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+.card-exchange__dest-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Centred waiting message shown to non-declarer players */
+.card-exchange__waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ============================================================
+   Trick play (.trick-play__*)
+   ============================================================ */
+
+.trick-play__hand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  min-height: calc(var(--card-height) + 1rem);
+}
+
+/* Individual card button in trick play — flows in flex row */
+.trick-play__card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.trick-play__card:hover:not(.card--disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+/* Card animates toward the centre trick area when played */
+.trick-play__card--playing {
+  animation: card-to-centre 250ms ease-out forwards;
+}
+
+/* Greyed-out / unplayable card state */
+.card--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Area that shows collected tricks summary */
+.trick-play__collected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.4rem 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Per-player collected trick entry */
+.collected-tricks__item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* "× N" tricks count badge */
+.collected-tricks__badge {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: monospace;
+}
+
+/* ============================================================
+   Round summary (.round-summary__*)
+   ============================================================ */
+
+.round-summary__made-indicator {
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.round-summary__missed-indicator {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+/* Scoring results table */
+.round-summary__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 0.75rem 0;
+}
+
+.round-summary__table th,
+.round-summary__table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.round-summary__table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.round-summary__table td {
+  color: var(--color-text);
+}
+
+/* Per-player data row */
+.round-summary__player-row {
+  transition: background var(--transition);
+}
+
+.round-summary__player-row:hover {
+  background: var(--color-surface-alt);
+}
+
+/* Back-to-lobby button — reuses .btn base sizing */
+.round-summary__back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 0 1.5rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+  margin-top: 1rem;
+}
+
+.round-summary__back-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+/* ============================================================
+   Status bar — new Phase 3 fields (.status-bar__*)
+   ============================================================ */
+
+/* "Trick N of 8" indicator */
+.status-bar__trick-number {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+/* "N/2 cards passed" during exchange phase */
+.status-bar__exchange-passes {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Wrapper row for per-seat score chips */
+.status-bar__scores {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Per-seat cumulative score chip */
+.status-bar__cumulative-score {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Play-phase animations
+   ============================================================ */
+
+@keyframes card-leave {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(200px);
+    opacity: 0;
+  }
+}
+
+@keyframes card-to-centre {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-60px);
+  }
+}
+
+/* ============================================================
    Responsive breakpoints  (mobile-first)
    ============================================================ */
 
