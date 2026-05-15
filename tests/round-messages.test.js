@@ -424,7 +424,7 @@ describe('round-messages — talon_absorbed on bidding resolution (US2)', () => 
 // T056 — US2: start_game from declarer produces card_exchange_started (Phase 3)
 // ---------------------------------------------------------------------------
 
-describe('round-messages — start_game from declarer (US2)', () => {
+describe('round-messages — start_game from declarer produces card_exchange_started (FR-001)', () => {
   it('start_game from the declarer sends card_exchange_started to all 3 players', () => {
     const { ws } = setupPostBidGame(); // Alice (ws[0], seat 0) is declarer
 

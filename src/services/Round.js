@@ -197,7 +197,6 @@ class Round {
     // Initialize used destinations tracker if needed
     if (!this._usedExchangeDestSeats) {this._usedExchangeDestSeats = new Set();}
 
-    // Move card from declarer to recipient
     this.hands[seat] = this.hands[seat].filter(id => id !== cardId);
     this.hands[destSeat].push(cardId);
     this._usedExchangeDestSeats.add(destSeat);

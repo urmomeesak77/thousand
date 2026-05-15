@@ -40,6 +40,34 @@ function totalSent(sent) {
   return sent.p0.length + sent.p1.length + sent.p2.length;
 }
 
+describe('RoundActionHandler rate limiting — continue_to_next_round (FR-027)', () => {
+  it('second handleContinueToNextRound within 250 ms from same player is silently dropped', () => {
+    const { handler, sent } = makeSetup();
+
+    // First call: player not in round-summary phase, so it emits action_rejected
+    handler.handleContinueToNextRound('p1');
+    const afterFirst = totalSent(sent);
+    assert.ok(afterFirst > 0, 'first call must produce action_rejected');
+
+    // Second call within same window: rate-limited, must be completely silent
+    handler.handleContinueToNextRound('p1');
+    assert.equal(totalSent(sent), afterFirst, 'rate-limited second call must not emit any message');
+  });
+
+  it('rate-limited continue_to_next_round does not emit action_rejected to sender', () => {
+    const { handler, sent } = makeSetup();
+
+    handler.handleContinueToNextRound('p1'); // first call — consumes rate-limit slot
+    sent.p0.length = 0;
+    sent.p1.length = 0;
+    sent.p2.length = 0;
+
+    handler.handleContinueToNextRound('p1'); // rate-limited
+    const rejections = sent.p1.filter((m) => m.type === 'action_rejected');
+    assert.equal(rejections.length, 0, 'rate-limited drop must not send action_rejected');
+  });
+});
+
 describe('RoundActionHandler rate limiting — FR-030 (250 ms / 1 req window)', () => {
   it('second handleBid within 250 ms from the same player is silently dropped (no broadcast, no action_rejected)', () => {
     const { handler, sent } = makeSetup();
