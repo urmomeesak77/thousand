@@ -199,6 +199,10 @@ class GameScreenControls {
         this._sellBidControls = new SellBidControls(this._controlsEl, this._antlion, this._dispatcher);
       }
       this._sellBidControls.setCurrentHighBid(gameStatus.currentHighBid ?? SELL_BID_DEFAULT);
+      const viewerSeatSell = this._gs._seats?.self;
+      this._sellBidControls.setOnBarrel(
+        viewerSeatSell != null && gameStatus.barrelMarkers?.[viewerSeatSell] != null,
+      );
 
       const viewerPlayer = seats?.players.find(p => p.seat === seats.self);
       const viewerNickname = viewerPlayer?.nickname;
