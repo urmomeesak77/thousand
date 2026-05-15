@@ -8,7 +8,7 @@ class TrickPlayView {
     this._antlion.bindInput(this._el, 'click', 'trick-play-card-click');
     this._antlion.onInput('trick-play-card-click', (e) => {
       const btn = e.target.closest('.trick-play__card');
-      if (!btn || btn.classList.contains('card--disabled')) return;
+      if (!btn || btn.classList.contains('card--disabled')) {return;}
       const cardId = parseInt(btn.dataset.cardId, 10);
       this._dispatcher.sendPlayCard(cardId);
     });
