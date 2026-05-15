@@ -27,6 +27,9 @@ class StatusBar {
     this._renderPassedPlayers(gameStatus.passedPlayers);
     this._renderDisconnected(gameStatus.disconnectedPlayers);
     this._renderTrickNumber(gameStatus.trickNumber);
+    if (gameStatus.trickNumber != null || gameStatus.currentTrumpSuit != null) {
+      this._renderTrumpSuit(gameStatus.currentTrumpSuit);
+    }
     this._renderExchangePasses(gameStatus.exchangePassesCommitted);
     this._renderCumulativeScores(gameStatus.cumulativeScores);
   }
@@ -82,6 +85,11 @@ class StatusBar {
       return;
     }
     this._el.appendChild(this._span('status-bar__trick-number', `Trick ${trickNumber} of 8`));
+  }
+
+  _renderTrumpSuit(currentTrumpSuit) {
+    const text = currentTrumpSuit == null ? 'No trump' : `Trump: ${currentTrumpSuit}`;
+    this._el.appendChild(this._span('status-bar__trump', text));
   }
 
   _renderExchangePasses(exchangePassesCommitted) {
