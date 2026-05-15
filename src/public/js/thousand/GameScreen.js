@@ -26,6 +26,7 @@ class GameScreen {
     this._seats = null;
     this._isControlsLocked = false;
     this._lastGameStatus = null;
+    this._lastSnapshot = null;
     this._sellSubPhase = null;
     this._exposedCardIds = [];
     this._roundReadyScreen = null;
@@ -157,6 +158,7 @@ class GameScreen {
 
     this._renderStatus(msg.gameStatus);
     this._lastGameStatus = msg.gameStatus;
+    this._lastSnapshot = msg;
 
     if (msg.dealSequence) {
       this._startDealAnimation(msg.dealSequence, msg.opponentHandSizes);
@@ -170,6 +172,14 @@ class GameScreen {
     this.sellPhase.initFromSnapshot(msg);
 
     this._controls.mountForPhase(msg.gameStatus);
+  }
+
+  // Called when a fresh snapshot arrives mid-round (e.g. card exchange or trick play update).
+  updateSnapshot(snapshot) {
+    this._lastSnapshot = snapshot;
+    if (!this._isControlsLocked) {
+      this._controls.mountForPhase(this._lastGameStatus ?? snapshot.gameStatus);
+    }
   }
 
   _seedCardsFromSnapshot(msg) {
@@ -268,6 +278,12 @@ class GameScreen {
         onBack();
       },
     );
+  }
+
+  // Called by GameScreenControls when the player clicks "Back to Lobby" on the
+  // round summary screen. Emits an antlion event so the app can handle navigation.
+  _onBackToLobby() {
+    this._antlion.emit('round-summary-back', {});
   }
 
   _clearLastAction() {

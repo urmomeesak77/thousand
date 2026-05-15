@@ -20,5 +20,22 @@ export const computeStatusText = (gameStatus, ctx) => {
     if (viewerIsActive) {return { text: 'Your turn', isActive: true };}
     return { text: `Waiting for ${activePlayer?.nickname ?? '…'}`, isActive: false };
   }
+  if (phase === 'Card exchange') {
+    if (viewerIsActive) {return { text: 'Pass a card to each opponent', isActive: true };}
+    return { text: `Waiting for ${declarer?.nickname ?? '…'} to pass cards`, isActive: false };
+  }
+  if (phase === 'Trick play') {
+    if (viewerIsActive) {return { text: 'Your turn', isActive: true };}
+    return { text: `Waiting for ${activePlayer?.nickname ?? '…'}`, isActive: false };
+  }
+  if (phase === 'Round complete') {
+    return { text: 'Round complete', isActive: false };
+  }
+  if (phase === 'Game over') {
+    return { text: 'Game over', isActive: false };
+  }
+  if (phase === 'Game aborted') {
+    return { text: 'Game aborted', isActive: false };
+  }
   return { text: '', isActive: false };
 };

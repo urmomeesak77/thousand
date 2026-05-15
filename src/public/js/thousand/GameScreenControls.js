@@ -2,6 +2,9 @@ import BidControls from './BidControls.js';
 import DeclarerDecisionControls from './DeclarerDecisionControls.js';
 import SellSelectionControls from './SellSelectionControls.js';
 import SellBidControls from './SellBidControls.js';
+import CardExchangeView from './CardExchangeView.js';
+import TrickPlayView from './TrickPlayView.js';
+import RoundSummaryScreen from './RoundSummaryScreen.js';
 
 const SELL_BID_DEFAULT = 100;
 const SELL_DISABLED_ATTEMPT = 3;
@@ -18,6 +21,9 @@ class GameScreenControls {
     this._declarerControls = null;
     this._sellSelectionControls = null;
     this._sellBidControls = null;
+    this._cardExchangeView = null;
+    this._trickPlayView = null;
+    this._roundSummaryScreen = null;
   }
 
   mountForPhase(gameStatus) {
@@ -41,6 +47,12 @@ class GameScreenControls {
       if (this._gs._sellSubPhase) {
         this._mountForSelling(gameStatus);
       }
+    } else if (phase === 'Card exchange') {
+      this._mountCardExchange(gameStatus);
+    } else if (phase === 'Trick play') {
+      this._mountTrickPlay(gameStatus);
+    } else if (phase === 'Round complete') {
+      this._mountRoundSummary(gameStatus);
     } else {
       this.tearDownAll();
     }
@@ -49,11 +61,15 @@ class GameScreenControls {
   tearDownAll() {
     const hadAny = this._bidControls || this._declarerControls
       || this._sellSelectionControls || this._sellBidControls
+      || this._cardExchangeView || this._trickPlayView || this._roundSummaryScreen
       || this._controlsEl.querySelector('.waiting');
     this._bidControls = null;
     this._declarerControls = null;
     this._sellSelectionControls = null;
     this._sellBidControls = null;
+    this._cardExchangeView = null;
+    this._trickPlayView = null;
+    this._roundSummaryScreen = null;
     if (hadAny) {this._controlsEl.textContent = '';}
   }
 
@@ -176,6 +192,81 @@ class GameScreenControls {
         isActiveSeller: viewerIsActive && !viewerIsOriginalDeclarer,
         isEligible: !viewerIsOriginalDeclarer && !viewerHasPassed,
       });
+    }
+  }
+
+  _buildSeats(gameStatus) {
+    const seats = this._gs._seats;
+    return {
+      self: seats?.self ?? null,
+      left: seats?.left ?? null,
+      right: seats?.right ?? null,
+      declarerSeat: gameStatus.declarer?.seat ?? null,
+    };
+  }
+
+  _mountCardExchange(gameStatus) {
+    const hadAny = ['_bidControls', '_declarerControls', '_trickPlayView', '_roundSummaryScreen']
+      .some((f) => this._drop(f));
+    if (hadAny) {
+      this._controlsEl.textContent = '';
+    }
+
+    if (!this._cardExchangeView) {
+      this._controlsEl.textContent = '';
+      this._cardExchangeView = new CardExchangeView(this._controlsEl, {
+        antlion: this._antlion,
+        dispatcher: this._dispatcher,
+        seats: this._buildSeats(gameStatus),
+      });
+    }
+
+    const snapshot = this._gs._lastSnapshot;
+    if (snapshot) {
+      this._cardExchangeView.render(snapshot);
+    }
+  }
+
+  _mountTrickPlay(gameStatus) {
+    const hadAny = ['_bidControls', '_declarerControls', '_cardExchangeView', '_roundSummaryScreen']
+      .some((f) => this._drop(f));
+    if (hadAny) {
+      this._controlsEl.textContent = '';
+    }
+
+    if (!this._trickPlayView) {
+      this._controlsEl.textContent = '';
+      this._trickPlayView = new TrickPlayView(this._controlsEl, {
+        antlion: this._antlion,
+        dispatcher: this._dispatcher,
+        seats: this._buildSeats(gameStatus),
+      });
+    }
+
+    const snapshot = this._gs._lastSnapshot;
+    if (snapshot) {
+      this._trickPlayView.render(snapshot);
+    }
+  }
+
+  _mountRoundSummary(_gameStatus) {
+    const hadAny = ['_bidControls', '_declarerControls', '_cardExchangeView', '_trickPlayView']
+      .some((f) => this._drop(f));
+    if (hadAny) {
+      this._controlsEl.textContent = '';
+    }
+
+    if (!this._roundSummaryScreen) {
+      this._controlsEl.textContent = '';
+      this._roundSummaryScreen = new RoundSummaryScreen(this._controlsEl, {
+        antlion: this._antlion,
+        onBackToLobby: () => this._gs._onBackToLobby(),
+      });
+    }
+
+    const snapshot = this._gs._lastSnapshot;
+    if (snapshot?.summary) {
+      this._roundSummaryScreen.render(snapshot.summary);
     }
   }
 }
