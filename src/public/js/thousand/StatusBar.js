@@ -14,6 +14,7 @@ class StatusBar {
   render(gameStatus, sellWinner = null) {
     this._el.textContent = '';
     this._el.appendChild(this._span('status-bar__phase', gameStatus.phase));
+    this._renderRoundNumber(gameStatus.roundNumber);
     this._renderTurn(gameStatus);
     this._renderBidAndDeclarer(gameStatus);
     if (sellWinner) {
@@ -32,6 +33,13 @@ class StatusBar {
     }
     this._renderExchangePasses(gameStatus.exchangePassesCommitted);
     this._renderCumulativeScores(gameStatus.cumulativeScores);
+  }
+
+  _renderRoundNumber(roundNumber) {
+    if (roundNumber == null) {
+      return;
+    }
+    this._el.appendChild(this._span('status-bar__round-number', `Round ${roundNumber}`));
   }
 
   _renderTurn({ activePlayer, viewerIsActive }) {

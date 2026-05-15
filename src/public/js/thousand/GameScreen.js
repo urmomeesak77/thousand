@@ -214,6 +214,11 @@ class GameScreen {
     }
   }
 
+  // Called on continue_press_recorded to update the RoundSummaryScreen indicators.
+  updateContinuePressedSeats(seats) {
+    this._controls.updateContinuePressedSeats(seats);
+  }
+
   // Called on every phase_changed, bid_accepted, pass_accepted, etc.
   updateStatus(gameStatus) {
     this._lastGameStatus = gameStatus;

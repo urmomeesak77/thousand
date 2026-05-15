@@ -82,6 +82,8 @@ class ThousandApp {
     });
 
     this._antlion.onInput('round-summary-back', () => this._returnFromRound());
+    this._antlion.onInput('final-results-back-click', () => this._returnFromRound());
+    this._antlion.onInput('round-ready-back-click', () => this._returnFromRound());
 
     this._bindUI();
     if (IdentityStore.load().playerId) {

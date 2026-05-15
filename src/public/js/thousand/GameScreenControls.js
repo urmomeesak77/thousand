@@ -5,6 +5,7 @@ import SellBidControls from './SellBidControls.js';
 import CardExchangeView from './CardExchangeView.js';
 import TrickPlayView from './TrickPlayView.js';
 import RoundSummaryScreen from './RoundSummaryScreen.js';
+import FinalResultsScreen from './FinalResultsScreen.js';
 
 const SELL_BID_DEFAULT = 100;
 const SELL_DISABLED_ATTEMPT = 3;
@@ -24,6 +25,7 @@ class GameScreenControls {
     this._cardExchangeView = null;
     this._trickPlayView = null;
     this._roundSummaryScreen = null;
+    this._finalResultsScreen = null;
   }
 
   mountForPhase(gameStatus) {
@@ -53,6 +55,8 @@ class GameScreenControls {
       this._mountTrickPlay(gameStatus);
     } else if (phase === 'Round complete') {
       this._mountRoundSummary(gameStatus);
+    } else if (phase === 'Game over') {
+      this._mountFinalResults(gameStatus);
     } else {
       this.tearDownAll();
     }
@@ -62,6 +66,7 @@ class GameScreenControls {
     const hadAny = this._bidControls || this._declarerControls
       || this._sellSelectionControls || this._sellBidControls
       || this._cardExchangeView || this._trickPlayView || this._roundSummaryScreen
+      || this._finalResultsScreen
       || this._controlsEl.querySelector('.waiting');
     this._bidControls = null;
     this._declarerControls = null;
@@ -70,7 +75,16 @@ class GameScreenControls {
     this._cardExchangeView = null;
     this._trickPlayView = null;
     this._roundSummaryScreen = null;
+    if (this._finalResultsScreen) {
+      this._finalResultsScreen.unmount();
+      this._finalResultsScreen = null;
+    }
     if (hadAny) {this._controlsEl.textContent = '';}
+  }
+
+  // Called on continue_press_recorded; forwards to the active RoundSummaryScreen if present.
+  updateContinuePressedSeats(seats) {
+    this._roundSummaryScreen?.update(seats);
   }
 
   // Sell flow drops these directly when entering bidding sub-phase or resolving.
@@ -267,6 +281,30 @@ class GameScreenControls {
     const snapshot = this._gs._lastSnapshot;
     if (snapshot?.summary) {
       this._roundSummaryScreen.render(snapshot.summary);
+    }
+  }
+
+  _mountFinalResults(_gameStatus) {
+    const hadAny = ['_bidControls', '_declarerControls', '_cardExchangeView', '_trickPlayView', '_roundSummaryScreen']
+      .some((f) => this._drop(f));
+    if (hadAny) {
+      this._controlsEl.textContent = '';
+    }
+
+    if (!this._finalResultsScreen) {
+      this._controlsEl.textContent = '';
+      const seats = this._gs._seats;
+      const viewerSeat = seats?.self ?? null;
+      this._finalResultsScreen = new FinalResultsScreen(this._controlsEl, {
+        antlion: this._antlion,
+        viewerSeat,
+        onBackToLobby: () => this._gs._onBackToLobby(),
+      });
+    }
+
+    const snapshot = this._gs._lastSnapshot;
+    if (snapshot?.finalResults) {
+      this._finalResultsScreen.mount(snapshot.finalResults);
     }
   }
 }
