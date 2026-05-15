@@ -21,6 +21,7 @@ before(() => {
   loadModule(dom, 'thousand/cardSymbols.js');
   loadModule(dom, 'utils/HtmlUtil.js');
   loadModule(dom, 'thousand/CardSprite.js');
+  loadModule(dom, 'thousand/MarriageDeclarationPrompt.js');
   loadModule(dom, 'thousand/TrickPlayView.js');
 });
 

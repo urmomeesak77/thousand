@@ -136,7 +136,14 @@ function _computeLegalCardIds(round, seat) {
     return hand;
   }
   const followSuitCards = hand.filter((id) => round.deck[id]?.suit === ledSuit);
-  return followSuitCards.length > 0 ? followSuitCards : hand;
+  if (followSuitCards.length > 0) { return followSuitCards; }
+  // Out of led suit — must play trump if held (trump-priority rule)
+  const trumpSuit = round.currentTrumpSuit;
+  if (trumpSuit) {
+    const trumpCards = hand.filter((id) => round.deck[id]?.suit === trumpSuit);
+    if (trumpCards.length > 0) { return trumpCards; }
+  }
+  return hand;
 }
 
 function buildSnapshot(round, seat) {
