@@ -9,6 +9,9 @@ const PHASE_LABELS = {
   'selling-selection': 'Selling',
   'selling-bidding': 'Selling',
   'play-phase-ready': 'Round ready to play',
+  'card-exchange': 'Card exchange',
+  'trick-play': 'Trick play',
+  'round-summary': 'Round complete',
   'aborted': 'Round aborted',
 };
 

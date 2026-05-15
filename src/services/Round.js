@@ -25,6 +25,9 @@ class Round {
     this.seatOrder = [...game.players];
     this.seatByPlayer = new Map(this.seatOrder.map((pid, idx) => [pid, idx]));
 
+    // phase ∈ { 'dealing' | 'bidding' | 'post-bid-decision' | 'selling-selection' |
+    //           'selling-bidding' | 'play-phase-ready' | 'card-exchange' | 'trick-play' |
+    //           'round-summary' | 'aborted' }
     this.phase = 'dealing';
     this.deck = null;
     this.hands = { 0: [], 1: [], 2: [] };
