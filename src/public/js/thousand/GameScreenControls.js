@@ -249,7 +249,7 @@ class GameScreenControls {
     }
   }
 
-  _mountRoundSummary(gameStatus) {
+  _mountRoundSummary(_gameStatus) {
     const hadAny = ['_bidControls', '_declarerControls', '_cardExchangeView', '_trickPlayView']
       .some((f) => this._drop(f));
     if (hadAny) {
