@@ -241,6 +241,14 @@ class ThousandApp {
     this._gameScreen.updateStatus(msg.gameStatus);
   }
 
+  onMarriageDeclared(msg) {
+    this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
+  onTrumpChanged(msg) {
+    this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
   onRoundSummary(msg) {
     this._gameScreen.updateStatus(msg.gameStatus);
   }

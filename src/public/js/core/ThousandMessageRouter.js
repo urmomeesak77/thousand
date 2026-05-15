@@ -45,6 +45,15 @@ const MESSAGE_VALIDATORS = {
   card_passed: (m) => isObj(m.gameStatus),
   trick_play_started: (m) => isObj(m.gameStatus),
   card_played: (m) => isObj(m.gameStatus),
+  marriage_declared: (m) => (
+    typeof m.playerSeat === 'number'
+    && typeof m.suit === 'string'
+    && typeof m.bonus === 'number'
+    && typeof m.trickNumber === 'number'
+    && typeof m.newTrumpSuit === 'string'
+    && isObj(m.gameStatus)
+  ),
+  trump_changed: (m) => typeof m.newTrumpSuit === 'string' && isObj(m.gameStatus),
   round_summary: (m) => isObj(m.summary) && isObj(m.gameStatus),
   round_aborted: (m) => (
     typeof m.reason === 'string'
@@ -86,6 +95,8 @@ class ThousandMessageRouter {
       card_passed:              (m) => app.onCardPassed(m),
       trick_play_started:       (m) => app.onTrickPlayStarted(m),
       card_played:              (m) => app.onCardPlayed(m),
+      marriage_declared:        (m) => app.onMarriageDeclared(m),
+      trump_changed:            (m) => app.onTrumpChanged(m),
       round_summary:            (m) => app.onRoundSummary(m),
       round_aborted:            (m) => this._onRoundAborted(m),
       player_disconnected:      (m) => this._onPlayerDisconnected(m),
