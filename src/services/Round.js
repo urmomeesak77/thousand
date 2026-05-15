@@ -217,6 +217,32 @@ class Round {
     return { rejected: false, cardId, destSeat };
   }
 
+  // T044 — delegate to TrickPlay.declareMarriage
+  declareMarriage(seat, cardId) {
+    if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
+
+    // Lazily init TrickPlay if forced into trick-play phase (mirrors playCard lazy-init)
+    if (!this._trickPlay) {
+      this._trickPlay = new TrickPlay(this.currentTrickLeaderSeat ?? this.declarerSeat, this.deck);
+      this._trickPlay.trickNumber = this.trickNumber;
+      this._trickPlay.currentTrickLeaderSeat = this.currentTrickLeaderSeat;
+      this._trickPlay.currentTurnSeat = this.currentTurnSeat;
+      this._trickPlay.currentTrick = this.currentTrick;
+      this._trickPlay.collectedTricks = this.collectedTricks;
+      this._trickPlay.currentTrumpSuit = this.currentTrumpSuit;
+      this._trickPlay.declaredMarriages = this.declaredMarriages;
+    }
+
+    const result = this._trickPlay.declareMarriage(this.hands, seat, cardId);
+    if (result.rejected) {return result;}
+
+    // Sync state back to Round fields
+    this.currentTrumpSuit = this._trickPlay.currentTrumpSuit;
+    this.declaredMarriages = this._trickPlay.declaredMarriages;
+
+    return result;
+  }
+
   // T018 — delegate to TrickPlay
   playCard(seat, cardId, opts = {}) {
     if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
