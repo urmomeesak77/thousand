@@ -176,7 +176,7 @@ class GameScreen {
 
   // Called when a fresh snapshot arrives mid-round (e.g. card exchange or trick play update).
   updateSnapshot(snapshot) {
-    this._lastSnapshot = snapshot;
+    this._lastSnapshot = { ...(this._lastSnapshot ?? {}), ...snapshot };
     if (!this._isControlsLocked) {
       this._controls.mountForPhase(this._lastGameStatus ?? snapshot.gameStatus);
     }

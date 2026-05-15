@@ -274,7 +274,9 @@ class GameScreenControls {
       this._controlsEl.textContent = '';
       this._roundSummaryScreen = new RoundSummaryScreen(this._controlsEl, {
         antlion: this._antlion,
+        viewerSeat: this._gs._seats?.self ?? null,
         onBackToLobby: () => this._gs._onBackToLobby(),
+        onContinue: () => this._dispatcher.sendContinueToNextRound(),
       });
     }
 

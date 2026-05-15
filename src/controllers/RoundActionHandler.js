@@ -383,14 +383,14 @@ class RoundActionHandler {
           this._store.sendToPlayer(pid, {
             type: 'final_results',
             finalResults,
-            gameStatus: 'game-over',
+            gameStatus,
           });
         }
       }
     }
     // FR-029: purge the game record after broadcasting final_results
     if (isRoundComplete && victoryReached) {
-      this._store._deleteGame(game.id, game);
+      this._store._cleanupRound(game.id);
     }
   }
 

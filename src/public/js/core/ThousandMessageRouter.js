@@ -270,7 +270,7 @@ class ThousandMessageRouter {
   _onFinalResults(msg) {
     const app = this._app;
     app._gameScreen.updateSnapshot({ finalResults: msg.finalResults });
-    app._gameScreen.updateStatus(msg.gameStatus);
+    app._gameScreen.updateStatus({ ...msg.gameStatus, phase: 'Game over' });
   }
 
   _onGameAborted(msg) {
