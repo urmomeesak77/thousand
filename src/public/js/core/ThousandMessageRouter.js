@@ -41,6 +41,11 @@ const MESSAGE_VALIDATORS = {
     && isObj(m.gameStatus)
   ),
   play_phase_ready: (m) => typeof m.declarerId === 'string' && typeof m.finalBid === 'number' && isObj(m.gameStatus),
+  card_exchange_started: (m) => typeof m.declarerId === 'string' && typeof m.finalBid === 'number' && isObj(m.gameStatus),
+  card_passed: (m) => isObj(m.gameStatus),
+  trick_play_started: (m) => isObj(m.gameStatus),
+  card_played: (m) => isObj(m.gameStatus),
+  round_summary: (m) => isObj(m.summary) && isObj(m.gameStatus),
   round_aborted: (m) => (
     typeof m.reason === 'string'
     && typeof m.disconnectedNickname === 'string'
@@ -75,11 +80,16 @@ class ThousandMessageRouter {
       action_rejected:      (m) => app._toast.show(m.reason),
       bid_accepted:         (m) => this._onBidAccepted(m),
       pass_accepted:        (m) => this._onPassAccepted(m),
-      talon_absorbed:       (m) => app._gameScreen.sellPhase.absorbTalon(m),
-      play_phase_ready:     (m) => this._onPlayPhaseReady(m),
-      round_aborted:        (m) => this._onRoundAborted(m),
-      player_disconnected:  (m) => this._onPlayerDisconnected(m),
-      player_reconnected:   (m) => this._onPlayerReconnected(m),
+      talon_absorbed:           (m) => app._gameScreen.sellPhase.absorbTalon(m),
+      play_phase_ready:         (m) => this._onPlayPhaseReady(m),
+      card_exchange_started:    (m) => app.onCardExchangeStarted(m),
+      card_passed:              (m) => app.onCardPassed(m),
+      trick_play_started:       (m) => app.onTrickPlayStarted(m),
+      card_played:              (m) => app.onCardPlayed(m),
+      round_summary:            (m) => app.onRoundSummary(m),
+      round_aborted:            (m) => this._onRoundAborted(m),
+      player_disconnected:      (m) => this._onPlayerDisconnected(m),
+      player_reconnected:       (m) => this._onPlayerReconnected(m),
       round_state_snapshot: (m) => this._onRoundStateSnapshot(m),
       sell_started:         (m) => app._gameScreen.sellPhase.enterSellSelection(m.gameStatus),
       sell_exposed:         (m) => app._gameScreen.sellPhase.enterSellBidding(m),

@@ -26,6 +26,9 @@ class StatusBar {
     }
     this._renderPassedPlayers(gameStatus.passedPlayers);
     this._renderDisconnected(gameStatus.disconnectedPlayers);
+    this._renderTrickNumber(gameStatus.trickNumber);
+    this._renderExchangePasses(gameStatus.exchangePassesCommitted);
+    this._renderCumulativeScores(gameStatus.cumulativeScores);
   }
 
   _renderTurn({ activePlayer, viewerIsActive }) {
@@ -72,6 +75,36 @@ class StatusBar {
         this._span('status-bar__disconnected', `${nickname}: Connection lost…`),
       );
     }
+  }
+
+  _renderTrickNumber(trickNumber) {
+    if (trickNumber == null) {
+      return;
+    }
+    this._el.appendChild(this._span('status-bar__trick-number', `Trick ${trickNumber} of 8`));
+  }
+
+  _renderExchangePasses(exchangePassesCommitted) {
+    if (exchangePassesCommitted == null) {
+      return;
+    }
+    this._el.appendChild(
+      this._span('status-bar__exchange-passes', `${exchangePassesCommitted}/2 cards passed`),
+    );
+  }
+
+  _renderCumulativeScores(cumulativeScores) {
+    if (cumulativeScores == null) {
+      return;
+    }
+    const div = document.createElement('div');
+    div.className = 'status-bar__scores';
+    for (const seat of Object.keys(cumulativeScores)) {
+      const span = this._span('status-bar__cumulative-score', `${cumulativeScores[seat]} pts`);
+      span.dataset.seat = seat;
+      div.appendChild(span);
+    }
+    this._el.appendChild(div);
   }
 
   _span(className, text) {

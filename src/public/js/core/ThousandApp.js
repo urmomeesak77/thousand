@@ -81,6 +81,8 @@ class ThousandApp {
       this._gameList.startElapsedTimer();
     });
 
+    this._antlion.onInput('round-summary-back', () => this._returnFromRound());
+
     this._bindUI();
     if (IdentityStore.load().playerId) {
       this._reconnectOverlay.show();
@@ -211,6 +213,45 @@ class ThousandApp {
       this._gameId = data.gameId;
       $('invite-code-input').value = '';
       $('join-invite-btn').disabled = true;
+    }
+  }
+
+  // card_exchange_started: declarer's hand is revealed as part of exchange setup.
+  onCardExchangeStarted(msg) {
+    this._applyHandToCardsById(msg.gameStatus?.myHand);
+    this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
+  // card_passed: the passed card's identity is revealed to the viewer via the updated hand (FR-019).
+  onCardPassed(msg) {
+    if (msg.passedCard) {
+      const { passedCard } = msg;
+      this._gameScreen.cardsById[passedCard.id] = passedCard;
+    }
+    this._applyHandToCardsById(msg.gameStatus?.myHand);
+    this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
+  onTrickPlayStarted(msg) {
+    this._applyHandToCardsById(msg.gameStatus?.myHand);
+    this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
+  onCardPlayed(msg) {
+    this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
+  onRoundSummary(msg) {
+    this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
+  // Accumulates revealed card identities into GameScreen's lookup table.
+  // Each viewer only ever sees their own hand, so we grow the map as cards appear.
+  _applyHandToCardsById(hand) {
+    if (!hand) {return;}
+    const cardsById = this._gameScreen.cardsById;
+    for (const card of hand) {
+      cardsById[card.id] = card;
     }
   }
 }

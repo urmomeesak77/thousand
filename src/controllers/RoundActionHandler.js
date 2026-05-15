@@ -1,6 +1,7 @@
 'use strict';
 
 const RateLimiter = require('../utils/RateLimiter');
+const { roundScores, roundDeltas } = require('../services/Scoring');
 
 class RoundActionHandler {
   constructor({ store }) {
@@ -192,8 +193,7 @@ class RoundActionHandler {
     );
   }
 
-  // T043 — special-case: no per-seat broadcast loop; emits a single shared payload
-  // and then drops the round entirely.
+  // round stays alive for card-exchange phase (old code cleaned up the round here)
   handleStartGame(playerId) {
     if (!this._rateLimiter.isAllowed(playerId)) {
       return;
@@ -218,13 +218,87 @@ class RoundActionHandler {
       return;
     }
     const { declarerId, finalBid } = result;
-    const gameId = game.id;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'play_phase_ready', declarerId, finalBid, gameStatus });
+      this._store.sendToPlayer(pid, { type: 'card_exchange_started', declarerId, finalBid, gameStatus });
     }
-    this._store._cleanupRound(gameId);
+  }
+
+  // Bypasses _runRoundAction: two passes arrive in quick succession and the shared
+  // per-player rate limiter (250 ms / 1) would silently drop the second.
+  handleExchangePass(playerId, cardId, toSeat) {
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const round = game.round;
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const result = round.submitExchangePass(seat, cardId, toSeat);
+    if (!result || result.noop) {
+      return;
+    }
+    if (result.rejected) {
+      this._reject(playerId, result.reason);
+      return;
+    }
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      const msg = { type: 'card_passed', gameStatus };
+      if (pSeat === toSeat) {
+        const cardObj = round.deck[cardId];
+        if (cardObj) {
+          msg.passedCard = { id: cardObj.id, rank: cardObj.rank, suit: cardObj.suit };
+        }
+      }
+      this._store.sendToPlayer(pid, msg);
+      if (result.transitionedToTrickPlay) {
+        this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
+      }
+    }
+  }
+
+  // Bypasses _runRoundAction for the same rate-limiter reason as handleExchangePass.
+  handlePlayCard(playerId, cardId) {
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const round = game.round;
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const result = round.playCard(seat, cardId);
+    if (!result || result.noop) {
+      return;
+    }
+    if (result.rejected) {
+      this._reject(playerId, result.reason);
+      return;
+    }
+    const isRoundComplete = result.trickResolved && result.roundComplete;
+    if (isRoundComplete) {
+      round.roundScores = roundScores(round);
+      round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);
+      round.buildSummary(game);
+    }
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      this._store.sendToPlayer(pid, { type: 'card_played', gameStatus });
+      if (isRoundComplete) {
+        this._store.sendToPlayer(pid, { type: 'round_summary', summary: round.summary, gameStatus });
+      }
+    }
   }
 }
 

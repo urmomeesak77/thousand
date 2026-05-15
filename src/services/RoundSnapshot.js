@@ -66,6 +66,13 @@ function buildViewModel(round, seat) {
     passedPlayers: passedNicknamesForCurrentPhase(round),
     sellAttempt: currentSellAttempt(round),
     disconnectedPlayers: disconnectedNicknames(round),
+    trickNumber: round.trickNumber > 0 ? round.trickNumber : null,
+    currentTrumpSuit: round.currentTrumpSuit ?? null,
+    cumulativeScores: { 0: 0, 1: 0, 2: 0 },
+    collectedTrickCounts: round.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 },
+    exchangePassesCommitted: round.phase === 'card-exchange' ? round.exchangePassesCommitted : null,
+    continuePressedSeats: null,
+    roundNumber: 1,
   };
 }
 
@@ -113,6 +120,25 @@ function buildDealSequenceFor(round, seat) {
   });
 }
 
+// Returns the card IDs that are legal to play for the given seat on their turn.
+// Enforces follow-suit; if not their turn, returns [].
+function _computeLegalCardIds(round, seat) {
+  if (round.currentTurnSeat !== seat) {
+    return [];
+  }
+  const hand = round.hands[seat];
+  if (!round.currentTrick || round.currentTrick.length === 0) {
+    return hand; // leading — all cards legal
+  }
+  const ledCardId = round.currentTrick[0].cardId;
+  const ledSuit = round.deck[ledCardId]?.suit;
+  if (!ledSuit) {
+    return hand;
+  }
+  const followSuitCards = hand.filter((id) => round.deck[id]?.suit === ledSuit);
+  return followSuitCards.length > 0 ? followSuitCards : hand;
+}
+
 function buildSnapshot(round, seat) {
   const gameStatus = buildViewModel(round, seat);
   const payload = {
@@ -144,6 +170,39 @@ function buildSnapshot(round, seat) {
 
   if (round.exposedSellCards.length > 0) {
     payload.exposedSellCardIds = [...round.exposedSellCards];
+  }
+
+  if (round.phase === 'card-exchange') {
+    payload.exchangePassesCommitted = round.exchangePassesCommitted;
+    payload.myHand = buildHandIdentitiesFor(round, seat);
+    payload.receivedFromExchange = null;
+    payload.isDeclarerView = seat === round.declarerSeat;
+    payload.isMyTurn = round.currentTurnSeat === seat;
+  }
+
+  if (round.phase === 'trick-play') {
+    payload.trickNumber = round.trickNumber;
+    payload.currentTrickLeaderSeat = round.currentTrickLeaderSeat;
+    payload.currentTrick = round.currentTrick.map(({ seat: s, cardId }) => {
+      const card = round.deck[cardId];
+      return { seat: s, cardId, rank: card.rank, suit: card.suit };
+    });
+    payload.currentTrumpSuit = round.currentTrumpSuit;
+    payload.declaredMarriages = [...round.declaredMarriages];
+    payload.collectedTrickCounts = { ...round.collectedTrickCounts };
+    payload.myHand = buildHandIdentitiesFor(round, seat);
+    payload.isMyTurn = round.currentTurnSeat === seat;
+    payload.legalCardIds = _computeLegalCardIds(round, seat);
+  }
+
+  if (round.phase === 'round-summary') {
+    payload.summary = round.summary;
+    const myCollected = round.collectedTricks?.[seat] ?? [];
+    payload.viewerCollectedCards = myCollected.map((id) => {
+      const card = round.deck[id];
+      return { rank: card.rank, suit: card.suit };
+    });
+    payload.continuePressedSeats = [];
   }
 
   return payload;
