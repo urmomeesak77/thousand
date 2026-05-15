@@ -38,4 +38,77 @@ function roundDeltas(roundScoresMap, declarerSeat, bid, _penalties = []) {
   return deltas;
 }
 
-module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, roundScores, roundDeltas };
+// FR-017: Determines the winner when at least one player reaches >= 1000
+function determineWinner(game) {
+  // Step 1: Find the maximum cumulativeScore
+  const maxScore = Math.max(
+    game.cumulativeScores[0],
+    game.cumulativeScores[1],
+    game.cumulativeScores[2]
+  );
+
+  // Step 2: Find all seats at that maximum (the tied set)
+  const tied = [];
+  for (const seat of [0, 1, 2]) {
+    if (game.cumulativeScores[seat] === maxScore) {
+      tied.push(seat);
+    }
+  }
+
+  // Step 3: If only one seat at max, they win
+  if (tied.length === 1) {
+    return { winnerSeat: tied[0] };
+  }
+
+  // Step 4: Multiple seats tied at max
+  const declarerSeat = game.history[game.history.length - 1].declarerSeat;
+
+  // Step 4(a): If declarer is among tied, declarer wins
+  if (tied.includes(declarerSeat)) {
+    return { winnerSeat: declarerSeat };
+  }
+
+  // Step 4(b): Seat-order fallback
+  // P1 = (dealerSeat + 1) % 3   (highest priority)
+  // P2 = (dealerSeat + 2) % 3   (middle priority)
+  // Dealer = dealerSeat         (lowest priority)
+  const P1 = (game.dealerSeat + 1) % 3;
+  const P2 = (game.dealerSeat + 2) % 3;
+  const Dealer = game.dealerSeat;
+
+  // Return the first of [P1, P2, Dealer] that is in the tied set
+  for (const seat of [P1, P2, Dealer]) {
+    if (tied.includes(seat)) {
+      return { winnerSeat: seat };
+    }
+  }
+}
+
+// FR-017: Builds the FinalResults view-model when the game ends
+function buildFinalResults(game) {
+  // Step 1: Determine the winner
+  const { winnerSeat } = determineWinner(game);
+
+  // Step 2: Build finalRanking as an array of all 3 seats sorted descending by cumulativeScore
+  const finalRanking = [];
+  for (const seat of [0, 1, 2]) {
+    finalRanking.push({
+      seat,
+      nickname: game.nicknames[seat],
+      cumulativeScore: game.cumulativeScores[seat],
+      isWinner: seat === winnerSeat,
+    });
+  }
+  // Sort descending by cumulativeScore
+  finalRanking.sort((a, b) => b.cumulativeScore - a.cumulativeScore);
+
+  // Step 3: Return the FinalResults object
+  return {
+    winnerSeat,
+    winnerNickname: game.nicknames[winnerSeat],
+    finalRanking,
+    history: game.history,
+  };
+}
+
+module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, roundScores, roundDeltas, determineWinner, buildFinalResults };

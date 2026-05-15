@@ -187,7 +187,7 @@ class GameController {
       id: gameId, type, hostId,
       players: new Set([hostId]), requiredPlayers,
       status: 'waiting', inviteCode,
-      createdAt: Date.now(), round: null,
+      createdAt: Date.now(), round: null, session: null,
     };
     this.store.games.set(gameId, game);
     if (inviteCode) {

@@ -46,6 +46,10 @@ class RoundActionDispatcher {
   sendPlayCard(cardId) {
     this._socket.send({ type: 'play_card', cardId });
   }
+
+  sendContinueToNextRound() {
+    this._socket.send({ type: 'continue_to_next_round' });
+  }
 }
 
 export default RoundActionDispatcher;

@@ -1,15 +1,36 @@
+import MarriageDeclarationPrompt from './MarriageDeclarationPrompt.js';
+import { MARRIAGE_BONUS } from './constants.js';
+
 class TrickPlayView {
   constructor(el, { antlion, dispatcher, seats }) {
     this._el = el;
     this._antlion = antlion;
     this._dispatcher = dispatcher;
     this._seats = seats;
+    this._snapshot = null;
+
+    // Container for the marriage declaration prompt
+    this._promptEl = document.createElement('div');
+    this._promptEl.className = 'trick-play__marriage-prompt';
+    this._promptEl.style.display = 'none';
+    this._el.appendChild(this._promptEl);
+
+    this._prompt = new MarriageDeclarationPrompt(this._promptEl, { antlion, dispatcher });
 
     this._antlion.bindInput(this._el, 'click', 'trick-play-card-click');
     this._antlion.onInput('trick-play-card-click', (e) => {
       const btn = e.target.closest('.trick-play__card');
       if (!btn || btn.classList.contains('card--disabled')) {return;}
       const cardId = parseInt(btn.dataset.cardId, 10);
+
+      // T052: Check if a marriage can be offered for this card
+      if (this._snapshot && this._canOfferMarriage(cardId)) {
+        const card = this._snapshot.myHand.find((c) => c.id === cardId);
+        const bonus = MARRIAGE_BONUS[card.suit] ?? 0;
+        this._prompt.show(cardId, card.suit, bonus);
+        return;
+      }
+
       // Trigger CSS hand→centre animation; 250ms matches the CSS transition
       // duration so the card reaches the centre slot before the server's
       // play-card acknowledgment causes a re-render.
@@ -21,8 +42,25 @@ class TrickPlayView {
     });
   }
 
+  _canOfferMarriage(cardId) {
+    const snap = this._snapshot;
+    if (!snap.isMyTurn) { return false; }
+    if (!snap.currentTrick || snap.currentTrick.length !== 0) { return false; }
+    if (!MarriageDeclarationPrompt.canOffer(snap.myHand, snap.trickNumber)) { return false; }
+    const card = snap.myHand.find((c) => c.id === cardId);
+    if (!card) { return false; }
+    if (card.rank !== 'K' && card.rank !== 'Q') { return false; }
+    const hasK = snap.myHand.some((c) => c.rank === 'K' && c.suit === card.suit);
+    const hasQ = snap.myHand.some((c) => c.rank === 'Q' && c.suit === card.suit);
+    return hasK && hasQ;
+  }
+
   render(snapshot) {
+    this._snapshot = snapshot;
+
+    // Preserve and reattach the prompt container so it survives innerHTML resets
     this._el.innerHTML = '';
+    this._el.appendChild(this._promptEl);
 
     const { myHand, legalCardIds, isMyTurn, collectedTrickCounts } = snapshot;
 

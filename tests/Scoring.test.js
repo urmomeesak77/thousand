@@ -223,3 +223,173 @@ describe('Scoring.roundDeltas — FR-014', () => {
     assert.equal(deltas[1], 50);
   });
 });
+
+describe('Scoring.determineWinner — FR-017', () => {
+  function makeGameStub({ cumulativeScores, declarerSeat, dealerSeat = 0 }) {
+    return {
+      cumulativeScores,
+      seatOrder: [0, 1, 2], // identity mapping for simplicity
+      dealerSeat,
+      history: [
+        {
+          round: 1,
+          declarerSeat,
+          bid: 100,
+        },
+      ],
+    };
+  }
+
+  it('single winner: seat 0 with 1100 beats 500 and 300', () => {
+    const game = makeGameStub({
+      cumulativeScores: { 0: 1100, 1: 500, 2: 300 },
+      declarerSeat: 0,
+    });
+    const result = Scoring.determineWinner(game);
+    assert.equal(result.winnerSeat, 0);
+  });
+
+  it('single winner: seat 2 with 1050 beats 300 and 450', () => {
+    const game = makeGameStub({
+      cumulativeScores: { 0: 300, 1: 450, 2: 1050 },
+      declarerSeat: 2,
+    });
+    const result = Scoring.determineWinner(game);
+    assert.equal(result.winnerSeat, 2);
+  });
+
+  it('tie at top: declarer (seat 1) among tied (0:1000, 1:1000, 2:300) wins', () => {
+    const game = makeGameStub({
+      cumulativeScores: { 0: 1000, 1: 1000, 2: 300 },
+      declarerSeat: 1,
+    });
+    const result = Scoring.determineWinner(game);
+    assert.equal(result.winnerSeat, 1);
+  });
+
+  it('tie at top: declarer NOT among tied, seat-order fallback (dealerSeat=0, P1=1 beats P2=2)', () => {
+    // dealerSeat=0 → P1=(0+1)%3=1, P2=(0+2)%3=2, Dealer=0
+    // declarerSeat=0 is NOT tied (only seats 1 and 2 tied at 1000)
+    // Among tied: P1=seat1 > P2=seat2
+    const game = makeGameStub({
+      cumulativeScores: { 0: 300, 1: 1000, 2: 1000 },
+      declarerSeat: 0,
+      dealerSeat: 0,
+    });
+    const result = Scoring.determineWinner(game);
+    assert.equal(result.winnerSeat, 1); // P1 wins over P2
+  });
+
+  it('three-way tie (all 1000): declarer (seat 2) among tied wins', () => {
+    const game = makeGameStub({
+      cumulativeScores: { 0: 1000, 1: 1000, 2: 1000 },
+      declarerSeat: 2,
+    });
+    const result = Scoring.determineWinner(game);
+    assert.equal(result.winnerSeat, 2);
+  });
+
+  it('tie at top: declarer NOT among tied, seat-order fallback (dealerSeat=2, P1=0 loses, P2=1 wins over Dealer=2)', () => {
+    // dealerSeat=2 → P1=(2+1)%3=0, P2=(2+2)%3=1, Dealer=2
+    // declarerSeat=0 (P1) is NOT tied
+    // Tied: seats 1 (P2) and 2 (Dealer)
+    // P2 > Dealer → seat 1 wins
+    const game = makeGameStub({
+      cumulativeScores: { 0: 300, 1: 1050, 2: 1050 },
+      declarerSeat: 0,
+      dealerSeat: 2,
+    });
+    const result = Scoring.determineWinner(game);
+    assert.equal(result.winnerSeat, 1); // P2 beats Dealer
+  });
+
+  it('tie at top: declarer (dealer=seat 0) NOT among tied, Dealer loses to P2 (dealerSeat=0, P1=1, P2=2, declarer=0)', () => {
+    // dealerSeat=0 → P1=1, P2=2, Dealer=0
+    // declarerSeat=0 (Dealer) is NOT tied (seats 1 and 2 tied)
+    // Among tied: P1=seat1 > P2=seat2
+    // seat 1 wins
+    const game = makeGameStub({
+      cumulativeScores: { 0: 500, 1: 1000, 2: 1000 },
+      declarerSeat: 0,
+      dealerSeat: 0,
+    });
+    const result = Scoring.determineWinner(game);
+    assert.equal(result.winnerSeat, 1); // P1 wins (dealer loses to P1)
+  });
+});
+
+describe('Scoring.buildFinalResults — FR-017', () => {
+  function makeGameStubWithNicknames({ cumulativeScores, nicknames, declarerSeat, dealerSeat = 0 }) {
+    return {
+      cumulativeScores,
+      nicknames,
+      seatOrder: [0, 1, 2],
+      dealerSeat,
+      history: [
+        {
+          round: 1,
+          declarerSeat,
+          bid: 100,
+        },
+      ],
+    };
+  }
+
+  it('builds finalRanking with all 3 seats sorted descending by score', () => {
+    const game = makeGameStubWithNicknames({
+      cumulativeScores: { 0: 1020, 1: 650, 2: 330 },
+      nicknames: { 0: 'Alice', 1: 'Bob', 2: 'Carol' },
+      declarerSeat: 0,
+      dealerSeat: 0,
+    });
+    const result = Scoring.buildFinalResults(game);
+    assert.equal(result.finalRanking.length, 3);
+    assert.equal(result.finalRanking[0].seat, 0);
+    assert.equal(result.finalRanking[0].cumulativeScore, 1020);
+    assert.equal(result.finalRanking[1].seat, 1);
+    assert.equal(result.finalRanking[1].cumulativeScore, 650);
+    assert.equal(result.finalRanking[2].seat, 2);
+    assert.equal(result.finalRanking[2].cumulativeScore, 330);
+  });
+
+  it('marks the winner with isWinner: true', () => {
+    const game = makeGameStubWithNicknames({
+      cumulativeScores: { 0: 1020, 1: 650, 2: 330 },
+      nicknames: { 0: 'Alice', 1: 'Bob', 2: 'Carol' },
+      declarerSeat: 0,
+      dealerSeat: 0,
+    });
+    const result = Scoring.buildFinalResults(game);
+    assert.equal(result.finalRanking[0].isWinner, true);
+    assert.equal(result.finalRanking[1].isWinner, false);
+    assert.equal(result.finalRanking[2].isWinner, false);
+  });
+
+  it('returns winnerSeat and winnerNickname from determineWinner', () => {
+    const game = makeGameStubWithNicknames({
+      cumulativeScores: { 0: 1020, 1: 650, 2: 330 },
+      nicknames: { 0: 'Alice', 1: 'Bob', 2: 'Carol' },
+      declarerSeat: 0,
+      dealerSeat: 0,
+    });
+    const result = Scoring.buildFinalResults(game);
+    assert.equal(result.winnerSeat, 0);
+    assert.equal(result.winnerNickname, 'Alice');
+  });
+
+  it('includes history pass-through from game', () => {
+    const mockHistory = [
+      { round: 1, declarerSeat: 0, bid: 100 },
+      { round: 2, declarerSeat: 1, bid: 120 },
+    ];
+    const game = makeGameStubWithNicknames({
+      cumulativeScores: { 0: 1020, 1: 650, 2: 330 },
+      nicknames: { 0: 'Alice', 1: 'Bob', 2: 'Carol' },
+      declarerSeat: 1,
+      dealerSeat: 0,
+    });
+    game.history = mockHistory;
+    const result = Scoring.buildFinalResults(game);
+    assert.deepEqual(result.history, mockHistory);
+  });
+});

@@ -1,6 +1,9 @@
 'use strict';
 
-const { RANK_ORDER } = require('./Scoring');
+const { RANK_ORDER, MARRIAGE_BONUS } = require('./Scoring');
+
+const MARRIAGE_FIRST_TRICK = 2;
+const MARRIAGE_LAST_TRICK  = 6;
 
 class TrickPlay {
   constructor(declarerSeat, deck) {
@@ -52,7 +55,48 @@ class TrickPlay {
       return { rejected: true, reason: 'You must follow suit' };
     }
 
+    // T043: FR-007 trump-priority — out of led suit, must play trump if available
+    if (this.currentTrumpSuit !== null) {
+      const hasTrump = hands[seat].some(id => this.deck[id].suit === this.currentTrumpSuit);
+      if (hasTrump && playedSuit !== this.currentTrumpSuit) {
+        return { rejected: true, reason: 'You must play trump' };
+      }
+    }
+
     return null;
+  }
+
+  // T044: FR-010 — declare marriage (must be called before playing the card)
+  declareMarriage(hands, seat, cardId) {
+    if (this.currentTrick.length !== 0) {
+      return { rejected: true, reason: 'Can only declare marriage when leading' };
+    }
+
+    if (this.trickNumber < MARRIAGE_FIRST_TRICK || this.trickNumber > MARRIAGE_LAST_TRICK) {
+      return { rejected: true, reason: 'Marriage can only be declared on tricks 2 through 6' };
+    }
+
+    if (seat !== this.currentTrickLeaderSeat) {
+      return { rejected: true, reason: 'Can only declare marriage when leading' };
+    }
+
+    const card = this.deck[cardId];
+    if (card.rank !== 'K' && card.rank !== 'Q') {
+      return { rejected: true, reason: 'Marriage can only be declared with K or Q' };
+    }
+
+    const suit = card.suit;
+    const hasK = hands[seat].some(id => this.deck[id].suit === suit && this.deck[id].rank === 'K');
+    const hasQ = hands[seat].some(id => this.deck[id].suit === suit && this.deck[id].rank === 'Q');
+    if (!hasK || !hasQ) {
+      return { rejected: true, reason: 'You do not hold both K and Q of that suit' };
+    }
+
+    const bonus = MARRIAGE_BONUS[suit];
+    this.declaredMarriages.push({ playerSeat: seat, suit, bonus, trickNumber: this.trickNumber });
+    this.currentTrumpSuit = suit;
+
+    return { rejected: false, suit, bonus, newTrumpSuit: suit };
   }
 
   _resolveTrick() {

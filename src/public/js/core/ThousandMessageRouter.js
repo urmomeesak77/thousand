@@ -45,8 +45,35 @@ const MESSAGE_VALIDATORS = {
   card_passed: (m) => isObj(m.gameStatus),
   trick_play_started: (m) => isObj(m.gameStatus),
   card_played: (m) => isObj(m.gameStatus),
+  marriage_declared: (m) => (
+    typeof m.playerSeat === 'number'
+    && typeof m.suit === 'string'
+    && typeof m.bonus === 'number'
+    && typeof m.trickNumber === 'number'
+    && typeof m.newTrumpSuit === 'string'
+    && isObj(m.gameStatus)
+  ),
+  trump_changed: (m) => typeof m.newTrumpSuit === 'string' && isObj(m.gameStatus),
   round_summary: (m) => isObj(m.summary) && isObj(m.gameStatus),
   round_aborted: (m) => (
+    typeof m.reason === 'string'
+    && typeof m.disconnectedNickname === 'string'
+    && isObj(m.gameStatus)
+  ),
+  continue_press_recorded: (m) => (
+    typeof m.seat === 'number'
+    && Array.isArray(m.continuePressedSeats)
+    && isObj(m.gameStatus)
+  ),
+  next_round_started: (m) => (
+    isObj(m.seats)
+    && typeof m.seats.self === 'number'
+    && Array.isArray(m.seats.players)
+    && Array.isArray(m.dealSequence)
+    && isObj(m.gameStatus)
+  ),
+  final_results: (m) => isObj(m.finalResults) && isObj(m.gameStatus),
+  game_aborted: (m) => (
     typeof m.reason === 'string'
     && typeof m.disconnectedNickname === 'string'
     && isObj(m.gameStatus)
@@ -86,8 +113,14 @@ class ThousandMessageRouter {
       card_passed:              (m) => app.onCardPassed(m),
       trick_play_started:       (m) => app.onTrickPlayStarted(m),
       card_played:              (m) => app.onCardPlayed(m),
+      marriage_declared:        (m) => app.onMarriageDeclared(m),
+      trump_changed:            (m) => app.onTrumpChanged(m),
       round_summary:            (m) => app.onRoundSummary(m),
       round_aborted:            (m) => this._onRoundAborted(m),
+      continue_press_recorded:  (m) => this._onContinuePressRecorded(m),
+      next_round_started:       (m) => this._onNextRoundStarted(m),
+      final_results:            (m) => this._onFinalResults(m),
+      game_aborted:             (m) => this._onGameAborted(m),
       player_disconnected:      (m) => this._onPlayerDisconnected(m),
       player_reconnected:       (m) => this._onPlayerReconnected(m),
       round_state_snapshot: (m) => this._onRoundStateSnapshot(m),
@@ -211,6 +244,36 @@ class ThousandMessageRouter {
   }
 
   _onRoundAborted(msg) {
+    const app = this._app;
+    app._roundEnded = true;
+    app._gameScreen.updateStatus(msg.gameStatus);
+    app._gameScreen.showRoundReady(
+      'aborted',
+      { disconnectedNickname: msg.disconnectedNickname, reason: msg.reason },
+      () => app._returnFromRound(),
+    );
+  }
+
+  _onContinuePressRecorded(msg) {
+    const app = this._app;
+    app._gameScreen.updateStatus(msg.gameStatus);
+    app._gameScreen.updateContinuePressedSeats(msg.continuePressedSeats);
+  }
+
+  _onNextRoundStarted(msg) {
+    const app = this._app;
+    app._waitingRoom.stopTimer();
+    app._showGameSubscreen('round');
+    app._gameScreen.init(msg);
+  }
+
+  _onFinalResults(msg) {
+    const app = this._app;
+    app._gameScreen.updateSnapshot({ finalResults: msg.finalResults });
+    app._gameScreen.updateStatus({ ...msg.gameStatus, phase: 'Game over' });
+  }
+
+  _onGameAborted(msg) {
     const app = this._app;
     app._roundEnded = true;
     app._gameScreen.updateStatus(msg.gameStatus);

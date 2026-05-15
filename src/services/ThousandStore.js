@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 
 const Round = require('./Round');
+const Game = require('./Game');
 const PlayerRegistry = require('./PlayerRegistry');
 
 const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
@@ -171,6 +172,24 @@ class ThousandStore {
     if (!game) {return;}
 
     if (game.status === 'in-progress' && game.round) {
+      // FR-025 / FR-029: grace expiry between rounds (round-summary phase) → game_aborted
+      if (game.round.phase === 'round-summary' && game.session) {
+        game.session.gameStatus = 'aborted';
+        const abortedMsg = {
+          type: 'game_aborted',
+          reason: 'player_grace_expired',
+          disconnectedNickname: nickname,
+          gameStatus: { phase: 'Game aborted' },
+        };
+        for (const pid of game.players) {
+          if (pid === playerId) {continue;}
+          this.sendToPlayer(pid, abortedMsg);
+        }
+        this._cleanupRound(gameId);
+        return;
+      }
+
+      // FR-021 / FR-029: grace expiry mid-round → round_aborted
       game.round.abort();
       const baseMsg = { type: 'round_aborted', reason: 'player_grace_expired', disconnectedNickname: nickname };
       for (const pid of game.players) {
@@ -265,6 +284,25 @@ class ThousandStore {
       game.waitingRoomTimer = null;
     }
     game.status = 'in-progress';
+
+    if (!game.session) {
+      // Round 1: create the Game session instance
+      const seatOrder = [...game.players];
+      const dealerSeat = 0;
+      game.session = new Game({ gameId, seatOrder, dealerSeat });
+      // Populate nicknames: seatOrder[i] is the playerId for seat i
+      for (let seat = 0; seat < seatOrder.length; seat++) {
+        const pid = seatOrder[seat];
+        const player = this.players.get(pid);
+        if (player) {
+          game.session.nicknames[seat] = player.nickname || '';
+        }
+      }
+    } else {
+      // Round 2+: rotate dealer and increment round number
+      game.session.startNextRound();
+    }
+
     game.round = new Round({ game, store: this });
     game.round.start();
     game.round.advanceFromDealingToBidding();

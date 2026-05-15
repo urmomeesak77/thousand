@@ -176,7 +176,7 @@ class GameScreen {
 
   // Called when a fresh snapshot arrives mid-round (e.g. card exchange or trick play update).
   updateSnapshot(snapshot) {
-    this._lastSnapshot = snapshot;
+    this._lastSnapshot = { ...(this._lastSnapshot ?? {}), ...snapshot };
     if (!this._isControlsLocked) {
       this._controls.mountForPhase(this._lastGameStatus ?? snapshot.gameStatus);
     }
@@ -212,6 +212,11 @@ class GameScreen {
     } else {
       this._talonView.clear();
     }
+  }
+
+  // Called on continue_press_recorded to update the RoundSummaryScreen indicators.
+  updateContinuePressedSeats(seats) {
+    this._controls.updateContinuePressedSeats(seats);
   }
 
   // Called on every phase_changed, bid_accepted, pass_accepted, etc.
