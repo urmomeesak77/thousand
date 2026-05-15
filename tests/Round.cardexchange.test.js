@@ -33,7 +33,7 @@ function makeCardExchangeRound() {
   // Tests call submitExchangePass directly; the method does not exist yet → tests fail.
   round.phase = 'card-exchange';
   round.exchangePassesCommitted = 0;
-  round.usedExchangeDestSeats = new Set();
+  round._usedExchangeDestSeats = new Set();
   return round;
 }
 

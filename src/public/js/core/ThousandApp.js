@@ -81,6 +81,8 @@ class ThousandApp {
       this._gameList.startElapsedTimer();
     });
 
+    this._antlion.onInput('round-summary-back', () => this._returnFromRound());
+
     this._bindUI();
     if (IdentityStore.load().playerId) {
       this._reconnectOverlay.show();
@@ -222,6 +224,10 @@ class ThousandApp {
 
   // card_passed: the passed card's identity is revealed to the viewer via the updated hand (FR-019).
   onCardPassed(msg) {
+    if (msg.passedCard) {
+      const { passedCard } = msg;
+      this._gameScreen.cardsById[passedCard.id] = passedCard;
+    }
     this._applyHandToCardsById(msg.gameStatus?.myHand);
     this._gameScreen.updateStatus(msg.gameStatus);
   }

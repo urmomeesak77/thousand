@@ -84,7 +84,7 @@ class CardExchangeView {
     this._el.appendChild(row);
   }
 
-  _renderWaiting(snapshot) {
+  _renderWaiting(_snapshot) {
     const div = document.createElement('div');
     div.className = 'card-exchange__waiting';
     div.textContent = 'Waiting for the declarer to exchange cards…';

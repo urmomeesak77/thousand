@@ -106,7 +106,7 @@ describe('round-messages.005 — exchange_pass broadcasts card_passed', () => {
     // Force card-exchange phase (as the implementation will set it)
     round.phase = 'card-exchange';
     round.exchangePassesCommitted = 0;
-    round.usedExchangeDestSeats = new Set();
+    round._usedExchangeDestSeats = new Set();
     // Ensure Alice (seat 0) has cards to pass
     assert.ok(round.hands[0].length >= 2, 'declarer must have cards to pass');
 
@@ -130,7 +130,7 @@ describe('round-messages.005 — exchange_pass broadcasts card_passed', () => {
     // Force card-exchange phase
     round.phase = 'card-exchange';
     round.exchangePassesCommitted = 0;
-    round.usedExchangeDestSeats = new Set();
+    round._usedExchangeDestSeats = new Set();
 
     ws.forEach((w) => { w._sent.length = 0; });
 

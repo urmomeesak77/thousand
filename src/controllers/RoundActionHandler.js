@@ -1,6 +1,7 @@
 'use strict';
 
 const RateLimiter = require('../utils/RateLimiter');
+const { roundScores, roundDeltas } = require('../services/Scoring');
 
 class RoundActionHandler {
   constructor({ store }) {
@@ -249,7 +250,14 @@ class RoundActionHandler {
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'card_passed', gameStatus });
+      const msg = { type: 'card_passed', gameStatus };
+      if (pSeat === toSeat) {
+        const cardObj = round.deck[cardId];
+        if (cardObj) {
+          msg.passedCard = { id: cardObj.id, rank: cardObj.rank, suit: cardObj.suit };
+        }
+      }
+      this._store.sendToPlayer(pid, msg);
       if (result.transitionedToTrickPlay) {
         this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
       }
@@ -279,6 +287,8 @@ class RoundActionHandler {
     }
     const isRoundComplete = result.trickResolved && result.roundComplete;
     if (isRoundComplete) {
+      round.roundScores = roundScores(round);
+      round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);
       round.buildSummary(game);
     }
     for (const pid of game.players) {

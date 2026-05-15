@@ -260,7 +260,7 @@ class GameScreenControls {
       this._controlsEl.textContent = '';
       this._roundSummaryScreen = new RoundSummaryScreen(this._controlsEl, {
         antlion: this._antlion,
-        onBackToLobby: () => this._dispatcher.sendStartGame(),
+        onBackToLobby: () => this._gs._onBackToLobby(),
       });
     }
 

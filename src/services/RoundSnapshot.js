@@ -120,6 +120,25 @@ function buildDealSequenceFor(round, seat) {
   });
 }
 
+// Returns the card IDs that are legal to play for the given seat on their turn.
+// Enforces follow-suit; if not their turn, returns [].
+function _computeLegalCardIds(round, seat) {
+  if (round.currentTurnSeat !== seat) {
+    return [];
+  }
+  const hand = round.hands[seat];
+  if (!round.currentTrick || round.currentTrick.length === 0) {
+    return hand; // leading — all cards legal
+  }
+  const ledCardId = round.currentTrick[0].cardId;
+  const ledSuit = round.deck[ledCardId]?.suit;
+  if (!ledSuit) {
+    return hand;
+  }
+  const followSuitCards = hand.filter((id) => round.deck[id]?.suit === ledSuit);
+  return followSuitCards.length > 0 ? followSuitCards : hand;
+}
+
 function buildSnapshot(round, seat) {
   const gameStatus = buildViewModel(round, seat);
   const payload = {
@@ -157,6 +176,8 @@ function buildSnapshot(round, seat) {
     payload.exchangePassesCommitted = round.exchangePassesCommitted;
     payload.myHand = buildHandIdentitiesFor(round, seat);
     payload.receivedFromExchange = null;
+    payload.isDeclarerView = seat === round.declarerSeat;
+    payload.isMyTurn = round.currentTurnSeat === seat;
   }
 
   if (round.phase === 'trick-play') {
@@ -170,6 +191,8 @@ function buildSnapshot(round, seat) {
     payload.declaredMarriages = [...round.declaredMarriages];
     payload.collectedTrickCounts = { ...round.collectedTrickCounts };
     payload.myHand = buildHandIdentitiesFor(round, seat);
+    payload.isMyTurn = round.currentTurnSeat === seat;
+    payload.legalCardIds = _computeLegalCardIds(round, seat);
   }
 
   if (round.phase === 'round-summary') {

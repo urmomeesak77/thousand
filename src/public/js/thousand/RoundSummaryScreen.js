@@ -3,6 +3,8 @@ class RoundSummaryScreen {
     this._el = el;
     this._antlion = antlion;
     this._onBackToLobby = onBackToLobby;
+    // Register handler once — button is created later in render()
+    antlion.onInput('round-summary-back-click', () => this._onBackToLobby());
   }
 
   render(summary) {
@@ -72,7 +74,6 @@ class RoundSummaryScreen {
     btn.className = 'round-summary__back-btn';
     btn.textContent = 'Back to Lobby';
     this._antlion.bindInput(btn, 'click', 'round-summary-back-click');
-    this._antlion.onInput('round-summary-back-click', () => this._onBackToLobby());
     this._el.appendChild(btn);
   }
 

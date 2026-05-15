@@ -280,6 +280,12 @@ class GameScreen {
     );
   }
 
+  // Called by GameScreenControls when the player clicks "Back to Lobby" on the
+  // round summary screen. Emits an antlion event so the app can handle navigation.
+  _onBackToLobby() {
+    this._antlion.emit('round-summary-back', {});
+  }
+
   _clearLastAction() {
     this._lastActionEl.textContent = '';
     this._lastActionEl.classList.add('hidden');
