@@ -38,6 +38,14 @@ class RoundActionDispatcher {
   sendStartGame() {
     this._socket.send({ type: 'start_game' });
   }
+
+  sendExchangePass(cardId, toSeat) {
+    this._socket.send({ type: 'exchange_pass', cardId, toSeat });
+  }
+
+  sendPlayCard(cardId) {
+    this._socket.send({ type: 'play_card', cardId });
+  }
 }
 
 export default RoundActionDispatcher;
