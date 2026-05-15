@@ -88,7 +88,6 @@ function makeSnapshot(overrides = {}) {
 // T010 — TrickPlayView: FR-007 / FR-008
 // ---------------------------------------------------------------------------
 
-// Test 1: Cards in legalCardIds do NOT have .card--disabled class
 describe('TrickPlayView — legal cards do not have .card--disabled (FR-007)', () => {
   it('cards in legalCardIds do not have .card--disabled class', () => {
     const { view, el } = makeTrickPlayView();
@@ -119,7 +118,6 @@ describe('TrickPlayView — legal cards do not have .card--disabled (FR-007)', (
   });
 });
 
-// Test 2: Cards NOT in legalCardIds DO have .card--disabled class
 describe('TrickPlayView — illegal cards have .card--disabled (FR-007)', () => {
   it('cards not in legalCardIds have .card--disabled class', () => {
     const { view, el } = makeTrickPlayView();
@@ -146,7 +144,6 @@ describe('TrickPlayView — illegal cards have .card--disabled (FR-007)', () => 
   });
 });
 
-// Test 3: When isMyTurn: false, all cards have .card--disabled
 describe('TrickPlayView — all cards disabled when not my turn (FR-007)', () => {
   it('all cards have .card--disabled when isMyTurn is false', () => {
     const { view, el } = makeTrickPlayView();
@@ -179,7 +176,6 @@ describe('TrickPlayView — all cards disabled when not my turn (FR-007)', () =>
   });
 });
 
-// Test 4: Collected tricks stack .collected-tricks__badge shows × N
 describe('TrickPlayView — collected tricks badge shows count (FR-008)', () => {
   it('.collected-tricks__badge shows "× N" for seat with N tricks', () => {
     const { view, el } = makeTrickPlayView();
@@ -205,7 +201,6 @@ describe('TrickPlayView — collected tricks badge shows count (FR-008)', () => 
   });
 });
 
-// Test 5: seat 0's stack badge shows × 3 after render with collectedTrickCounts: {0:3}
 describe('TrickPlayView — seat 0 badge shows × 3 after render (FR-008)', () => {
   it('after render with collectedTrickCounts: {0: 3, 1: 0, 2: 0}, seat 0 badge shows × 3', () => {
     const { view, el } = makeTrickPlayView();

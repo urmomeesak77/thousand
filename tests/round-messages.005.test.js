@@ -90,21 +90,6 @@ function setupPostBidGame() {
   return { store, cm, ws, pids, gameId };
 }
 
-// Drives round to card-exchange phase by sending start_game from the declarer.
-// Returns the game in card-exchange phase (Alice is declarer, seat 0).
-function setupCardExchangeGame() {
-  const { store, cm, ws, pids, gameId } = setupPostBidGame();
-
-  sendMsg(ws[0], { type: 'start_game' });
-  ws.forEach((w) => { w._sent.length = 0; });
-
-  // The game record is cleaned up after start_game (FR-032). The round lives on
-  // in memory but the game is gone. We need to keep a direct reference to it.
-  // Re-attach via the player's round reference (if it persists after cleanup).
-  // After start_game the game is deleted from store, so we drive state directly.
-  return { store, cm, ws, pids, gameId };
-}
-
 // ---------------------------------------------------------------------------
 // T013 — Phase 3 message protocol tests
 // ---------------------------------------------------------------------------

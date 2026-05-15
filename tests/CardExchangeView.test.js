@@ -92,7 +92,6 @@ function makeOpponentSnapshot(overrides = {}) {
 // T009 — CardExchangeView: FR-002 / FR-020
 // ---------------------------------------------------------------------------
 
-// Test 1: Declarer view shows 10 cards with .card-exchange__card elements
 describe('CardExchangeView — declarer view shows 10 cards (FR-002)', () => {
   it('renders 10 .card-exchange__card elements when isDeclarerView: true', () => {
     const { view, el } = makeCardExchangeView();
@@ -109,7 +108,6 @@ describe('CardExchangeView — declarer view shows 10 cards (FR-002)', () => {
   });
 });
 
-// Test 2: Opponent view shows .card-exchange__waiting
 describe('CardExchangeView — opponent view shows waiting message (FR-020)', () => {
   it('renders .card-exchange__waiting element when isDeclarerView: false', () => {
     const { view, el } = makeCardExchangeView({ self: 1, left: 2, right: 0, declarerSeat: 0 });
@@ -126,16 +124,13 @@ describe('CardExchangeView — opponent view shows waiting message (FR-020)', ()
   });
 });
 
-// Test 3: After first pass, destination buttons only show the other opponent's seat
 describe('CardExchangeView — after first pass, remaining dest btn is for other opponent (FR-002)', () => {
   it('after exchangePassesCommitted: 1, tapping a card shows only 1 destination button', () => {
     const { view, el } = makeCardExchangeView();
-    // First pass already committed: only one destination remains
     view.render(makeDeclarerSnapshot({ exchangePassesCommitted: 1 }));
     const cards = el.querySelectorAll('.card-exchange__card');
     assert.ok(cards.length > 0, 'precondition: cards are rendered');
 
-    // Simulate tapping the first card
     cards[0].click();
 
     const destBtns = el.querySelectorAll('.card-exchange__dest-btn');
@@ -149,7 +144,6 @@ describe('CardExchangeView — after first pass, remaining dest btn is for other
     const cards = el.querySelectorAll('.card-exchange__card');
     assert.ok(cards.length > 0, 'precondition: cards are rendered');
 
-    // Simulate tapping the first card
     cards[0].click();
 
     const destBtns = el.querySelectorAll('.card-exchange__dest-btn');
@@ -158,7 +152,6 @@ describe('CardExchangeView — after first pass, remaining dest btn is for other
   });
 });
 
-// Test 4: Tapping a card + destination button calls dispatcher.sendExchangePass
 describe('CardExchangeView — tapping card then dest btn calls dispatcher.sendExchangePass (FR-002)', () => {
   it('clicking a card then a destination button calls sendExchangePass with correct args', () => {
     const { view, el, dispatcher } = makeCardExchangeView();
@@ -168,13 +161,11 @@ describe('CardExchangeView — tapping card then dest btn calls dispatcher.sendE
     const cards = el.querySelectorAll('.card-exchange__card');
     assert.ok(cards.length > 0, 'precondition: cards rendered');
 
-    // Tap first card to select it
     cards[0].click();
 
     const destBtns = el.querySelectorAll('.card-exchange__dest-btn');
     assert.ok(destBtns.length > 0, 'precondition: dest buttons rendered after card tap');
 
-    // Tap first destination button
     destBtns[0].click();
 
     assert.equal(dispatcher._calls.length, 1, 'sendExchangePass must be called once');
@@ -194,7 +185,6 @@ describe('CardExchangeView — tapping card then dest btn calls dispatcher.sendE
     const destBtns = el.querySelectorAll('.card-exchange__dest-btn');
     destBtns[0].click();
 
-    // The first card's id should be passed
     assert.equal(dispatcher._calls[0].cardId, hand[0].id,
       'sendExchangePass must be called with the selected card id');
   });
