@@ -4,14 +4,12 @@
 // snapshot/view-model serialization → RoundSnapshot.js
 const { makeDeck, shuffle } = require('./Deck');
 const { buildDealDistribution } = require('./DealSequencer');
-const { MARRIAGE_BONUS } = require('./Scoring');
+const { MARRIAGE_BONUS, applyPenaltyAnnotations } = require('./Scoring');
 const {
   absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned,
 } = require('./RoundPhases');
 const RoundSnapshot = require('./RoundSnapshot');
 const TrickPlay = require('./TrickPlay');
-
-const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT } = require('./GameRules');
 
 const MIN_BID = 100;
 const MAX_BID = 300;
@@ -66,7 +64,6 @@ class Round {
     this._trickPlay = null;  // TrickPlay instance, set on entry to trick-play phase
   }
 
-  // T021
   start() {
     const shuffled = shuffle(makeDeck());
     this.deck = shuffled.map((card, i) => ({ id: i, rank: card.rank, suit: card.suit }));
@@ -78,7 +75,6 @@ class Round {
     this.currentHighBid = null;
   }
 
-  // T022
   getRoundStartedPayloadFor(playerId) {
     const selfSeat = this.seatByPlayer.get(playerId);
     return {
@@ -89,14 +85,12 @@ class Round {
     };
   }
 
-  // T023
   advanceFromDealingToBidding() {
     if (this.phase !== 'dealing') {return;}
     this.phase = 'bidding';
     this.currentTurnSeat = 1; // P1 (clockwise-left of Dealer) bids first per FR-004
   }
 
-  // T024
   submitBid(seat, amount) {
     if (this.phase !== 'bidding') {return { rejected: true, reason: 'Not in bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -118,7 +112,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T025
   submitPass(seat) {
     if (this.phase !== 'bidding') {return { rejected: true, reason: 'Not in bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -157,12 +150,10 @@ class Round {
     return fromSeat;
   }
 
-  // T026
   getViewModelFor(seat) {
     return RoundSnapshot.buildViewModel(this, seat);
   }
 
-  // T045
   markDisconnected(seat) {
     this.disconnectedSeats.add(seat);
     if (seat === this.currentTurnSeat) {this.isPausedByDisconnect = true;}
@@ -178,12 +169,10 @@ class Round {
     this.currentTurnSeat = null;
   }
 
-  // T047
   getSnapshotFor(seat) {
     return RoundSnapshot.buildSnapshot(this, seat);
   }
 
-  // T042
   startGame(seat) {
     if (this.phase === 'card-exchange') {return { noop: true };}
     if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
@@ -295,7 +284,6 @@ class Round {
   buildSummary(_game) {
     const { roundScores: scores, roundDeltas: deltas } = this;
 
-    // T048: compute per-seat marriage bonus from declaredMarriages
     const marriageBonusBySeat = { 0: 0, 1: 0, 2: 0 };
     for (const m of this.declaredMarriages) {
       marriageBonusBySeat[m.playerSeat] += MARRIAGE_BONUS[m.suit] ?? 0;
@@ -321,38 +309,10 @@ class Round {
       };
     }
 
-    // T091 — FR-023/FR-024: pre-compute which penalties will fire this round
-    // when session state is available (before applyRoundEnd runs).
+    // FR-023/FR-024: pre-compute which penalties will fire this round before applyRoundEnd runs.
     const session = this._game?.session;
     if (session && deltas) {
-      for (const seat of [0, 1, 2]) {
-        const row = perPlayer[seat];
-        const { trickPoints, marriageBonus } = row;
-
-        // Barrel penalty (FR-023): fires when the player has been on barrel for
-        // BARREL_ROUND_LIMIT rounds AND the score after this round's delta stays
-        // in the barrel range [BARREL_MIN, BARREL_MAX).
-        const bs = session.barrelState[seat];
-        if (bs && bs.onBarrel) {
-          const willBeThirdBarrelRound = (bs.barrelRoundsUsed + 1) === BARREL_ROUND_LIMIT;
-          if (willBeThirdBarrelRound) {
-            const scoreAfterDelta = session.cumulativeScores[seat] + deltas[seat];
-            if (scoreAfterDelta >= BARREL_MIN && scoreAfterDelta < BARREL_MAX) {
-              row.penalties.push('barrel');
-              row.delta -= SPECIAL_PENALTY;
-            }
-          }
-        }
-
-        // Zero-round penalty (FR-024): fires when consecutiveZeros reaches ZERO_ROUND_LIMIT.
-        const roundScore = trickPoints + marriageBonus;
-        const currentZeros = session.consecutiveZeros[seat] ?? 0;
-        const newZeroCount = currentZeros + (roundScore === 0 ? 1 : 0);
-        if (newZeroCount === ZERO_ROUND_LIMIT) {
-          row.penalties.push('three-zeros');
-          row.delta -= SPECIAL_PENALTY;
-        }
-      }
+      applyPenaltyAnnotations(session, perPlayer, deltas);
     }
 
     this.summary = {
@@ -368,7 +328,6 @@ class Round {
     return this.summary;
   }
 
-  // T059
   startSelling(seat) {
     if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can start selling' };}
@@ -381,7 +340,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T060
   cancelSelling(seat) {
     if (this.phase !== 'selling-selection') {return { rejected: true, reason: 'Not in selling-selection phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can cancel selling' };}
@@ -389,7 +347,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T061
   commitSellSelection(seat, cardIds) {
     if (this.phase !== 'selling-selection') {return { rejected: true, reason: 'Not in selling-selection phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can select cards' };}
@@ -422,7 +379,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T062
   submitSellBid(seat, amount) {
     if (this.phase !== 'selling-bidding') {return { rejected: true, reason: 'Not in selling-bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -450,7 +406,6 @@ class Round {
     return this._resolveSellSold();
   }
 
-  // T063
   submitSellPass(seat) {
     if (this.phase !== 'selling-bidding') {return { rejected: true, reason: 'Not in selling-bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -475,8 +430,6 @@ class Round {
     this.currentTurnSeat = remaining[0];
     return { rejected: false };
   }
-
-  // T062/T063 helpers — delegate to RoundPhases helpers
 
   _nextSellOpponent(fromSeat) {
     return nextSellOpponent(fromSeat, this.declarerSeat, this.passedSellOpponents);

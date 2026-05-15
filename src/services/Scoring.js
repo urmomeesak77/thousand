@@ -1,5 +1,7 @@
 'use strict';
 
+const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT } = require('./GameRules');
+
 // FR-013: card point values for trick scoring
 const CARD_POINT_VALUE = { A: 11, '10': 10, K: 4, Q: 3, J: 2, '9': 0 };
 
@@ -111,4 +113,36 @@ function buildFinalResults(game) {
   };
 }
 
-module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, roundScores, roundDeltas, determineWinner, buildFinalResults };
+// FR-023/FR-024: pre-compute which penalties will fire this round when session state is available.
+function applyPenaltyAnnotations(session, perPlayer, deltas) {
+  for (const seat of [0, 1, 2]) {
+    const row = perPlayer[seat];
+    const { trickPoints, marriageBonus } = row;
+
+    // Barrel penalty (FR-023): fires when the player has been on barrel for
+    // BARREL_ROUND_LIMIT rounds AND the score after this round's delta stays
+    // in the barrel range [BARREL_MIN, BARREL_MAX).
+    const bs = session.barrelState[seat];
+    if (bs && bs.onBarrel) {
+      const willBeThirdBarrelRound = (bs.barrelRoundsUsed + 1) === BARREL_ROUND_LIMIT;
+      if (willBeThirdBarrelRound) {
+        const scoreAfterDelta = session.cumulativeScores[seat] + deltas[seat];
+        if (scoreAfterDelta >= BARREL_MIN && scoreAfterDelta < BARREL_MAX) {
+          row.penalties.push('barrel');
+          row.delta -= SPECIAL_PENALTY;
+        }
+      }
+    }
+
+    // Zero-round penalty (FR-024): fires when consecutiveZeros reaches ZERO_ROUND_LIMIT.
+    const roundScore = trickPoints + marriageBonus;
+    const currentZeros = session.consecutiveZeros[seat] ?? 0;
+    const newZeroCount = currentZeros + (roundScore === 0 ? 1 : 0);
+    if (newZeroCount === ZERO_ROUND_LIMIT) {
+      row.penalties.push('three-zeros');
+      row.delta -= SPECIAL_PENALTY;
+    }
+  }
+}
+
+module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, roundScores, roundDeltas, determineWinner, buildFinalResults, applyPenaltyAnnotations };

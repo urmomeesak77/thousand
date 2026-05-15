@@ -230,10 +230,10 @@ description: "Task list for feature 005 â€” Play Phase, Scoring, Multi-Roun
 
 **Purpose**: Verification, hygiene, and quickstart-driven manual validation.
 
-- [ ] T097 [P] Run `npm run lint` on `src/` and resolve any new violations introduced across the four phases
-- [ ] T098 [P] Run `npm run test:coverage` and confirm overall coverage remains â‰¥ 90% per the constitution; fill any new uncovered branches
-- [ ] T099 Run the `quickstart.md` 22-step 3-tab manual walkthrough end-to-end and confirm SC-001 .. SC-011 all pass; capture any deviations as follow-up tickets
-- [ ] T100 [P] Re-check constitution Â§IX size signal: confirm `Round.js` is below the 500-line ceiling after the `TrickPlay.js` / `Scoring.js` extractions; if `TrickPlay.js` itself exceeds ~250 lines after US2, extract `MarriageRules.js` per R-001 mitigation plan
+- [x] T097 [P] Run `npm run lint` on `src/` and resolve any new violations introduced across the four phases
+- [x] T098 [P] Run `npm run test:coverage` and confirm overall coverage remains â‰¥ 90% per the constitution; fill any new uncovered branches
+- [~] T099 Run the `quickstart.md` 22-step 3-tab manual walkthrough end-to-end and confirm SC-001 .. SC-011 all pass; capture any deviations as follow-up tickets
+- [x] T100 [P] Re-check constitution Â§IX size signal: confirm `Round.js` is below the 500-line ceiling after the `TrickPlay.js` / `Scoring.js` extractions; if `TrickPlay.js` itself exceeds ~250 lines after US2, extract `MarriageRules.js` per R-001 mitigation plan
 
 ---
 
