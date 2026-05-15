@@ -10,6 +10,13 @@ class TrickPlayView {
       const btn = e.target.closest('.trick-play__card');
       if (!btn || btn.classList.contains('card--disabled')) {return;}
       const cardId = parseInt(btn.dataset.cardId, 10);
+      // Trigger CSS hand→centre animation; 250ms matches the CSS transition
+      // duration so the card reaches the centre slot before the server's
+      // play-card acknowledgment causes a re-render.
+      btn.classList.add('trick-play__card--playing');
+      this._antlion.schedule(250, () => {
+        // No-op: render(snapshot) from the server response handles removal.
+      });
       this._dispatcher.sendPlayCard(cardId);
     });
   }

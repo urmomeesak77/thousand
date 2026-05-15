@@ -16,6 +16,7 @@ class CardExchangeView {
       }
       const destBtn = e.target.closest('.card-exchange__dest-btn');
       if (destBtn) {
+        this._animateCardLeaving();
         this._dispatcher.sendExchangePass(this._selectedCardId, parseInt(destBtn.dataset.seat, 10));
       }
     });
@@ -88,6 +89,23 @@ class CardExchangeView {
     div.className = 'card-exchange__waiting';
     div.textContent = 'Waiting for the declarer to exchange cards…';
     this._el.appendChild(div);
+  }
+
+  _animateCardLeaving() {
+    if (this._selectedCardId === null) { return; }
+    const cardBtn = this._el.querySelector(
+      `.card-exchange__card[data-card-id="${this._selectedCardId}"]`
+    );
+    if (!cardBtn) { return; }
+    // Trigger CSS exit animation; server re-render removes the card once the
+    // pass is acknowledged (~round-trip), giving the 250ms CSS transition time
+    // to complete before the card disappears.
+    cardBtn.classList.add('card-exchange__card--leaving');
+    this._antlion.schedule(250, () => {
+      // No-op: render(snapshot) from the server response handles removal.
+      // The schedule keeps the animation window open even if the snapshot
+      // arrives before the 250ms elapses.
+    });
   }
 
   destroy() {}
