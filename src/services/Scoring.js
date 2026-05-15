@@ -20,7 +20,7 @@ function roundScores(round) {
     scores[seat] += cardPoints(ids.map(id => round.deck[id]));
   }
   for (const m of round.declaredMarriages) {
-    const seat = m.playerSeat ?? m.seat;
+    const seat = m.playerSeat;
     scores[seat] += MARRIAGE_BONUS[m.suit];
   }
   return scores;
