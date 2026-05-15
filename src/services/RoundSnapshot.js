@@ -1,6 +1,7 @@
 'use strict';
 
 const { stepDest } = require('./DealSequencer');
+const Scoring = require('./Scoring');
 
 const PHASE_LABELS = {
   'dealing': 'Dealing',
@@ -57,6 +58,8 @@ function disconnectedNicknames(round) {
 }
 
 function buildViewModel(round, seat) {
+  const session = round._game?.session;
+  const isPhaseFinal = round.phase === 'round-summary' || session?.gameStatus === 'game-over';
   return {
     phase: PHASE_LABELS[round.phase] ?? round.phase,
     activePlayer: seatInfo(round, round.currentTurnSeat),
@@ -68,11 +71,11 @@ function buildViewModel(round, seat) {
     disconnectedPlayers: disconnectedNicknames(round),
     trickNumber: round.trickNumber > 0 ? round.trickNumber : null,
     currentTrumpSuit: round.currentTrumpSuit ?? null,
-    cumulativeScores: { 0: 0, 1: 0, 2: 0 },
+    cumulativeScores: session ? session.cumulativeScores : { 0: 0, 1: 0, 2: 0 },
     collectedTrickCounts: round.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 },
     exchangePassesCommitted: round.phase === 'card-exchange' ? round.exchangePassesCommitted : null,
-    continuePressedSeats: null,
-    roundNumber: 1,
+    continuePressedSeats: isPhaseFinal && session ? [...session.continuePresses] : null,
+    roundNumber: session ? session.currentRoundNumber : 1,
   };
 }
 
@@ -209,7 +212,14 @@ function buildSnapshot(round, seat) {
       const card = round.deck[id];
       return { rank: card.rank, suit: card.suit };
     });
-    payload.continuePressedSeats = [];
+    const session = round._game?.session;
+    payload.continuePressedSeats = session ? [...session.continuePresses] : [];
+  }
+
+  // Final-results snapshot for game-over
+  const session = round._game?.session;
+  if (session?.gameStatus === 'game-over') {
+    payload.finalResults = Scoring.buildFinalResults(session);
   }
 
   return payload;
