@@ -1,74 +1,74 @@
 class CardExchangeView {
-  constructor(el, { antlion, dispatcher, seats }) {
+  constructor(el, { antlion, dispatcher, seats, handView }) {
     this._el = el;
     this._antlion = antlion;
     this._dispatcher = dispatcher;
-    this._seats = seats; // { self, left, right, declarerSeat }
+    this._seats = seats;
+    this._handView = handView;
     this._selectedCardId = null;
     this._exchangePassesCommitted = 0;
+    this._exchangePassesToSeats = [];
+    this._isDeclarerView = false;
 
-    this._antlion.bindInput(this._el, 'click', 'card-exchange-click');
-    this._antlion.onInput('card-exchange-click', (e) => {
-      const cardBtn = e.target.closest('.card-exchange__card');
-      if (cardBtn) {
-        this._onCardClick(parseInt(cardBtn.dataset.cardId, 10));
-        return;
-      }
+    this._handClickHandler = (e) => {
+      if (!this._isDeclarerView) { return; }
+      const cardEl = e.target.closest('[data-card-id]');
+      if (!cardEl) { return; }
+      this._onCardClick(parseInt(cardEl.dataset.cardId, 10));
+    };
+    this._antlion.onInput('hand-card-click', this._handClickHandler);
+
+    this._antlion.bindInput(this._el, 'click', 'card-exchange-dest-click');
+    this._antlion.onInput('card-exchange-dest-click', (e) => {
       const destBtn = e.target.closest('.card-exchange__dest-btn');
-      if (destBtn) {
-        this._animateCardLeaving();
-        this._dispatcher.sendExchangePass(this._selectedCardId, parseInt(destBtn.dataset.seat, 10));
-      }
+      if (!destBtn || this._selectedCardId === null) { return; }
+      const toSeat = parseInt(destBtn.dataset.seat, 10);
+      const direction = toSeat === this._seats.left ? 'left' : 'right';
+      const cardId = this._selectedCardId;
+      this._selectedCardId = null;
+      this._handView.setSingleSelected(null);
+      this._handView.markLeaving(cardId, direction);
+      this._removeDestRow();
+      this._dispatcher.sendExchangePass(cardId, toSeat);
     });
   }
 
   render(snapshot) {
     this._el.innerHTML = '';
     this._selectedCardId = null;
-    this._exchangePassesCommitted = snapshot.exchangePassesCommitted;
+    this._handView.removeLeaving();
+    this._handView.setSingleSelected(null);
+    this._exchangePassesCommitted = snapshot.exchangePassesCommitted ?? 0;
+    this._exchangePassesToSeats = snapshot.exchangePassesToSeats ?? [];
+    this._isDeclarerView = !!snapshot.isDeclarerView;
 
-    if (snapshot.isDeclarerView) {
-      this._renderDeclarer(snapshot);
+    if (this._isDeclarerView) {
+      this._handView.setInteractive(true);
     } else {
-      this._renderWaiting(snapshot);
+      this._handView.setInteractive(false);
+      this._renderWaiting();
     }
-  }
-
-  _renderDeclarer(snapshot) {
-    const { myHand } = snapshot;
-
-    const handEl = document.createElement('div');
-    handEl.className = 'card-exchange__hand';
-
-    for (const card of myHand) {
-      const btn = document.createElement('button');
-      btn.className = 'card-exchange__card';
-      btn.dataset.cardId = card.id;
-      btn.textContent = `${card.rank}${card.suit}`;
-      handEl.appendChild(btn);
-    }
-
-    this._el.appendChild(handEl);
   }
 
   _onCardClick(cardId) {
     this._selectedCardId = cardId;
-    this._renderDestButtons(this._exchangePassesCommitted);
+    this._handView.setSingleSelected(cardId);
+    this._renderDestButtons();
   }
 
-  _renderDestButtons(exchangePassesCommitted) {
+  _removeDestRow() {
     const existing = this._el.querySelector('.card-exchange__dest-row');
-    if (existing) {
-      existing.remove();
-    }
+    if (existing) { existing.remove(); }
+  }
+
+  _renderDestButtons() {
+    this._removeDestRow();
 
     const { left, right } = this._seats;
-    const allDests = [left, right];
-    const remaining = allDests.slice(exchangePassesCommitted);
+    const used = new Set(this._exchangePassesToSeats);
+    const remaining = [left, right].filter((s) => !used.has(s));
 
-    if (remaining.length === 0) {
-      return;
-    }
+    if (remaining.length === 0) { return; }
 
     const row = document.createElement('div');
     row.className = 'card-exchange__dest-row';
@@ -77,38 +77,27 @@ class CardExchangeView {
       const btn = document.createElement('button');
       btn.className = 'card-exchange__dest-btn';
       btn.dataset.seat = seat;
-      btn.textContent = `Seat ${seat}`;
+      const player = this._seats.players?.find(p => p.seat === seat);
+      btn.textContent = player?.nickname ?? `Seat ${seat}`;
       row.appendChild(btn);
     }
 
     this._el.appendChild(row);
   }
 
-  _renderWaiting(_snapshot) {
+  _renderWaiting() {
     const div = document.createElement('div');
     div.className = 'card-exchange__waiting';
     div.textContent = 'Waiting for the declarer to exchange cards…';
     this._el.appendChild(div);
   }
 
-  _animateCardLeaving() {
-    if (this._selectedCardId === null) { return; }
-    const cardBtn = this._el.querySelector(
-      `.card-exchange__card[data-card-id="${this._selectedCardId}"]`
-    );
-    if (!cardBtn) { return; }
-    // Trigger CSS exit animation; server re-render removes the card once the
-    // pass is acknowledged (~round-trip), giving the 250ms CSS transition time
-    // to complete before the card disappears.
-    cardBtn.classList.add('card-exchange__card--leaving');
-    this._antlion.schedule(250, () => {
-      // No-op: render(snapshot) from the server response handles removal.
-      // The schedule keeps the animation window open even if the snapshot
-      // arrives before the 250ms elapses.
-    });
+  destroy() {
+    this._antlion.offInput('hand-card-click', this._handClickHandler);
+    this._handView.removeLeaving();
+    this._handView.setSingleSelected(null);
+    this._handView.setInteractive(false);
   }
-
-  destroy() {}
 }
 
 export default CardExchangeView;

@@ -1080,40 +1080,6 @@ fieldset legend {
    Card exchange phase (.card-exchange__*)
    ============================================================ */
 
-.card-exchange__hand {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.5rem;
-  min-height: calc(var(--card-height) + 1rem);
-}
-
-/* Card button in exchange — shares card-sprite sizing; position relative
-   so it flows in the flex row (same pattern as hand-view__card) */
-.card-exchange__card {
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.card-exchange__card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
-}
-
-.card-exchange__card--selected {
-  transform: translateY(-18px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--color-primary);
-  z-index: 1;
-}
-
-/* Card animates off to its recipient when exchange is confirmed */
-.card-exchange__card--leaving {
-  animation: card-leave 250ms ease-out forwards;
-}
-
 /* Row of destination seat buttons rendered below the hand */
 .card-exchange__dest-row {
   display: flex;
@@ -1163,37 +1129,50 @@ fieldset legend {
    Trick play (.trick-play__*)
    ============================================================ */
 
-.trick-play__hand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.5rem;
-  min-height: calc(var(--card-height) + 1rem);
-}
-
-/* Individual card button in trick play — flows in flex row */
-.trick-play__card {
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.trick-play__card:hover:not(.card--disabled) {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
-}
-
-/* Card animates toward the centre trick area when played */
-.trick-play__card--playing {
-  animation: card-to-centre 250ms ease-out forwards;
-}
-
 /* Greyed-out / unplayable card state */
 .card--disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Suppress hover lift on disabled cards in hand */
+.hand-view__card.card--disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Pointer cursor on interactive hand cards (trick play / card exchange) */
+.hand-view--interactive .hand-view__card {
+  cursor: pointer;
+}
+
+.hand-view--interactive .hand-view__card.card--disabled {
+  cursor: not-allowed;
+}
+
+/* Card animates off to its recipient during card exchange. Direction modifier
+   classes (--leaving-left / --leaving-right) override the X translation. */
+.hand-view__card--leaving {
+  animation: card-leave-right 250ms ease-out forwards;
+}
+
+.hand-view__card--leaving-left {
+  animation: card-leave-left 250ms ease-out forwards;
+}
+
+.hand-view__card--leaving-right {
+  animation: card-leave-right 250ms ease-out forwards;
+}
+
+/* Card briefly highlights when received via exchange pass (recipient view). */
+.hand-view__card--arriving {
+  animation: card-arrive 400ms ease-out;
+  box-shadow: 0 0 12px 4px rgba(110, 180, 255, 0.65);
+}
+
+/* Card animates toward the centre trick area when played */
+.hand-view__card--playing {
+  animation: card-to-centre 250ms ease-out forwards;
 }
 
 /* Area that shows collected tricks summary */
@@ -1659,15 +1638,20 @@ fieldset legend {
    Play-phase animations
    ============================================================ */
 
-@keyframes card-leave {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(200px);
-    opacity: 0;
-  }
+@keyframes card-leave-right {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(200px); opacity: 0; }
+}
+
+@keyframes card-leave-left {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-200px); opacity: 0; }
+}
+
+@keyframes card-arrive {
+  from { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 @keyframes card-to-centre {

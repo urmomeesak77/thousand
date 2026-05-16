@@ -223,6 +223,9 @@ class GameScreen {
   updateStatus(gameStatus) {
     this._lastGameStatus = gameStatus;
     this._renderStatus(gameStatus);
+    if (gameStatus.phase === 'Card exchange') {
+      this._talonView.clear();
+    }
     if (!this._isControlsLocked) {
       this._controls.mountForPhase(gameStatus);
     }
@@ -262,6 +265,25 @@ class GameScreen {
   // Updates the "Connection lost…" indicator for an opponent (FR-021).
   setPlayerDisconnected(playerId, disconnected) {
     this._opponentForSeat(this._seatOf(playerId))?.setDisconnected(disconnected);
+  }
+
+  // Reverts optimistic UI applied before server confirmation (e.g. fading a card
+  // marked for exchange-pass). Called when an action is rejected.
+  revertOptimisticHand() {
+    this._handView.clearLeavingMarks();
+  }
+
+  // Inserts a card into the viewer's hand — called when the viewer is the recipient
+  // of an exchange pass (FR-019). The new card is briefly highlighted.
+  addCardToHand(card) {
+    this._handView.addCard(card);
+  }
+
+  // Removes a card from the viewer's hand when the server confirms it was played.
+  // No-op when the player who played isn't the viewer (we don't track opponent hand identities).
+  handlePlayedCard(playerSeat, cardId) {
+    if (playerSeat !== this._seats?.self) { return; }
+    this._handView.removeCard(cardId);
   }
 
   // Hides the table/controls and shows the round-ready (or aborted) screen.

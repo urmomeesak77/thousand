@@ -2,14 +2,15 @@ import MarriageDeclarationPrompt from './MarriageDeclarationPrompt.js';
 import { MARRIAGE_BONUS } from './constants.js';
 
 class TrickPlayView {
-  constructor(el, { antlion, dispatcher, seats }) {
+  constructor(el, { antlion, dispatcher, seats, handView, cardsById }) {
     this._el = el;
     this._antlion = antlion;
     this._dispatcher = dispatcher;
     this._seats = seats;
-    this._snapshot = null;
+    this._handView = handView;
+    this._cardsById = cardsById ?? {};
+    this._gameStatus = null;
 
-    // Container for the marriage declaration prompt
     this._promptEl = document.createElement('div');
     this._promptEl.className = 'trick-play__marriage-prompt';
     this._promptEl.style.display = 'none';
@@ -17,77 +18,56 @@ class TrickPlayView {
 
     this._prompt = new MarriageDeclarationPrompt(this._promptEl, { antlion, dispatcher });
 
-    this._antlion.bindInput(this._el, 'click', 'trick-play-card-click');
-    this._antlion.onInput('trick-play-card-click', (e) => {
-      const btn = e.target.closest('.trick-play__card');
-      if (!btn || btn.classList.contains('card--disabled')) {return;}
-      const cardId = parseInt(btn.dataset.cardId, 10);
+    this._handClickHandler = (e) => {
+      const cardEl = e.target.closest('[data-card-id]');
+      if (!cardEl || cardEl.classList.contains('card--disabled')) { return; }
+      const cardId = parseInt(cardEl.dataset.cardId, 10);
 
-      // T052: Check if a marriage can be offered for this card
-      if (this._snapshot && this._canOfferMarriage(cardId)) {
-        const card = this._snapshot.myHand.find((c) => c.id === cardId);
+      if (this._canOfferMarriage(cardId)) {
+        const card = this._cardsById[cardId];
         const bonus = MARRIAGE_BONUS[card.suit] ?? 0;
         this._prompt.show(cardId, card.suit, bonus);
         return;
       }
 
-      // Trigger CSS hand→centre animation; 250ms matches the CSS transition
-      // duration so the card reaches the centre slot before the server's
-      // play-card acknowledgment causes a re-render.
-      btn.classList.add('trick-play__card--playing');
-      this._antlion.schedule(250, () => {
-        // No-op: render(snapshot) from the server response handles removal.
-      });
+      cardEl.classList.add('hand-view__card--playing');
+      this._antlion.schedule(250, () => {});
       this._dispatcher.sendPlayCard(cardId);
-    });
+    };
+    this._antlion.onInput('hand-card-click', this._handClickHandler);
   }
 
   _canOfferMarriage(cardId) {
-    const snap = this._snapshot;
-    if (!snap.isMyTurn) { return false; }
-    if (!snap.currentTrick || snap.currentTrick.length !== 0) { return false; }
-    if (!MarriageDeclarationPrompt.canOffer(snap.myHand, snap.trickNumber)) { return false; }
-    const card = snap.myHand.find((c) => c.id === cardId);
+    const gs = this._gameStatus;
+    // Server rejects unless the viewer is leading an empty trick at trick 2+.
+    if (!gs?.viewerIsLeading) { return false; }
+    if (gs.trickNumber == null || gs.trickNumber < 2) { return false; }
+    const card = this._cardsById[cardId];
     if (!card) { return false; }
     if (card.rank !== 'K' && card.rank !== 'Q') { return false; }
-    const hasK = snap.myHand.some((c) => c.rank === 'K' && c.suit === card.suit);
-    const hasQ = snap.myHand.some((c) => c.rank === 'Q' && c.suit === card.suit);
+    const handIds = this._handView.getCardIds();
+    const hand = handIds.map((id) => this._cardsById[id]).filter(Boolean);
+    if (!MarriageDeclarationPrompt.canOffer(hand, gs.trickNumber)) { return false; }
+    const hasK = hand.some((c) => c.rank === 'K' && c.suit === card.suit);
+    const hasQ = hand.some((c) => c.rank === 'Q' && c.suit === card.suit);
     return hasK && hasQ;
   }
 
-  render(snapshot) {
-    this._snapshot = snapshot;
+  render(gameStatus) {
+    this._gameStatus = gameStatus;
 
-    // Preserve and reattach the prompt container so it survives innerHTML resets
     this._el.innerHTML = '';
     this._el.appendChild(this._promptEl);
 
-    const { myHand, legalCardIds, isMyTurn, collectedTrickCounts } = snapshot;
+    const { legalCardIds, viewerIsActive, collectedTrickCounts } = gameStatus;
 
-    this._renderHand(myHand, legalCardIds, isMyTurn);
+    const legalSet = new Set(legalCardIds ?? []);
+    const handIds = this._handView.getCardIds();
+    const disabledIds = handIds.filter((id) => !viewerIsActive || !legalSet.has(id));
+    this._handView.setDisabledIds(disabledIds);
+    this._handView.setInteractive(true);
+
     this._renderCollectedBadges(collectedTrickCounts);
-  }
-
-  _renderHand(myHand, legalCardIds, isMyTurn) {
-    const legalSet = new Set(legalCardIds);
-    const handEl = document.createElement('div');
-    handEl.className = 'trick-play__hand';
-
-    for (const card of myHand) {
-      const btn = document.createElement('button');
-      btn.className = 'trick-play__card card';
-      btn.dataset.cardId = card.id;
-      btn.textContent = `${card.rank}${card.suit}`;
-
-      const disabled = !isMyTurn || !legalSet.has(card.id);
-      if (disabled) {
-        btn.classList.add('card--disabled');
-      }
-
-      handEl.appendChild(btn);
-    }
-
-    this._el.appendChild(handEl);
   }
 
   _renderCollectedBadges(collectedTrickCounts) {
@@ -111,7 +91,11 @@ class TrickPlayView {
     this._el.appendChild(stackEl);
   }
 
-  destroy() {}
+  destroy() {
+    this._antlion.offInput('hand-card-click', this._handClickHandler);
+    this._handView.setDisabledIds([]);
+    this._handView.setInteractive(false);
+  }
 }
 
 export default TrickPlayView;

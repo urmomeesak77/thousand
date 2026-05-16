@@ -225,12 +225,14 @@ class ThousandApp {
   }
 
   // card_passed: the passed card's identity is revealed to the viewer via the updated hand (FR-019).
+  // The recipient (msg.passedCard present) sees the card inserted into their HandView; the
+  // declarer's hand is reduced via the optimistic markLeaving → render → removeLeaving cycle.
   onCardPassed(msg) {
     if (msg.passedCard) {
       const { passedCard } = msg;
       this._gameScreen.cardsById[passedCard.id] = passedCard;
+      this._gameScreen.addCardToHand(passedCard);
     }
-    this._applyHandToCardsById(msg.gameStatus?.myHand);
     this._gameScreen.updateStatus(msg.gameStatus);
   }
 
@@ -240,6 +242,9 @@ class ThousandApp {
   }
 
   onCardPlayed(msg) {
+    if (typeof msg.playerSeat === 'number' && typeof msg.cardId === 'number') {
+      this._gameScreen.handlePlayedCard(msg.playerSeat, msg.cardId);
+    }
     this._gameScreen.updateStatus(msg.gameStatus);
   }
 
@@ -252,6 +257,7 @@ class ThousandApp {
   }
 
   onRoundSummary(msg) {
+    this._gameScreen.updateSnapshot({ summary: msg.summary });
     this._gameScreen.updateStatus(msg.gameStatus);
   }
 

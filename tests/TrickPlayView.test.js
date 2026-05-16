@@ -36,6 +36,7 @@ function makeMockAntlion() {
       el.addEventListener(event, (e) => { if (handlers[type]) handlers[type](e); });
     },
     onInput(type, handler) { handlers[type] = handler; },
+    offInput() {},
     onTick() {},
     schedule() { return 0; },
     cancelScheduled() {},
@@ -52,6 +53,19 @@ function makeMockDispatcher() {
   };
 }
 
+function makeMockHandView(cardIds = []) {
+  const state = { disabledIds: [], interactive: false, cardIds: [...cardIds] };
+  return {
+    setDisabledIds(ids) { state.disabledIds = ids; },
+    setInteractive(v) { state.interactive = v; },
+    setSingleSelected() {},
+    markLeaving() {},
+    getCardIds() { return [...state.cardIds]; },
+    _setCardIds(ids) { state.cardIds = [...ids]; },
+    _state: state,
+  };
+}
+
 const DEFAULT_SEATS = { self: 0, left: 1, right: 2 };
 
 function makeTrickPlayView(seats) {
@@ -60,8 +74,11 @@ function makeTrickPlayView(seats) {
   doc.body.appendChild(el);
   const antlion = makeMockAntlion();
   const dispatcher = makeMockDispatcher();
-  const view = new dom.window.TrickPlayView(el, { antlion, dispatcher, seats: seats || DEFAULT_SEATS });
-  return { view, el, antlion, dispatcher };
+  const handView = makeMockHandView();
+  const view = new dom.window.TrickPlayView(el, {
+    antlion, dispatcher, seats: seats || DEFAULT_SEATS, handView,
+  });
+  return { view, el, antlion, dispatcher, handView };
 }
 
 function makeHand(ids) {
@@ -74,15 +91,13 @@ function makeHand(ids) {
   }));
 }
 
-function makeSnapshot(overrides = {}) {
+// gameStatus shape used by TrickPlayView.render — mirrors the server view-model
+// (viewerIsActive, legalCardIds, collectedTrickCounts, trickNumber).
+function makeGameStatus(overrides = {}) {
   return {
-    myHand: makeHand([0, 1, 2, 3, 4, 5, 6]),
-    currentTrick: [],
-    currentTrickLeaderSeat: 0,
     trickNumber: 1,
     collectedTrickCounts: { 0: 0, 1: 0, 2: 0 },
-    isMyTurn: true,
-    ledSuit: null,
+    viewerIsActive: true,
     currentTrumpSuit: null,
     legalCardIds: [0, 1, 2, 3, 4, 5, 6],
     ...overrides,
@@ -91,92 +106,59 @@ function makeSnapshot(overrides = {}) {
 
 // ---------------------------------------------------------------------------
 // T010 — TrickPlayView: FR-007 / FR-008
+// Disabled state is now managed via HandView.setDisabledIds, not rendered in el.
 // ---------------------------------------------------------------------------
 
 describe('TrickPlayView — legal cards do not have .card--disabled (FR-007)', () => {
-  it('cards in legalCardIds do not have .card--disabled class', () => {
-    const { view, el } = makeTrickPlayView();
+  it('setDisabledIds is called with empty array when all cards are legal', () => {
+    const { view, handView } = makeTrickPlayView();
     const handIds = [0, 1, 2, 3];
-    view.render(makeSnapshot({
-      myHand: makeHand(handIds),
-      legalCardIds: handIds,
-      isMyTurn: true,
-    }));
-
-    const cards = el.querySelectorAll('.hand-card, .card');
-    assert.ok(cards.length > 0, 'precondition: cards must be rendered');
-    for (const card of cards) {
-      assert.ok(!card.classList.contains('card--disabled'),
-        'legal card must not have .card--disabled class');
-    }
+    handView._setCardIds(handIds);
+    view.render(makeGameStatus({ legalCardIds: handIds, viewerIsActive: true }));
+    assert.deepEqual(handView._state.disabledIds, [],
+      'no cards should be disabled when all are legal');
   });
 
-  it('a specific legal card does not have .card--disabled', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
-      myHand: makeHand([10, 11, 12]),
-      legalCardIds: [10, 11, 12],
-      isMyTurn: true,
-    }));
-    const disabled = el.querySelectorAll('.card--disabled');
-    assert.equal(disabled.length, 0, 'no cards should be disabled when all are legal');
+  it('setDisabledIds receives empty array when all specific cards are legal', () => {
+    const { view, handView } = makeTrickPlayView();
+    handView._setCardIds([10, 11, 12]);
+    view.render(makeGameStatus({ legalCardIds: [10, 11, 12], viewerIsActive: true }));
+    assert.deepEqual(handView._state.disabledIds, []);
   });
 });
 
 describe('TrickPlayView — illegal cards have .card--disabled (FR-007)', () => {
-  it('cards not in legalCardIds have .card--disabled class', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
-      myHand: makeHand([0, 1, 2, 3]),
-      legalCardIds: [0], // only card 0 is legal; 1, 2, 3 are not
-      isMyTurn: true,
-    }));
-
-    // Cards with data-id not in legalCardIds should be disabled
-    const allCards = el.querySelectorAll('[data-card-id]');
-    assert.ok(allCards.length > 0, 'precondition: cards must be rendered with data-card-id');
-
-    let disabledCount = 0;
-    for (const card of allCards) {
-      const id = Number(card.dataset.cardId);
-      if (id !== 0) {
-        assert.ok(card.classList.contains('card--disabled'),
-          `card ${id} (not legal) must have .card--disabled`);
-        disabledCount++;
-      }
-    }
-    assert.ok(disabledCount > 0, 'at least one card must be disabled');
+  it('setDisabledIds receives the non-legal card ids', () => {
+    const { view, handView } = makeTrickPlayView();
+    handView._setCardIds([0, 1, 2, 3]);
+    view.render(makeGameStatus({ legalCardIds: [0], viewerIsActive: true }));
+    const disabled = handView._state.disabledIds;
+    assert.ok(disabled.includes(1), 'card 1 must be disabled');
+    assert.ok(disabled.includes(2), 'card 2 must be disabled');
+    assert.ok(disabled.includes(3), 'card 3 must be disabled');
+    assert.ok(!disabled.includes(0), 'card 0 (legal) must not be disabled');
   });
 });
 
 describe('TrickPlayView — all cards disabled when not my turn (FR-007)', () => {
-  it('all cards have .card--disabled when isMyTurn is false', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
-      myHand: makeHand([0, 1, 2, 3, 4]),
-      legalCardIds: [0, 1, 2, 3, 4],
-      isMyTurn: false,
-    }));
-
-    const allCards = el.querySelectorAll('[data-card-id]');
-    assert.ok(allCards.length > 0, 'precondition: cards must be rendered');
-    for (const card of allCards) {
-      assert.ok(card.classList.contains('card--disabled'),
-        'every card must be disabled when isMyTurn is false');
+  it('all card ids are in setDisabledIds when viewerIsActive is false', () => {
+    const { view, handView } = makeTrickPlayView();
+    const ids = [0, 1, 2, 3, 4];
+    handView._setCardIds(ids);
+    view.render(makeGameStatus({ legalCardIds: ids, viewerIsActive: false }));
+    const disabled = handView._state.disabledIds;
+    assert.equal(disabled.length, ids.length, 'every card must be disabled when viewerIsActive is false');
+    for (const id of ids) {
+      assert.ok(disabled.includes(id), `card ${id} must be disabled`);
     }
   });
 
-  it('even legal cards are disabled when isMyTurn: false', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
-      myHand: makeHand([5, 6, 7]),
-      legalCardIds: [5, 6, 7],
-      isMyTurn: false,
-    }));
-
-    const disabled = el.querySelectorAll('.card--disabled');
-    const allCards = el.querySelectorAll('[data-card-id]');
-    assert.equal(disabled.length, allCards.length,
+  it('even legal cards are disabled when viewerIsActive: false', () => {
+    const { view, handView } = makeTrickPlayView();
+    const ids = [5, 6, 7];
+    handView._setCardIds(ids);
+    view.render(makeGameStatus({ legalCardIds: ids, viewerIsActive: false }));
+    assert.equal(handView._state.disabledIds.length, ids.length,
       'all cards must be disabled when not my turn');
   });
 });
@@ -184,7 +166,7 @@ describe('TrickPlayView — all cards disabled when not my turn (FR-007)', () =>
 describe('TrickPlayView — collected tricks badge shows count (FR-008)', () => {
   it('.collected-tricks__badge shows "× N" for seat with N tricks', () => {
     const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
+    view.render(makeGameStatus({
       collectedTrickCounts: { 0: 2, 1: 0, 2: 1 },
     }));
 
@@ -194,13 +176,12 @@ describe('TrickPlayView — collected tricks badge shows count (FR-008)', () => 
 
   it('badge text contains the trick count', () => {
     const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
+    view.render(makeGameStatus({
       collectedTrickCounts: { 0: 3, 1: 0, 2: 0 },
     }));
 
     const allBadges = [...el.querySelectorAll('.collected-tricks__badge')];
     assert.ok(allBadges.length > 0, 'precondition: badges exist');
-    // At least one badge should contain "3"
     const hasBadgeWithThree = allBadges.some(b => b.textContent.includes('3'));
     assert.ok(hasBadgeWithThree, 'a badge must display the trick count 3');
   });
@@ -209,11 +190,10 @@ describe('TrickPlayView — collected tricks badge shows count (FR-008)', () => 
 describe('TrickPlayView — seat 0 badge shows × 3 after render (FR-008)', () => {
   it('after render with collectedTrickCounts: {0: 3, 1: 0, 2: 0}, seat 0 badge shows × 3', () => {
     const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
+    view.render(makeGameStatus({
       collectedTrickCounts: { 0: 3, 1: 0, 2: 0 },
     }));
 
-    // Seat 0 is self in this view; find the self/seat-0 stack badge
     const selfStack = el.querySelector('[data-seat="0"] .collected-tricks__badge') ||
                       el.querySelector('.collected-tricks--self .collected-tricks__badge') ||
                       el.querySelector('.collected-tricks__badge');
@@ -225,7 +205,7 @@ describe('TrickPlayView — seat 0 badge shows × 3 after render (FR-008)', () =
 
   it('seat 0 badge text matches "× 3" format', () => {
     const { view, el } = makeTrickPlayView();
-    view.render(makeSnapshot({
+    view.render(makeGameStatus({
       collectedTrickCounts: { 0: 3, 1: 0, 2: 0 },
     }));
 

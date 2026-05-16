@@ -104,7 +104,7 @@ class ThousandMessageRouter {
       error:                (m) => app._toast.show(m.message || 'An error occurred'),
       round_started:        (m) => this._onRoundStarted(m),
       phase_changed:        (m) => app._gameScreen.updateStatus(m.gameStatus),
-      action_rejected:      (m) => app._toast.show(m.reason),
+      action_rejected:      (m) => { app._toast.show(m.reason); app._gameScreen?.revertOptimisticHand(); },
       bid_accepted:         (m) => this._onBidAccepted(m),
       pass_accepted:        (m) => this._onPassAccepted(m),
       talon_absorbed:           (m) => app._gameScreen.sellPhase.absorbTalon(m),

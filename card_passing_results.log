@@ -1,0 +1,17 @@
+Starting server on port 3099…
+[18:59:10] Alice  : entering nickname
+[18:59:10] Alice  : created game
+[18:59:11] main   : waiting for round to start
+[18:59:13] Bob    : pass bid
+[18:59:13] Charlie: pass bid
+[18:59:13] Alice  : start game
+✓ Alice has 10 cards at start of card-exchange (after talon absorb)
+✓ Bob has 7 cards before exchange (got 7)
+✓ Charlie has 7 cards before exchange (got 7)
+✓ Bob (opponent) clicking hand card must NOT produce dest buttons (got 0)
+✓ Charlie (opponent) clicking hand card must NOT produce dest buttons (got 0)
+❌ Two dest buttons on first card click (got 0)
+Test crashed: locator.click: Timeout 2000ms exceeded.
+Call log:
+[2m  - waiting for locator('.card-exchange__dest-btn').first()[22m
+

@@ -57,7 +57,7 @@ class Round {
     this.collectedTricks = { 0: [], 1: [], 2: [] };
     this.collectedTrickCounts = { 0: 0, 1: 0, 2: 0 };
     this.exchangePassesCommitted = 0;
-    this._usedExchangeDestSeats = null;
+    this._usedExchangeDestSeats = new Set();
     this.roundScores = null;
     this.roundDeltas = null;
     this.summary = null;
@@ -180,6 +180,7 @@ class Round {
     this.phase = 'card-exchange';
     this.currentTurnSeat = this.declarerSeat;
     this.exchangePassesCommitted = 0;
+    this._usedExchangeDestSeats = new Set();
     return { noop: false, declarerId: this.seatOrder[this.declarerSeat], finalBid: this.currentHighBid };
   }
 
@@ -190,12 +191,9 @@ class Round {
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
     if (!this.hands[seat].includes(cardId)) {return { rejected: true, reason: 'Card not in hand' };}
     if (destSeat === this.declarerSeat) {return { rejected: true, reason: 'Cannot pass to yourself' };}
-    if (this._usedExchangeDestSeats && this._usedExchangeDestSeats.has(destSeat)) {
+    if (this._usedExchangeDestSeats.has(destSeat)) {
       return { rejected: true, reason: 'Already passed to that opponent' };
     }
-
-    // Initialize used destinations tracker if needed
-    if (!this._usedExchangeDestSeats) {this._usedExchangeDestSeats = new Set();}
 
     this.hands[seat] = this.hands[seat].filter(id => id !== cardId);
     this.hands[destSeat].push(cardId);

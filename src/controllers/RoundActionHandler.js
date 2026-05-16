@@ -362,13 +362,27 @@ class RoundActionHandler {
 
   _broadcastPlayCardResults(game, round, playerId, marriageResult, isRoundComplete, victoryReached, finalResults) {
     const trickNumber = round.trickNumber;
+    const playerSeat = this._seatOf(playerId);
+    // The last trick entry holds the card that was just played; safe across both
+    // mid-trick (currentTrick has the new card) and end-of-trick (collectedTricks last).
+    const lastTrickEntry = round.currentTrick?.length > 0
+      ? round.currentTrick[round.currentTrick.length - 1]
+      : null;
+    const playedCardId = lastTrickEntry?.cardId
+      ?? round.collectedTricks?.[playerSeat]?.[round.collectedTricks[playerSeat].length - 1]
+      ?? null;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
       if (marriageResult) {
         this._broadcastMarriage(pid, gameStatus, marriageResult, trickNumber, playerId);
       }
-      this._store.sendToPlayer(pid, { type: 'card_played', gameStatus });
+      const cardPlayedMsg = { type: 'card_played', gameStatus };
+      if (playerSeat !== null && playedCardId !== null) {
+        cardPlayedMsg.playerSeat = playerSeat;
+        cardPlayedMsg.cardId = playedCardId;
+      }
+      this._store.sendToPlayer(pid, cardPlayedMsg);
       if (isRoundComplete) {
         this._broadcastRoundSummary(pid, gameStatus, round.summary);
         if (victoryReached) {

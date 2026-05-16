@@ -72,7 +72,9 @@ class GameScreenControls {
     this._declarerControls = null;
     this._sellSelectionControls = null;
     this._sellBidControls = null;
+    this._cardExchangeView?.destroy();
     this._cardExchangeView = null;
+    this._trickPlayView?.destroy();
     this._trickPlayView = null;
     this._roundSummaryScreen = null;
     if (this._finalResultsScreen) {
@@ -101,6 +103,7 @@ class GameScreenControls {
 
   _drop(name) {
     if (!this[name]) {return false;}
+    this[name].destroy?.();
     this[name] = null;
     return true;
   }
@@ -223,6 +226,7 @@ class GameScreenControls {
       left: seats?.left ?? null,
       right: seats?.right ?? null,
       declarerSeat: gameStatus.declarer?.seat ?? null,
+      players: seats?.players ?? [],
     };
   }
 
@@ -239,13 +243,17 @@ class GameScreenControls {
         antlion: this._antlion,
         dispatcher: this._dispatcher,
         seats: this._buildSeats(gameStatus),
+        handView: this._handView,
       });
     }
 
-    const snapshot = this._gs._lastSnapshot;
-    if (snapshot) {
-      this._cardExchangeView.render(snapshot);
-    }
+    const snapshot = this._gs._lastSnapshot ?? {};
+    this._cardExchangeView.render({
+      ...snapshot,
+      exchangePassesCommitted: gameStatus.exchangePassesCommitted ?? 0,
+      exchangePassesToSeats: gameStatus.exchangePassesToSeats ?? [],
+      isDeclarerView: gameStatus.viewerIsActive,
+    });
   }
 
   _mountTrickPlay(gameStatus) {
@@ -261,13 +269,12 @@ class GameScreenControls {
         antlion: this._antlion,
         dispatcher: this._dispatcher,
         seats: this._buildSeats(gameStatus),
+        handView: this._handView,
+        cardsById: this._gs.cardsById,
       });
     }
 
-    const snapshot = this._gs._lastSnapshot;
-    if (snapshot) {
-      this._trickPlayView.render(snapshot);
-    }
+    this._trickPlayView.render(gameStatus);
   }
 
   _mountRoundSummary(_gameStatus) {
