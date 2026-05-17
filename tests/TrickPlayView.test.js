@@ -31,17 +31,31 @@ before(() => {
 
 function makeMockAntlion() {
   const handlers = {};
+  const scheduled = [];
+  let nextScheduleId = 1;
   return {
     bindInput(el, event, type) {
       el.addEventListener(event, (e) => { if (handlers[type]) handlers[type](e); });
     },
     onInput(type, handler) { handlers[type] = handler; },
     offInput() {},
-    onTick() {},
-    schedule() { return 0; },
-    cancelScheduled() {},
+    onTick() { return () => {}; },
+    schedule(delay, cb) {
+      const id = nextScheduleId++;
+      scheduled.push({ id, delay, cb });
+      return id;
+    },
+    cancelScheduled(id) {
+      const idx = scheduled.findIndex((s) => s.id === id);
+      if (idx !== -1) { scheduled.splice(idx, 1); }
+    },
     emit() {},
     stop() {},
+    _scheduled: scheduled,
+    _fireScheduled() {
+      const entries = scheduled.splice(0, scheduled.length);
+      for (const { cb } of entries) { cb(); }
+    },
   };
 }
 
@@ -68,17 +82,32 @@ function makeMockHandView(cardIds = []) {
 
 const DEFAULT_SEATS = { self: 0, left: 1, right: 2 };
 
-function makeTrickPlayView(seats) {
+function makeTrickPlayView(seats, opts = {}) {
   const doc = dom.window.document;
   const el = doc.createElement('div');
   doc.body.appendChild(el);
+  const trickCenterEl = doc.createElement('div');
+  doc.body.appendChild(trickCenterEl);
+  const seatEls = {
+    [DEFAULT_SEATS.self]: (() => { const e = doc.createElement('div'); doc.body.appendChild(e); return e; })(),
+    [DEFAULT_SEATS.left]: (() => { const e = doc.createElement('div'); doc.body.appendChild(e); return e; })(),
+    [DEFAULT_SEATS.right]: (() => { const e = doc.createElement('div'); doc.body.appendChild(e); return e; })(),
+  };
+  const lockCalls = [];
   const antlion = makeMockAntlion();
   const dispatcher = makeMockDispatcher();
   const handView = makeMockHandView();
   const view = new dom.window.TrickPlayView(el, {
-    antlion, dispatcher, seats: seats || DEFAULT_SEATS, handView,
+    antlion,
+    dispatcher,
+    seats: seats || DEFAULT_SEATS,
+    handView,
+    cardsById: opts.cardsById ?? {},
+    trickCenterEl,
+    getSeatEl: (s) => seatEls[s] ?? null,
+    setControlsLocked: (v) => lockCalls.push(v),
   });
-  return { view, el, antlion, dispatcher, handView };
+  return { view, el, antlion, dispatcher, handView, trickCenterEl, seatEls, lockCalls };
 }
 
 function makeHand(ids) {
@@ -184,6 +213,122 @@ describe('TrickPlayView — collected tricks badge shows count (FR-008)', () => 
     assert.ok(allBadges.length > 0, 'precondition: badges exist');
     const hasBadgeWithThree = allBadges.some(b => b.textContent.includes('3'));
     assert.ok(hasBadgeWithThree, 'a badge must display the trick count 3');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Trick centre — visible animated card play (this work)
+// ---------------------------------------------------------------------------
+
+describe('TrickPlayView — trick centre renders cards from gameStatus.currentTrick', () => {
+  it('on initial render with currentTrick, centre slots receive face-up card sprites', () => {
+    const { view, trickCenterEl } = makeTrickPlayView();
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 12, rank: 'A', suit: '♥' },
+        { seat: 1, cardId: 5, rank: '10', suit: '♣' },
+      ],
+    }));
+
+    const sprites = trickCenterEl.querySelectorAll('.trick-center__slot .card-sprite');
+    assert.equal(sprites.length, 2, 'expected 2 card sprites in centre slots');
+
+    const selfSlot = trickCenterEl.querySelector('.trick-center__slot--self .card-sprite');
+    const leftSlot = trickCenterEl.querySelector('.trick-center__slot--left .card-sprite');
+    assert.ok(selfSlot, 'self slot must hold the self card');
+    assert.ok(leftSlot, 'left slot must hold the left-opponent card');
+  });
+
+  it('three slots (self, left, right) exist in the centre container', () => {
+    const { trickCenterEl } = makeTrickPlayView();
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--self'));
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--left'));
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--right'));
+  });
+});
+
+describe('TrickPlayView — opponent card_played spawns a flight clone', () => {
+  it('notifyCardPlayed + render with cardsById entry creates a card-flight-clone in document.body', () => {
+    const doc = dom.window.document;
+    const cardsById = { 7: { id: 7, rank: 'K', suit: '♠' } };
+    const { view, trickCenterEl } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    // Opponent (seat 1 / left) plays card 7. No prior centre cards.
+    view.notifyCardPlayed(1, 7);
+    view.render(makeGameStatus({
+      currentTrick: [{ seat: 1, cardId: 7, rank: 'K', suit: '♠' }],
+    }));
+
+    const clones = doc.querySelectorAll('.card-flight-clone');
+    assert.equal(clones.length, 1, 'one in-flight clone must exist');
+    // The centre slot is reserved (committed) but hidden until flight lands.
+    const leftSlotSprite = trickCenterEl.querySelector('.trick-center__slot--left .card-sprite');
+    assert.ok(leftSlotSprite, 'destination slot must hold a placeholder card');
+    view.destroy();
+    assert.equal(doc.querySelectorAll('.card-flight-clone').length, 0,
+      'destroy() must clean up flight clones');
+  });
+});
+
+describe('TrickPlayView — trick resolve schedules collect-flight after pause', () => {
+  it('counts diff triggers controls-lock, 350ms pause holds 3 cards, then spawns collect-flight', () => {
+    const doc = dom.window.document;
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+    };
+    const { view, trickCenterEl, antlion, lockCalls } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    // Render with 2 cards already on the table (first 2 plays of the trick).
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+    // Baseline: no flight clones outstanding at this point.
+    const clonesBefore = doc.querySelectorAll('.card-flight-clone').length;
+
+    // Now the 3rd card (seat 2) is played and resolves the trick.
+    // Server clears currentTrick and bumps collectedTrickCounts[0] → winner=seat 0.
+    view.notifyCardPlayed(2, 3);
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    assert.deepEqual(lockCalls, [true], 'controls must be locked when trick resolves');
+    assert.equal(antlion._scheduled.length, 1, 'a 350ms pause must be scheduled');
+    assert.equal(trickCenterEl.querySelectorAll('.card-sprite').length, 3,
+      '3 cards must be visible during the resolve pause');
+
+    antlion._fireScheduled();
+
+    const clonesAfter = doc.querySelectorAll('.card-flight-clone').length;
+    assert.equal(clonesAfter - clonesBefore, 3,
+      'fireScheduled must spawn 3 collect-flight clones (one per centre card)');
+
+    // destroy cleans up the clones and tears down the centre.
+    view.destroy();
+    assert.equal(doc.querySelectorAll('.card-flight-clone').length, clonesBefore,
+      'destroy must remove the collect-flight clones');
+  });
+});
+
+describe('TrickPlayView — destroy clears centre and removes class', () => {
+  it('clears trick-center class and DOM children', () => {
+    const { view, trickCenterEl } = makeTrickPlayView();
+    view.render(makeGameStatus({
+      currentTrick: [{ seat: 0, cardId: 1, rank: 'A', suit: '♥' }],
+    }));
+    assert.ok(trickCenterEl.classList.contains('trick-center'));
+
+    view.destroy();
+    assert.ok(!trickCenterEl.classList.contains('trick-center'),
+      'trick-center class must be removed');
+    assert.equal(trickCenterEl.children.length, 0,
+      'trick centre must be empty after destroy');
   });
 });
 

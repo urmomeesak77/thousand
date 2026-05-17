@@ -381,6 +381,11 @@ class RoundActionHandler {
       if (playerSeat !== null && playedCardId !== null) {
         cardPlayedMsg.playerSeat = playerSeat;
         cardPlayedMsg.cardId = playedCardId;
+        // Centre-card identity travels with every card_played so the centre-flight
+        // animation can render the 3rd (trick-resolving) card even though the
+        // post-resolve snapshot has already cleared currentTrick.
+        const cardObj = round.deck[playedCardId];
+        if (cardObj) { cardPlayedMsg.card = { rank: cardObj.rank, suit: cardObj.suit }; }
       }
       this._store.sendToPlayer(pid, cardPlayedMsg);
       if (isRoundComplete) {

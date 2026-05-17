@@ -243,6 +243,12 @@ class ThousandApp {
 
   onCardPlayed(msg) {
     if (typeof msg.playerSeat === 'number' && typeof msg.cardId === 'number') {
+      if (msg.card?.rank && msg.card?.suit) {
+        this._gameScreen.cardsById[msg.cardId] = {
+          id: msg.cardId, rank: msg.card.rank, suit: msg.card.suit,
+        };
+      }
+      this._gameScreen.notifyCardPlayed(msg.playerSeat, msg.cardId);
       this._gameScreen.handlePlayedCard(msg.playerSeat, msg.cardId);
     }
     this._gameScreen.updateStatus(msg.gameStatus);

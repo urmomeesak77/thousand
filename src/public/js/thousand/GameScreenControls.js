@@ -89,6 +89,12 @@ class GameScreenControls {
     this._roundSummaryScreen?.update(seats);
   }
 
+  // Forwarded from GameScreen on card_played; lets TrickPlayView capture the
+  // just-played seat + cardId before the next render fires.
+  notifyCardPlayed(playerSeat, cardId) {
+    this._trickPlayView?.notifyCardPlayed(playerSeat, cardId);
+  }
+
   // Sell flow drops these directly when entering bidding sub-phase or resolving.
   clearSellSelection() {
     if (this._sellSelectionControls) {
@@ -271,6 +277,9 @@ class GameScreenControls {
         seats: this._buildSeats(gameStatus),
         handView: this._handView,
         cardsById: this._gs.cardsById,
+        trickCenterEl: this._gs.trickCenterEl,
+        getSeatEl: (s) => this._gs.getSeatEl(s),
+        setControlsLocked: (v) => this._gs.setControlsLocked(v),
       });
     }
 

@@ -68,6 +68,7 @@ class GameScreen {
     this._leftEl = leftEl;
     this._rightEl = rightEl;
     this._handEl = handEl;
+    this._talonEl = talonEl;
 
     this._statusBar = new StatusBar(statusBarEl);
     this._statusBox = new GameStatusBox(statusBoxEl);
@@ -77,6 +78,11 @@ class GameScreen {
     this._rightOpponent = new OpponentView(rightEl);
     this._talonView = new TalonView(talonEl);
   }
+
+  // Exposed to TrickPlayView so it can mount its centre cards into the talon area
+  // and look up source elements for the seat-to-centre flight animation.
+  get trickCenterEl() { return this._talonEl; }
+  getSeatEl(seat) { return this._elForSeat(seat); }
 
   _seatOf(playerId) {
     return this._seats?.players.find((p) => p.playerId === playerId)?.seat ?? null;
@@ -284,6 +290,12 @@ class GameScreen {
   handlePlayedCard(playerSeat, cardId) {
     if (playerSeat !== this._seats?.self) { return; }
     this._handView.removeCard(cardId);
+  }
+
+  // Forwarded to the active TrickPlayView so the centre-flight animation can capture
+  // the just-played card's seat + cardId BEFORE the post-resolve snapshot lands.
+  notifyCardPlayed(playerSeat, cardId) {
+    this._controls.notifyCardPlayed(playerSeat, cardId);
   }
 
   // Hides the table/controls and shows the round-ready (or aborted) screen.

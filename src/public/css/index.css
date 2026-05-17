@@ -1170,9 +1170,55 @@ fieldset legend {
   box-shadow: 0 0 12px 4px rgba(110, 180, 255, 0.65);
 }
 
-/* Card animates toward the centre trick area when played */
-.hand-view__card--playing {
-  animation: card-to-centre 250ms ease-out forwards;
+/* Trick centre — 3 absolutely-positioned slots inside the talon container
+   during trick-play. Each slot holds one face-up card sprite mapped to the
+   seat that played it (self at the bottom, left/right toward their players). */
+.trick-center {
+  position: relative;
+  width: calc(var(--card-width) * 2.4);
+  height: calc(var(--card-height) * 1.6);
+  min-height: var(--card-height);
+  overflow: visible;
+}
+
+.trick-center__slot {
+  position: absolute;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+.trick-center__slot--self {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.trick-center__slot--left {
+  top: 0;
+  left: 0;
+}
+
+.trick-center__slot--right {
+  top: 0;
+  right: 0;
+}
+
+.trick-center__slot .card-sprite {
+  position: absolute;
+  inset: 0;
+}
+
+/* Flash applied to the 3rd (trick-resolving) card when there's no time
+   for a full hand-to-centre flight before the collect-flight. */
+.trick-center__card--just-played {
+  animation: card-arrive 200ms ease-out;
+}
+
+/* Card-shaped clone flown across the page during the hand→centre and
+   centre→winner-seat animations. position: fixed so we can drive it via
+   client coordinates regardless of the source/destination layout context. */
+.card-flight-clone {
+  pointer-events: none;
 }
 
 /* Area that shows collected tricks summary */
@@ -1652,15 +1698,6 @@ fieldset legend {
   from { transform: scale(0.6); opacity: 0; }
   60%  { transform: scale(1.15); opacity: 1; }
   to   { transform: scale(1); opacity: 1; }
-}
-
-@keyframes card-to-centre {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-60px);
-  }
 }
 
 /* ============================================================
