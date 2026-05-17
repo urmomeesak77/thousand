@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 
 const PORT = 3099;
 const BASE_URL = `http://localhost:${PORT}`;
-const HEADLESS = true;   // set true to run without visible browsers
+const HEADLESS = true;    // set true to run without visible browsers
 const SLOW_MO = 20;       // ms between actions for visibility
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -206,10 +206,25 @@ async function main() {
     console.log('Server ready.\n');
 
     // ── Launch browsers ───────────────────────────────────────────────────────
+    // In windowed mode only the focused window gets normal requestAnimationFrame;
+    // background windows get throttled and our trick-flight animation never
+    // releases its controls-lock (then mountForPhase stops firing and cards stay
+    // enabled even when it's no longer the viewer's turn).
     console.log('Launching Chrome, Firefox, Chromium…');
-    const chromeBrowser   = await chromium.launch({ channel: 'chrome',   headless: HEADLESS, slowMo: SLOW_MO });
-    const firefoxBrowser  = await firefox.launch({                        headless: HEADLESS, slowMo: SLOW_MO });
-    const chromiumBrowser = await chromium.launch({                       headless: HEADLESS, slowMo: SLOW_MO });
+    const chromiumArgs = [
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+    ];
+    const firefoxPrefs = {
+      'dom.min_background_timeout_value': 4,
+      'dom.timeout.throttling_delay': 0,
+      'dom.timeout.background_throttling_max_budget': -1,
+      'dom.timeout.foreground_throttling_max_budget': -1,
+    };
+    const chromeBrowser   = await chromium.launch({ channel: 'chrome',   headless: HEADLESS, slowMo: SLOW_MO, args: chromiumArgs });
+    const firefoxBrowser  = await firefox.launch({                        headless: HEADLESS, slowMo: SLOW_MO, firefoxUserPrefs: firefoxPrefs });
+    const chromiumBrowser = await chromium.launch({                       headless: HEADLESS, slowMo: SLOW_MO, args: chromiumArgs });
     browsers.push(chromeBrowser, firefoxBrowser, chromiumBrowser);
 
     const alice   = await chromeBrowser.newPage();
@@ -291,9 +306,14 @@ async function main() {
     let doneCnt   = 0;
     let iter      = 0;
     const MAX_ITER = 3000;
+    let consecutiveSamePlayer = 0;
+    let lastActorIdx = -1;
+    let stuckSnapshotted = false;
+    const STUCK_THRESHOLD = 40;
 
     while (doneCnt < 3 && iter < MAX_ITER) {
       iter++;
+      let anyActorThisIter = -1;
 
       for (let i = 0; i < 3; i++) {
         if (done[i]) { continue; }
@@ -317,7 +337,39 @@ async function main() {
           }
         }
 
-        await takeAction(page, name, stats);
+        const action = await takeAction(page, name, stats);
+        if (action) { anyActorThisIter = i; }
+      }
+
+      // Stuck detector: same player acts alone for too long → dump state and bail.
+      if (anyActorThisIter !== -1) {
+        if (anyActorThisIter === lastActorIdx) {
+          consecutiveSamePlayer++;
+        } else {
+          consecutiveSamePlayer = 1;
+          lastActorIdx = anyActorThisIter;
+        }
+        if (consecutiveSamePlayer >= STUCK_THRESHOLD && !stuckSnapshotted) {
+          stuckSnapshotted = true;
+          console.log(`\n⚠️  STUCK — ${players[lastActorIdx].name} acted alone ${consecutiveSamePlayer}x. Dumping state…\n`);
+          for (const { page, name } of players) {
+            try {
+              await page.screenshot({ path: `stuck-${name.toLowerCase()}.png` });
+              const state = await page.evaluate(() => {
+                const app = window.__thousandApp;
+                const gs = app?._gameScreen?._lastGameStatus ?? null;
+                const handCards = Array.from(document.querySelectorAll('.hand-view__card[data-card-id]'))
+                  .map((el) => ({ id: el.dataset.cardId, disabled: el.classList.contains('card--disabled') }));
+                const interactive = !!document.querySelector('.hand-view--interactive');
+                return { gameStatus: gs, handCards, interactive };
+              }).catch((e) => ({ error: e.message }));
+              console.log(`[STUCK ${name}]`, JSON.stringify(state, null, 2));
+            } catch (e) {
+              console.log(`[STUCK ${name}] error: ${e.message}`);
+            }
+          }
+          break;
+        }
       }
 
       // Pause between cycles (shorter when something is happening)

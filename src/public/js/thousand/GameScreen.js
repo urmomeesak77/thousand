@@ -26,6 +26,8 @@ class GameScreen {
     this._seats = null;
     this._isControlsLocked = false;
     this._lastGameStatus = null;
+    this._lastMountedPhase = null;
+    this._pendingMountStatus = null;
     this._lastSnapshot = null;
     this._sellSubPhase = null;
     this._exposedCardIds = [];
@@ -152,6 +154,8 @@ class GameScreen {
     this._seats = msg.seats;
     this._cardsById = {};
     this._isControlsLocked = false;
+    this._lastMountedPhase = null;
+    this._pendingMountStatus = null;
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
     this._clearLastAction();
@@ -183,8 +187,13 @@ class GameScreen {
   // Called when a fresh snapshot arrives mid-round (e.g. card exchange or trick play update).
   updateSnapshot(snapshot) {
     this._lastSnapshot = { ...(this._lastSnapshot ?? {}), ...snapshot };
-    if (!this._isControlsLocked) {
-      this._controls.mountForPhase(this._lastGameStatus ?? snapshot.gameStatus);
+    const status = this._lastGameStatus ?? snapshot.gameStatus;
+    if (this._canMountNow(status)) {
+      this._controls.mountForPhase(status);
+      this._lastMountedPhase = status?.phase ?? this._lastMountedPhase;
+      this._pendingMountStatus = null;
+    } else {
+      this._pendingMountStatus = status;
     }
   }
 
@@ -232,9 +241,24 @@ class GameScreen {
     if (gameStatus.phase === 'Card exchange') {
       this._talonView.clear();
     }
-    if (!this._isControlsLocked) {
+    if (this._canMountNow(gameStatus)) {
       this._controls.mountForPhase(gameStatus);
+      this._lastMountedPhase = gameStatus.phase;
+      this._pendingMountStatus = null;
+    } else {
+      this._pendingMountStatus = gameStatus;
     }
+  }
+
+  // Why: the controls-lock is only meant to defer phase TRANSITIONS until the
+  // trick-resolve animation finishes (so RoundSummaryScreen doesn't replace
+  // TrickPlayView mid-flight). Same-phase re-renders are always safe — they
+  // reuse the existing view and just update disabled-state etc. Blocking them
+  // would freeze the UI in whatever state it had when the lock engaged.
+  _canMountNow(gameStatus) {
+    if (!this._isControlsLocked) { return true; }
+    const incomingPhase = gameStatus?.phase ?? null;
+    return incomingPhase != null && incomingPhase === this._lastMountedPhase;
   }
 
   get cardsById() {
@@ -246,7 +270,14 @@ class GameScreen {
   }
 
   setControlsLocked(isLocked) {
+    const wasLocked = this._isControlsLocked;
     this._isControlsLocked = isLocked;
+    if (wasLocked && !isLocked && this._pendingMountStatus) {
+      const status = this._pendingMountStatus;
+      this._pendingMountStatus = null;
+      this._controls.mountForPhase(status);
+      this._lastMountedPhase = status.phase;
+    }
   }
 
   flashPlayer(playerId) {
@@ -346,8 +377,11 @@ class GameScreen {
         this._talonView.setFaceDownCount(this._talonCardIds.length);
         this._leftOpponent.setCardCount(opponentHandSizes[this._seats.left] ?? OPPONENT_DEFAULT_HAND);
         this._rightOpponent.setCardCount(opponentHandSizes[this._seats.right] ?? OPPONENT_DEFAULT_HAND);
-        this._isControlsLocked = false;
-        if (this._lastGameStatus) {this._controls.mountForPhase(this._lastGameStatus);}
+        this.setControlsLocked(false);
+        if (this._lastGameStatus && this._pendingMountStatus !== this._lastGameStatus) {
+          this._controls.mountForPhase(this._lastGameStatus);
+          this._lastMountedPhase = this._lastGameStatus.phase;
+        }
       },
     );
     animation.start(this._tableEl);

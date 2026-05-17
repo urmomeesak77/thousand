@@ -299,15 +299,22 @@ describe('TrickPlayView — trick resolve schedules collect-flight after pause',
     }));
 
     assert.deepEqual(lockCalls, [true], 'controls must be locked when trick resolves');
-    assert.equal(antlion._scheduled.length, 1, 'a 350ms pause must be scheduled');
+    assert.equal(antlion._scheduled.length, 2,
+      'two schedules: 350ms pause for the collect-flight and a setTimeout-based safety-net release');
     assert.equal(trickCenterEl.querySelectorAll('.card-sprite').length, 3,
       '3 cards must be visible during the resolve pause');
 
-    antlion._fireScheduled();
+    // Fire the pause callback in isolation so we can assert flights spawned before
+    // the safety-net fires and clears the centre.
+    const pauseEntry = antlion._scheduled.shift();
+    pauseEntry.cb();
 
     const clonesAfter = doc.querySelectorAll('.card-flight-clone').length;
     assert.equal(clonesAfter - clonesBefore, 3,
-      'fireScheduled must spawn 3 collect-flight clones (one per centre card)');
+      'pause callback must spawn 3 collect-flight clones (one per centre card)');
+
+    // Now drain the remaining safety-net schedule.
+    antlion._fireScheduled();
 
     // destroy cleans up the clones and tears down the centre.
     view.destroy();

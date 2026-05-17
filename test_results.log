@@ -6,363 +6,410 @@ Server ready.
 Launching Chrome, Firefox, Chromium…
 All three browsers at http://localhost:3099 
 
-[18:44:39] Alice  : entering nickname…
-[18:44:39] Bob    : entering nickname…
-[18:44:39] Charlie: entering nickname…
-[18:44:39] Alice  : in lobby
-[18:44:40] Alice  : created game
-[18:44:40] Alice  : in waiting room
-[18:44:40] Bob    : joined & in waiting room
-[18:44:40] Charlie: joined
+[08:17:32] Alice  : entering nickname…
+[08:17:32] Bob    : entering nickname…
+[08:17:32] Charlie: entering nickname…
+[08:17:32] Alice  : in lobby
+[08:17:33] Alice  : created game
+[08:17:33] Alice  : in waiting room
+[08:17:33] Bob    : joined & in waiting room
+[08:17:33] Charlie: joined
 
 — All three joined. Waiting for round to start… —
 
-[18:44:42] Bob    :   passes bid
-[18:44:42] Charlie:   passes bid
-[18:44:44] Alice  : ▶ starts the game
-[18:44:45] Alice  : ↕ passed exchange card (hand was 10)
-[18:44:45] Alice  : ↕ passed exchange card (hand was 9)
-[18:44:46] Alice  : 🃏 plays trick card
-[18:44:46] Bob    : 🃏 plays trick card
-[18:44:46] Charlie: 🃏 plays trick card
-[18:44:46] Bob    : 🃏 plays trick card
-[18:44:46] Charlie: 🃏 plays trick card
-[18:44:46] Alice  : 🃏 plays trick card
-[18:44:46] Bob    : 🃏 plays trick card
-[18:44:46] Charlie: 🃏 plays trick card
-[18:44:46] Alice  : 🃏 plays trick card
-[18:44:47] Charlie: 🃏 plays trick card
-[18:44:47] Alice  : 🃏 plays trick card
-[18:44:47] Bob    : 🃏 plays trick card
-[18:44:47] Charlie: 🃏 plays trick card
-[18:44:47] Alice  : 🃏 plays trick card
-[18:44:47] Bob    : 🃏 plays trick card
-[18:44:47] Charlie: 🃏 plays trick card
-[18:44:47] Alice  : 🃏 plays trick card
-[18:44:47] Bob    : 🃏 plays trick card
-[18:44:48] Charlie: 🃏 plays trick card
-[18:44:48] Alice  : 🃏 plays trick card
-[18:44:48] Bob    : 🃏 plays trick card
-[18:44:48] Charlie: 🃏 plays trick card
-[18:44:48] Alice  : 🃏 plays trick card
-[18:44:48] Bob    : 🃏 plays trick card
-[18:44:48] Charlie: → continue to next round
-[18:44:48] Alice  : → continue to next round
-[18:44:48] Bob    : → continue to next round
-[18:44:49] Charlie: → continue to next round
-[18:44:49] Alice  : → continue to next round
-[18:44:49] Bob    : → continue to next round
-[18:44:51] Bob    :   passes bid
-[18:44:51] Charlie:   passes bid
-[18:44:53] Alice  : ▶ starts the game
-[18:44:54] Alice  : ↕ passed exchange card (hand was 10)
-[18:44:54] Alice  : ↕ passed exchange card (hand was 9)
-[18:44:55] Alice  : 🃏 plays trick card
-[18:44:55] Bob    : 🃏 plays trick card
-[18:44:55] Charlie: 🃏 plays trick card
-[18:44:55] Bob    : 🃏 plays trick card
-[18:44:55] Charlie: 🃏 plays trick card
-[18:44:55] Alice  : 🃏 plays trick card
-[18:44:55] Bob    : 🃏 plays trick card
-[18:44:55] Charlie: 🃏 plays trick card
-[18:44:55] Alice  : 🃏 plays trick card
-[18:44:56] Alice  : 🃏 plays trick card
-[18:44:56] Bob    : 🃏 plays trick card
-[18:44:56] Charlie: 🃏 plays trick card
-[18:44:56] Charlie: 🃏 plays trick card
-[18:44:56] Alice  : 🃏 plays trick card
-[18:44:56] Bob    : 🃏 plays trick card
-[18:44:56] Charlie: 🃏 plays trick card
-[18:44:57] Alice  : 🃏 plays trick card
-[18:44:57] Bob    : 🃏 plays trick card
-[18:44:57] Bob    : 🃏 plays trick card
-[18:44:57] Charlie: 🃏 plays trick card
-[18:44:57] Alice  : 🃏 plays trick card
-[18:44:57] Bob    : 🃏 plays trick card
-[18:44:57] Charlie: 🃏 plays trick card
-[18:44:58] Alice  : 🃏 plays trick card
-[18:44:58] Bob    : → continue to next round
-[18:44:58] Charlie: → continue to next round
-[18:44:58] Alice  : → continue to next round
-[18:44:58] Bob    : → continue to next round
-[18:44:58] Charlie: → continue to next round
-[18:44:58] Alice  : → continue to next round
-[18:45:00] Bob    :   passes bid
-[18:45:01] Charlie:   passes bid
-[18:45:03] Alice  : ▶ starts the game
-[18:45:04] Alice  : ↕ passed exchange card (hand was 10)
-[18:45:04] Alice  : ↕ passed exchange card (hand was 9)
-[18:45:05] Alice  : 🃏 plays trick card
-[18:45:05] Bob    : 🃏 plays trick card
-[18:45:05] Charlie: 🃏 plays trick card
-[18:45:05] Alice  : 🃏 plays trick card
-[18:45:05] Bob    : 🃏 plays trick card
-[18:45:05] Charlie: 🃏 plays trick card
-[18:45:05] Charlie: 🃏 plays trick card
-[18:45:06] Charlie: 💍 declares marriage
-[18:45:06] Alice  : 🃏 plays trick card
-[18:45:06] Bob    : 🃏 plays trick card
-[18:45:06] Bob    : 🃏 plays trick card
-[18:45:06] Charlie: 🃏 plays trick card
-[18:45:06] Alice  : 🃏 plays trick card
-[18:45:06] Bob    : 🃏 plays trick card
-[18:45:06] Charlie: 🃏 plays trick card
-[18:45:07] Alice  : 🃏 plays trick card
-[18:45:07] Bob    : 🃏 plays trick card
-[18:45:07] Charlie: 🃏 plays trick card
-[18:45:07] Alice  : 🃏 plays trick card
-[18:45:07] Bob    : 🃏 plays trick card
-[18:45:07] Charlie: 🃏 plays trick card
-[18:45:07] Alice  : 🃏 plays trick card
-[18:45:07] Bob    : 🃏 plays trick card
-[18:45:07] Charlie: 🃏 plays trick card
-[18:45:08] Alice  : 🃏 plays trick card
-[18:45:08] Bob    : → continue to next round
-[18:45:10] Alice  : → continue to next round
-[18:45:10] Bob    : → continue to next round
-[18:45:10] Charlie: → continue to next round
-[18:45:10] Alice  : → continue to next round
-[18:45:11] Bob    : → continue to next round
-[18:45:11] Charlie: → continue to next round
-[18:45:13] Bob    :   passes bid
-[18:45:13] Charlie:   passes bid
-[18:45:15] Alice  : ▶ starts the game
-[18:45:15] Alice  : ↕ passed exchange card (hand was 10)
-[18:45:16] Alice  : ↕ passed exchange card (hand was 9)
-[18:45:16] Alice  : 🃏 plays trick card
-[18:45:16] Bob    : 🃏 plays trick card
-[18:45:16] Charlie: 🃏 plays trick card
-[18:45:17] Alice  : 🃏 plays trick card
-[18:45:17] Bob    : 🃏 plays trick card
-[18:45:17] Charlie: 🃏 plays trick card
-[18:45:17] Bob    : 🃏 plays trick card
-[18:45:17] Charlie: 🃏 plays trick card
-[18:45:17] Alice  : 🃏 plays trick card
-[18:45:17] Charlie: 🃏 plays trick card
-[18:45:17] Alice  : 🃏 plays trick card
-[18:45:17] Bob    : 🃏 plays trick card
-[18:45:18] Charlie: 🃏 plays trick card
-[18:45:18] Alice  : 🃏 plays trick card
-[18:45:18] Bob    : 🃏 plays trick card
-[18:45:18] Charlie: 🃏 plays trick card
-[18:45:18] Alice  : 🃏 plays trick card
-[18:45:18] Bob    : 🃏 plays trick card
-[18:45:18] Charlie: 🃏 plays trick card
-[18:45:18] Alice  : 🃏 plays trick card
-[18:45:18] Bob    : 🃏 plays trick card
-[18:45:19] Charlie: 🃏 plays trick card
-[18:45:19] Alice  : 🃏 plays trick card
-[18:45:19] Bob    : 🃏 plays trick card
-[18:45:19] Charlie: → continue to next round
-[18:45:19] Alice  : → continue to next round
-[18:45:19] Bob    : → continue to next round
-[18:45:19] Charlie: → continue to next round
-[18:45:19] Alice  : → continue to next round
-[18:45:20] Bob    : → continue to next round
-[18:45:22] Bob    :   passes bid
-[18:45:22] Charlie:   passes bid
-[18:45:24] Alice  : ▶ starts the game
-[18:45:24] Alice  : ↕ passed exchange card (hand was 10)
-[18:45:25] Alice  : ↕ passed exchange card (hand was 9)
-[18:45:25] Alice  : 🃏 plays trick card
-[18:45:25] Bob    : 🃏 plays trick card
-[18:45:25] Charlie: 🃏 plays trick card
-[18:45:26] Alice  : 🃏 plays trick card
-[18:45:26] Bob    : 🃏 plays trick card
-[18:45:26] Charlie: 🃏 plays trick card
-[18:45:26] Bob    : 🃏 plays trick card
-[18:45:26] Charlie: 🃏 plays trick card
-[18:45:26] Alice  : 🃏 plays trick card
-[18:45:26] Bob    : 🃏 plays trick card
-[18:45:26] Charlie: 🃏 plays trick card
-[18:45:27] Alice  : 🃏 plays trick card
-[18:45:27] Charlie: 🃏 plays trick card
-[18:45:27] Alice  : 🃏 plays trick card
-[18:45:27] Bob    : 🃏 plays trick card
-[18:45:27] Charlie: 🃏 plays trick card
-[18:45:27] Alice  : 🃏 plays trick card
-[18:45:27] Bob    : 🃏 plays trick card
-[18:45:27] Charlie: 🃏 plays trick card
-[18:45:27] Alice  : 🃏 plays trick card
-[18:45:28] Bob    : 🃏 plays trick card
-[18:45:28] Charlie: 🃏 plays trick card
-[18:45:28] Alice  : 🃏 plays trick card
-[18:45:28] Bob    : 🃏 plays trick card
-[18:45:28] Charlie: → continue to next round
-[18:45:28] Alice  : → continue to next round
-[18:45:28] Bob    : → continue to next round
-[18:45:28] Charlie: → continue to next round
-[18:45:29] Alice  : → continue to next round
-[18:45:29] Bob    : → continue to next round
-[18:45:31] Bob    :   passes bid
-[18:45:31] Charlie:   passes bid
-[18:45:33] Alice  : ▶ starts the game
-[18:45:33] Alice  : ↕ passed exchange card (hand was 10)
-[18:45:34] Alice  : ↕ passed exchange card (hand was 9)
-[18:45:34] Alice  : 🃏 plays trick card
-[18:45:34] Bob    : 🃏 plays trick card
-[18:45:34] Charlie: 🃏 plays trick card
-[18:45:35] Alice  : 🃏 plays trick card
-[18:45:35] Bob    : 🃏 plays trick card
-[18:45:35] Charlie: 🃏 plays trick card
-[18:45:35] Bob    : 🃏 plays trick card
-[18:45:35] Charlie: 🃏 plays trick card
-[18:45:35] Alice  : 🃏 plays trick card
-[18:45:35] Charlie: 🃏 plays trick card
-[18:45:36] Alice  : 🃏 plays trick card
-[18:45:36] Bob    : 🃏 plays trick card
-[18:45:36] Bob    : 🃏 plays trick card
-[18:45:36] Charlie: 🃏 plays trick card
-[18:45:36] Alice  : 🃏 plays trick card
-[18:45:36] Alice  : 🃏 plays trick card
-[18:45:37] Bob    : 🃏 plays trick card
-[18:45:37] Charlie: 🃏 plays trick card
-[18:45:37] Bob    : 🃏 plays trick card
-[18:45:37] Charlie: 🃏 plays trick card
-[18:45:37] Alice  : 🃏 plays trick card
-[18:45:37] Charlie: 🃏 plays trick card
-[18:45:37] Alice  : 🃏 plays trick card
-[18:45:37] Bob    : 🃏 plays trick card
-[18:45:37] Charlie: → continue to next round
-[18:45:38] Alice  : → continue to next round
-[18:45:38] Bob    : → continue to next round
-[18:45:38] Charlie: → continue to next round
-[18:45:38] Alice  : → continue to next round
-[18:45:38] Bob    : → continue to next round
-[18:45:41] Bob    :   passes bid
-[18:45:41] Charlie:   passes bid
-[18:45:42] Alice  : ▶ starts the game
-[18:45:43] Alice  : ↕ passed exchange card (hand was 10)
-[18:45:44] Alice  : ↕ passed exchange card (hand was 9)
-[18:45:44] Alice  : 🃏 plays trick card
-[18:45:44] Bob    : 🃏 plays trick card
-[18:45:44] Charlie: 🃏 plays trick card
-[18:45:44] Bob    : 🃏 plays trick card
-[18:45:44] Charlie: 🃏 plays trick card
-[18:45:45] Alice  : 🃏 plays trick card
-[18:45:45] Charlie: 🃏 plays trick card
-[18:45:45] Alice  : 🃏 plays trick card
-[18:45:45] Bob    : 🃏 plays trick card
-[18:45:45] Charlie: 🃏 plays trick card
-[18:45:45] Alice  : 🃏 plays trick card
-[18:45:45] Alice  : 🃏 plays trick card
-[18:45:46] Alice  : 🃏 plays trick card
-[18:45:46] Alice  : 🃏 plays trick card
-[18:45:46] Alice  : 🃏 plays trick card
-[18:45:46] Bob    : 🃏 plays trick card
-[18:45:46] Charlie: 🃏 plays trick card
-[18:45:47] Alice  : 🃏 plays trick card
-[18:45:47] Bob    : 🃏 plays trick card
-[18:45:47] Charlie: 🃏 plays trick card
-[18:45:47] Alice  : 🃏 plays trick card
-[18:45:47] Bob    : 🃏 plays trick card
-[18:45:47] Charlie: 🃏 plays trick card
-[18:45:47] Alice  : 🃏 plays trick card
-[18:45:47] Bob    : 🃏 plays trick card
-[18:45:48] Alice  : 🃏 plays trick card
-[18:45:48] Bob    : 🃏 plays trick card
-[18:45:48] Charlie: 🃏 plays trick card
-[18:45:48] Alice  : → continue to next round
-[18:45:48] Bob    : → continue to next round
-[18:45:48] Charlie: → continue to next round
-[18:45:48] Alice  : → continue to next round
-[18:45:48] Bob    : → continue to next round
-[18:45:48] Charlie: → continue to next round
-[18:45:51] Bob    :   passes bid
-[18:45:51] Charlie:   passes bid
-[18:45:52] Alice  : ▶ starts the game
-[18:45:53] Alice  : ↕ passed exchange card (hand was 10)
-[18:45:54] Alice  : ↕ passed exchange card (hand was 9)
-[18:45:54] Alice  : 🃏 plays trick card
-[18:45:54] Alice  : 🃏 plays trick card
-[18:45:55] Alice  : 🃏 plays trick card
-[18:45:55] Alice  : 🃏 plays trick card
-[18:45:55] Alice  : 🃏 plays trick card
-[18:45:55] Bob    : 🃏 plays trick card
-[18:45:55] Charlie: 🃏 plays trick card
-[18:45:55] Charlie: 🃏 plays trick card
-[18:45:56] Alice  : 🃏 plays trick card
-[18:45:56] Bob    : 🃏 plays trick card
-[18:45:56] Alice  : 🃏 plays trick card
-[18:45:56] Bob    : 🃏 plays trick card
-[18:45:56] Charlie: 🃏 plays trick card
-[18:45:56] Charlie: 🃏 plays trick card
-[18:45:57] Alice  : 🃏 plays trick card
-[18:45:57] Bob    : 🃏 plays trick card
-[18:45:57] Charlie: 🃏 plays trick card
-[18:45:57] Alice  : 🃏 plays trick card
-[18:45:57] Bob    : 🃏 plays trick card
-[18:45:57] Charlie: 🃏 plays trick card
-[18:45:57] Charlie: 💍 declares marriage
-[18:45:58] Alice  : 🃏 plays trick card
-[18:45:58] Bob    : 🃏 plays trick card
-[18:45:58] Charlie: 🃏 plays trick card
-[18:45:58] Alice  : 🃏 plays trick card
-[18:45:58] Bob    : 🃏 plays trick card
-[18:45:58] Bob    : 🃏 plays trick card
-[18:45:58] Charlie: 🃏 plays trick card
-[18:45:58] Alice  : 🃏 plays trick card
-[18:45:59] Bob    : → continue to next round
-[18:46:01] Alice  : → continue to next round
-[18:46:01] Bob    : → continue to next round
-[18:46:01] Charlie: → continue to next round
-[18:46:02] Alice  : → continue to next round
-[18:46:02] Bob    : → continue to next round
-[18:46:02] Charlie: → continue to next round
-[18:46:04] Bob    :   passes bid
-[18:46:04] Charlie:   passes bid
-[18:46:06] Alice  : ▶ starts the game
-[18:46:07] Alice  : ↕ passed exchange card (hand was 10)
-[18:46:07] Alice  : ↕ passed exchange card (hand was 9)
-[18:46:07] Alice  : 🃏 plays trick card
-[18:46:07] Bob    : 🃏 plays trick card
-[18:46:08] Charlie: 🃏 plays trick card
-[18:46:08] Bob    : 🃏 plays trick card
-[18:46:08] Charlie: 🃏 plays trick card
-[18:46:08] Alice  : 🃏 plays trick card
-[18:46:08] Charlie: 🃏 plays trick card
-[18:46:08] Charlie: 💍 declares marriage
-[18:46:09] Alice  : 🃏 plays trick card
-[18:46:09] Bob    : 🃏 plays trick card
-[18:46:09] Alice  : 🃏 plays trick card
-[18:46:09] Bob    : 🃏 plays trick card
-[18:46:09] Charlie: 🃏 plays trick card
-[18:46:09] Alice  : 🃏 plays trick card
-[18:46:09] Bob    : 🃏 plays trick card
-[18:46:09] Charlie: 🃏 plays trick card
-[18:46:10] Alice  : 🃏 plays trick card
-[18:46:10] Bob    : 🃏 plays trick card
-[18:46:10] Charlie: 🃏 plays trick card
-[18:46:10] Charlie: 🃏 plays trick card
-[18:46:10] Alice  : 🃏 plays trick card
-[18:46:10] Bob    : 🃏 plays trick card
-[18:46:10] Charlie: 🃏 plays trick card
-[18:46:10] Alice  : 🃏 plays trick card
-[18:46:10] Bob    : 🃏 plays trick card
-[18:46:13] Alice  : → continue to next round
-[18:46:13] Bob    : → continue to next round
-[18:46:13] Charlie: → continue to next round
-[18:46:13] Alice  : → continue to next round
-[18:46:13] Bob    : → continue to next round
-[18:46:13] Charlie: → continue to next round
-[18:46:16] Bob    :   passes bid
-[18:46:16] Charlie:   passes bid
-[18:46:18] Alice  : ▶ starts the game
-[18:46:18] Alice  : ↕ passed exchange card (hand was 7)
-[18:46:19] Alice  : ↕ passed exchange card (hand was 6)
-[18:46:19] Alice  : 🃏 plays trick card
-[18:46:19] Bob    : 🃏 plays trick card
-[18:46:19] Charlie: 🃏 plays trick card
-[18:46:19] Alice  : 🃏 plays trick card
-[18:46:19] Bob    : 🃏 plays trick card
-[18:46:20] Charlie: 🃏 plays trick card
-[18:46:20] Alice  : 🃏 plays trick card
-[18:46:20] Bob    : 🃏 plays trick card
-[18:46:20] Charlie: 🃏 plays trick card
-[18:46:20] Alice  : 🃏 plays trick card
-[18:46:20] Bob    : 🃏 plays trick card
-[18:46:20] Charlie: 🃏 plays trick card
-[18:46:20] Alice  : 🃏 plays trick card
-[18:46:20] Bob    : 🃏 plays trick card
-[18:46:20] Charlie: 🃏 plays trick card
-[18:46:21] Charlie: 🃏 plays trick card
+[08:17:35] Bob    :   passes bid
+[08:17:35] Charlie:   passes bid
+[08:17:38] Alice  : ↕ passed exchange card (hand was 10)
+[08:17:39] Alice  : ↕ passed exchange card (hand was 9)
+[08:17:39] Alice  : 🃏 plays trick card
+[08:17:39] Bob    : 🃏 plays trick card
+[08:17:39] Charlie: 🃏 plays trick card
+[08:17:39] Alice  : 🃏 plays trick card
+[08:17:39] Bob    : 🃏 plays trick card
+[08:17:39] Charlie: 🃏 plays trick card
+[08:17:40] Bob    : 🃏 plays trick card
+[08:17:40] Charlie: 🃏 plays trick card
+[08:17:40] Alice  : 🃏 plays trick card
+[08:17:40] Charlie: 🃏 plays trick card
+[08:17:40] Alice  : 🃏 plays trick card
+[08:17:40] Bob    : 🃏 plays trick card
+[08:17:41] Bob    : 🃏 plays trick card
+[08:17:41] Charlie: 🃏 plays trick card
+[08:17:41] Alice  : 🃏 plays trick card
+[08:17:41] Bob    : 🃏 plays trick card
+[08:17:41] Charlie: 🃏 plays trick card
+[08:17:42] Alice  : 🃏 plays trick card
+[08:17:42] Bob    : 🃏 plays trick card
+[08:17:42] Charlie: 🃏 plays trick card
+[08:17:42] Alice  : 🃏 plays trick card
+[08:17:42] Bob    : 🃏 plays trick card
+[08:17:42] Charlie: 🃏 plays trick card
+[08:17:42] Alice  : 🃏 plays trick card
+[08:17:42] Bob    : → continue to next round
+[08:17:42] Charlie: → continue to next round
+[08:17:43] Alice  : → continue to next round
+[08:17:43] Bob    : → continue to next round
+[08:17:43] Charlie: → continue to next round
+[08:17:43] Alice  : → continue to next round
+[08:17:45] Bob    :   passes bid
+[08:17:45] Charlie:   passes bid
+[08:17:48] Alice  : ▶ starts the game
+[08:17:48] Alice  : ↕ passed exchange card (hand was 10)
+[08:17:49] Alice  : ↕ passed exchange card (hand was 9)
+[08:17:49] Alice  : 🃏 plays trick card
+[08:17:49] Bob    : 🃏 plays trick card
+[08:17:49] Charlie: 🃏 plays trick card
+[08:17:50] Alice  : 🃏 plays trick card
+[08:17:50] Bob    : 🃏 plays trick card
+[08:17:50] Charlie: 🃏 plays trick card
+[08:17:50] Bob    : 🃏 plays trick card
+[08:17:50] Charlie: 🃏 plays trick card
+[08:17:50] Alice  : 🃏 plays trick card
+[08:17:50] Bob    : 🃏 plays trick card
+[08:17:50] Charlie: 🃏 plays trick card
+[08:17:51] Alice  : 🃏 plays trick card
+[08:17:51] Charlie: 🃏 plays trick card
+[08:17:51] Alice  : 🃏 plays trick card
+[08:17:51] Bob    : 🃏 plays trick card
+[08:17:51] Charlie: 🃏 plays trick card
+[08:17:51] Alice  : 🃏 plays trick card
+[08:17:51] Bob    : 🃏 plays trick card
+[08:17:51] Charlie: 🃏 plays trick card
+[08:17:51] Alice  : 🃏 plays trick card
+[08:17:52] Bob    : 🃏 plays trick card
+[08:17:52] Charlie: 🃏 plays trick card
+[08:17:52] Alice  : 🃏 plays trick card
+[08:17:52] Bob    : 🃏 plays trick card
+[08:17:52] Charlie: → continue to next round
+[08:17:52] Alice  : → continue to next round
+[08:17:52] Bob    : → continue to next round
+[08:17:52] Charlie: → continue to next round
+[08:17:53] Alice  : → continue to next round
+[08:17:53] Bob    : → continue to next round
+[08:17:55] Bob    :   passes bid
+[08:17:55] Charlie:   passes bid
+[08:17:57] Alice  : ▶ starts the game
+[08:17:58] Alice  : ↕ passed exchange card (hand was 10)
+[08:17:58] Alice  : ↕ passed exchange card (hand was 9)
+[08:17:58] Alice  : 🃏 plays trick card
+[08:17:59] Bob    : 🃏 plays trick card
+[08:17:59] Charlie: 🃏 plays trick card
+[08:17:59] Alice  : 🃏 plays trick card
+[08:17:59] Bob    : 🃏 plays trick card
+[08:17:59] Charlie: 🃏 plays trick card
+[08:17:59] Charlie: 🃏 plays trick card
+[08:17:59] Alice  : 🃏 plays trick card
+[08:17:59] Bob    : 🃏 plays trick card
+[08:18:00] Bob    : 🃏 plays trick card
+[08:18:00] Bob    : 💍 declares marriage
+[08:18:00] Charlie: 🃏 plays trick card
+[08:18:00] Alice  : 🃏 plays trick card
+[08:18:00] Charlie: 🃏 plays trick card
+[08:18:00] Alice  : 🃏 plays trick card
+[08:18:01] Bob    : 🃏 plays trick card
+[08:18:01] Charlie: 🃏 plays trick card
+[08:18:01] Charlie: 💍 declares marriage
+[08:18:01] Alice  : 🃏 plays trick card
+[08:18:01] Bob    : 🃏 plays trick card
+[08:18:01] Charlie: 🃏 plays trick card
+[08:18:01] Alice  : 🃏 plays trick card
+[08:18:01] Bob    : 🃏 plays trick card
+[08:18:01] Charlie: 🃏 plays trick card
+[08:18:02] Alice  : 🃏 plays trick card
+[08:18:02] Bob    : 🃏 plays trick card
+[08:18:04] Alice  : → continue to next round
+[08:18:04] Bob    : → continue to next round
+[08:18:05] Charlie: → continue to next round
+[08:18:05] Alice  : → continue to next round
+[08:18:05] Bob    : → continue to next round
+[08:18:05] Charlie: → continue to next round
+[08:18:08] Bob    :   passes bid
+[08:18:08] Charlie:   passes bid
+[08:18:09] Alice  : ▶ starts the game
+[08:18:10] Alice  : ↕ passed exchange card (hand was 10)
+[08:18:11] Alice  : ↕ passed exchange card (hand was 9)
+[08:18:11] Alice  : 🃏 plays trick card
+[08:18:11] Bob    : 🃏 plays trick card
+[08:18:11] Charlie: 🃏 plays trick card
+[08:18:11] Charlie: 🃏 plays trick card
+[08:18:12] Alice  : 🃏 plays trick card
+[08:18:12] Bob    : 🃏 plays trick card
+[08:18:12] Charlie: 🃏 plays trick card
+[08:18:12] Charlie: 💍 declares marriage
+[08:18:12] Alice  : 🃏 plays trick card
+[08:18:12] Bob    : 🃏 plays trick card
+[08:18:12] Charlie: 🃏 plays trick card
+[08:18:13] Charlie: 💍 declares marriage
+[08:18:13] Alice  : 🃏 plays trick card
+[08:18:13] Bob    : 🃏 plays trick card
+[08:18:13] Charlie: 🃏 plays trick card
+[08:18:13] Alice  : 🃏 plays trick card
+[08:18:13] Bob    : 🃏 plays trick card
+[08:18:13] Bob    : 🃏 plays trick card
+[08:18:13] Charlie: 🃏 plays trick card
+[08:18:14] Alice  : 🃏 plays trick card
+[08:18:14] Bob    : 🃏 plays trick card
+[08:18:14] Charlie: 🃏 plays trick card
+[08:18:14] Alice  : 🃏 plays trick card
+[08:18:14] Alice  : 🃏 plays trick card
+[08:18:14] Bob    : 🃏 plays trick card
+[08:18:14] Charlie: 🃏 plays trick card
+[08:18:15] Alice  : → continue to next round
+[08:18:15] Bob    : → continue to next round
+[08:18:17] Alice  : → continue to next round
+[08:18:17] Bob    : → continue to next round
+[08:18:17] Charlie: → continue to next round
+[08:18:19] Bob    :   passes bid
+[08:18:20] Charlie:   passes bid
+[08:18:21] Alice  : ▶ starts the game
+[08:18:22] Alice  : ↕ passed exchange card (hand was 10)
+[08:18:23] Alice  : ↕ passed exchange card (hand was 9)
+[08:18:23] Alice  : 🃏 plays trick card
+[08:18:23] Bob    : 🃏 plays trick card
+[08:18:23] Charlie: 🃏 plays trick card
+[08:18:23] Charlie: 🃏 plays trick card
+[08:18:23] Alice  : 🃏 plays trick card
+[08:18:23] Bob    : 🃏 plays trick card
+[08:18:23] Charlie: 🃏 plays trick card
+[08:18:24] Alice  : 🃏 plays trick card
+[08:18:24] Bob    : 🃏 plays trick card
+[08:18:24] Alice  : 🃏 plays trick card
+[08:18:24] Bob    : 🃏 plays trick card
+[08:18:24] Charlie: 🃏 plays trick card
+[08:18:24] Alice  : 🃏 plays trick card
+[08:18:24] Bob    : 🃏 plays trick card
+[08:18:24] Charlie: 🃏 plays trick card
+[08:18:25] Bob    : 🃏 plays trick card
+[08:18:25] Charlie: 🃏 plays trick card
+[08:18:25] Alice  : 🃏 plays trick card
+[08:18:25] Bob    : 🃏 plays trick card
+[08:18:25] Charlie: 🃏 plays trick card
+[08:18:25] Alice  : 🃏 plays trick card
+[08:18:25] Bob    : 🃏 plays trick card
+[08:18:25] Charlie: 🃏 plays trick card
+[08:18:26] Alice  : 🃏 plays trick card
+[08:18:26] Bob    : → continue to next round
+[08:18:26] Charlie: → continue to next round
+[08:18:26] Alice  : → continue to next round
+[08:18:26] Bob    : → continue to next round
+[08:18:26] Charlie: → continue to next round
+[08:18:26] Alice  : → continue to next round
+[08:18:28] Bob    :   passes bid
+[08:18:29] Charlie:   passes bid
+[08:18:31] Alice  : ▶ starts the game
+[08:18:32] Alice  : ↕ passed exchange card (hand was 10)
+[08:18:32] Alice  : ↕ passed exchange card (hand was 9)
+[08:18:33] Alice  : 🃏 plays trick card
+[08:18:33] Bob    : 🃏 plays trick card
+[08:18:33] Charlie: 🃏 plays trick card
+[08:18:33] Bob    : 🃏 plays trick card
+[08:18:33] Charlie: 🃏 plays trick card
+[08:18:33] Alice  : 🃏 plays trick card
+[08:18:33] Charlie: 🃏 plays trick card
+[08:18:34] Alice  : 🃏 plays trick card
+[08:18:34] Bob    : 🃏 plays trick card
+[08:18:34] Bob    : 🃏 plays trick card
+[08:18:34] Charlie: 🃏 plays trick card
+[08:18:34] Alice  : 🃏 plays trick card
+[08:18:34] Bob    : 🃏 plays trick card
+[08:18:34] Charlie: 🃏 plays trick card
+[08:18:34] Alice  : 🃏 plays trick card
+[08:18:35] Bob    : 🃏 plays trick card
+[08:18:35] Charlie: 🃏 plays trick card
+[08:18:35] Alice  : 🃏 plays trick card
+[08:18:35] Bob    : 🃏 plays trick card
+[08:18:35] Charlie: 🃏 plays trick card
+[08:18:35] Alice  : 🃏 plays trick card
+[08:18:35] Charlie: 🃏 plays trick card
+[08:18:35] Alice  : 🃏 plays trick card
+[08:18:35] Bob    : 🃏 plays trick card
+[08:18:36] Charlie: → continue to next round
+[08:18:36] Alice  : → continue to next round
+[08:18:36] Bob    : → continue to next round
+[08:18:36] Charlie: → continue to next round
+[08:18:36] Alice  : → continue to next round
+[08:18:36] Bob    : → continue to next round
+[08:18:39] Bob    :   passes bid
+[08:18:39] Charlie:   passes bid
+[08:18:40] Alice  : ▶ starts the game
+[08:18:41] Alice  : ↕ passed exchange card (hand was 10)
+[08:18:42] Alice  : ↕ passed exchange card (hand was 9)
+[08:18:42] Alice  : 🃏 plays trick card
+[08:18:42] Bob    : 🃏 plays trick card
+[08:18:42] Charlie: 🃏 plays trick card
+[08:18:42] Alice  : 🃏 plays trick card
+[08:18:42] Bob    : 🃏 plays trick card
+[08:18:42] Charlie: 🃏 plays trick card
+[08:18:43] Bob    : 🃏 plays trick card
+[08:18:43] Charlie: 🃏 plays trick card
+[08:18:43] Alice  : 🃏 plays trick card
+[08:18:43] Charlie: 🃏 plays trick card
+[08:18:43] Alice  : 🃏 plays trick card
+[08:18:43] Bob    : 🃏 plays trick card
+[08:18:44] Alice  : 🃏 plays trick card
+[08:18:44] Bob    : 🃏 plays trick card
+[08:18:44] Charlie: 🃏 plays trick card
+[08:18:44] Bob    : 🃏 plays trick card
+[08:18:44] Charlie: 🃏 plays trick card
+[08:18:44] Alice  : 🃏 plays trick card
+[08:18:44] Bob    : 🃏 plays trick card
+[08:18:44] Charlie: 🃏 plays trick card
+[08:18:44] Alice  : 🃏 plays trick card
+[08:18:44] Bob    : 🃏 plays trick card
+[08:18:45] Charlie: 🃏 plays trick card
+[08:18:45] Alice  : 🃏 plays trick card
+[08:18:45] Alice  : 🃏 plays trick card
+[08:18:45] Alice  : 🃏 plays trick card
+[08:18:46] Alice  : 🃏 plays trick card
+[08:18:46] Alice  : 🃏 plays trick card
+[08:18:46] Alice  : 🃏 plays trick card
+[08:18:46] Bob    : → continue to next round
+[08:18:46] Charlie: → continue to next round
+[08:18:46] Alice  : → continue to next round
+[08:18:47] Bob    : → continue to next round
+[08:18:47] Charlie: → continue to next round
+[08:18:47] Alice  : → continue to next round
+[08:18:49] Bob    :   passes bid
+[08:18:49] Charlie:   passes bid
+[08:18:52] Alice  : ▶ starts the game
+[08:18:52] Alice  : ↕ passed exchange card (hand was 10)
+[08:18:53] Alice  : ↕ passed exchange card (hand was 9)
+[08:18:53] Alice  : 🃏 plays trick card
+[08:18:53] Bob    : 🃏 plays trick card
+[08:18:53] Charlie: 🃏 plays trick card
+[08:18:53] Alice  : 🃏 plays trick card
+[08:18:54] Bob    : 🃏 plays trick card
+[08:18:54] Charlie: 🃏 plays trick card
+[08:18:54] Charlie: 🃏 plays trick card
+[08:18:54] Alice  : 🃏 plays trick card
+[08:18:54] Bob    : 🃏 plays trick card
+[08:18:54] Bob    : 🃏 plays trick card
+[08:18:54] Charlie: 🃏 plays trick card
+[08:18:55] Alice  : 🃏 plays trick card
+[08:18:55] Bob    : 🃏 plays trick card
+[08:18:55] Charlie: 🃏 plays trick card
+[08:18:55] Alice  : 🃏 plays trick card
+[08:18:55] Alice  : 🃏 plays trick card
+[08:18:55] Alice  : 🃏 plays trick card
+[08:18:56] Alice  : 🃏 plays trick card
+[08:18:56] Alice  : 🃏 plays trick card
+[08:18:56] Alice  : 🃏 plays trick card
+[08:18:56] Alice  : 🃏 plays trick card
+[08:18:57] Bob    : 🃏 plays trick card
+[08:18:57] Charlie: 🃏 plays trick card
+[08:18:57] Alice  : 🃏 plays trick card
+[08:18:57] Bob    : 🃏 plays trick card
+[08:18:57] Charlie: 🃏 plays trick card
+[08:18:57] Alice  : 🃏 plays trick card
+[08:18:57] Bob    : 🃏 plays trick card
+[08:18:57] Charlie: 🃏 plays trick card
+[08:18:57] Alice  : → continue to next round
+[08:18:58] Bob    : → continue to next round
+[08:18:58] Charlie: → continue to next round
+[08:18:58] Alice  : → continue to next round
+[08:18:58] Bob    : → continue to next round
+[08:18:58] Charlie: → continue to next round
+[08:19:00] Bob    :   passes bid
+[08:19:00] Charlie:   passes bid
+[08:19:02] Alice  : ▶ starts the game
+[08:19:03] Alice  : ↕ passed exchange card (hand was 10)
+[08:19:05] Alice  : ↕ passed exchange card (hand was 10)
+[08:19:05] Alice  : ↕ passed exchange card (hand was 9)
+[08:19:05] Alice  : 🃏 plays trick card
+[08:19:06] Bob    : 🃏 plays trick card
+[08:19:06] Charlie: 🃏 plays trick card
+[08:19:06] Charlie: 🃏 plays trick card
+[08:19:06] Charlie: 💍 declares marriage
+[08:19:06] Alice  : 🃏 plays trick card
+[08:19:06] Bob    : 🃏 plays trick card
+[08:19:07] Bob    : 🃏 plays trick card
+[08:19:07] Charlie: 🃏 plays trick card
+[08:19:07] Alice  : 🃏 plays trick card
+[08:19:07] Alice  : 🃏 plays trick card
+[08:19:07] Bob    : 🃏 plays trick card
+[08:19:07] Charlie: 🃏 plays trick card
+[08:19:07] Alice  : 🃏 plays trick card
+[08:19:07] Bob    : 🃏 plays trick card
+[08:19:08] Charlie: 🃏 plays trick card
+[08:19:08] Charlie: 🃏 plays trick card
+[08:19:08] Alice  : 🃏 plays trick card
+[08:19:08] Bob    : 🃏 plays trick card
+[08:19:08] Charlie: 🃏 plays trick card
+[08:19:08] Alice  : 🃏 plays trick card
+[08:19:08] Bob    : 🃏 plays trick card
+[08:19:08] Charlie: 🃏 plays trick card
+[08:19:09] Alice  : 🃏 plays trick card
+[08:19:09] Bob    : 🃏 plays trick card
+[08:19:10] Charlie: → continue to next round
+[08:19:11] Alice  : → continue to next round
+[08:19:11] Bob    : → continue to next round
+[08:19:11] Charlie: → continue to next round
+[08:19:11] Alice  : → continue to next round
+[08:19:11] Bob    : → continue to next round
+[08:19:13] Bob    :   passes bid
+[08:19:13] Charlie:   passes bid
+[08:19:15] Alice  : ▶ starts the game
+[08:19:16] Alice  : ↕ passed exchange card (hand was 10)
+[08:19:16] Alice  : ↕ passed exchange card (hand was 9)
+[08:19:17] Alice  : 🃏 plays trick card
+[08:19:17] Bob    : 🃏 plays trick card
+[08:19:17] Charlie: 🃏 plays trick card
+[08:19:17] Alice  : 🃏 plays trick card
+[08:19:17] Bob    : 🃏 plays trick card
+[08:19:17] Charlie: 🃏 plays trick card
+[08:19:17] Bob    : 🃏 plays trick card
+[08:19:17] Charlie: 🃏 plays trick card
+[08:19:18] Charlie: 🃏 plays trick card
+[08:19:18] Charlie: 🃏 plays trick card
+[08:19:18] Charlie: 🃏 plays trick card
+[08:19:18] Charlie: 🃏 plays trick card
+[08:19:19] Charlie: 🃏 plays trick card
+[08:19:19] Alice  : 🃏 plays trick card
+[08:19:19] Bob    : 🃏 plays trick card
+[08:19:19] Charlie: 🃏 plays trick card
+[08:19:19] Alice  : 🃏 plays trick card
+[08:19:19] Bob    : 🃏 plays trick card
+[08:19:19] Charlie: 🃏 plays trick card
+[08:19:20] Alice  : 🃏 plays trick card
+[08:19:20] Charlie: 🃏 plays trick card
+[08:19:20] Alice  : 🃏 plays trick card
+[08:19:20] Bob    : 🃏 plays trick card
+[08:19:20] Charlie: 🃏 plays trick card
+[08:19:20] Alice  : 🃏 plays trick card
+[08:19:20] Bob    : 🃏 plays trick card
+[08:19:20] Charlie: 🃏 plays trick card
+[08:19:20] Alice  : 🃏 plays trick card
+[08:19:20] Bob    : 🃏 plays trick card
+[08:19:21] Charlie: → continue to next round
+[08:19:21] Alice  : → continue to next round
+[08:19:21] Bob    : → continue to next round
+[08:19:21] Charlie: → continue to next round
+[08:19:21] Alice  : → continue to next round
+[08:19:21] Bob    : → continue to next round
+[08:19:24] Bob    :   passes bid
+[08:19:24] Charlie:   passes bid
+[08:19:24] Alice  : ▶ starts the game
+[08:19:25] Alice  : ↕ passed exchange card (hand was 7)
+[08:19:25] Alice  : ↕ passed exchange card (hand was 6)
+[08:19:25] Alice  : 🃏 plays trick card
+[08:19:26] Bob    : 🃏 plays trick card
+[08:19:26] Charlie: 🃏 plays trick card
+[08:19:26] Alice  : 🃏 plays trick card
+[08:19:26] Alice  : 💍 declares marriage
+[08:19:26] Bob    : 🃏 plays trick card
+[08:19:26] Bob    : 🃏 plays trick card
+[08:19:27] Bob    : 🃏 plays trick card
+[08:19:27] Bob    : 🃏 plays trick card
+[08:19:27] Bob    : 🃏 plays trick card
+[08:19:27] Charlie: 🃏 plays trick card
+[08:19:27] Alice  : 🃏 plays trick card
+[08:19:28] Bob    : 🃏 plays trick card
+[08:19:28] Charlie: 🃏 plays trick card
+[08:19:28] Charlie: 🃏 plays trick card
+
+⚠️  Loop exited after 3000 iterations. 0/3 players finished.
+
+[08:30:01] Alice  : screenshot saved → alice-final.png
+[08:30:01] Bob    : screenshot saved → bob-final.png
+[08:30:01] Charlie: screenshot saved → charlie-final.png
+Keeping browsers open for 6 seconds…

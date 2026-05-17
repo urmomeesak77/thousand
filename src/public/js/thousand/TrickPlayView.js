@@ -24,6 +24,7 @@ class TrickPlayView {
     this._flightCancels = new Set();    // Antlion.onTick deregister fns for in-flight clones
     this._scheduledIds = new Set();     // active Antlion.schedule ids (for teardown)
     this._activeClones = new Set();     // DOM nodes for in-flight clones (for teardown)
+    this._resolveFinalized = true;      // becomes false during a trick-resolve sequence
 
     this._buildCenter();
 
@@ -188,12 +189,14 @@ class TrickPlayView {
 
   _commitToCenter(seat, cardId, rank, suit) {
     const slot = this._slotForSeat(seat);
-    if (!slot) { return; }
+    if (!slot) { return null; }
     const cardEl = document.createElement('div');
     cardEl.className = `card-sprite card-sprite--up card--${rank}${SUIT_LETTER[suit]}`;
     cardEl.dataset.cardId = cardId;
     slot.appendChild(cardEl);
-    this._centerCards.push({ seat, cardId, rank, suit, slotEl: slot, cardEl });
+    const entry = { seat, cardId, rank, suit, slotEl: slot, cardEl };
+    this._centerCards.push(entry);
+    return entry;
   }
 
   _handleTrickResolve(winnerSeat) {
@@ -212,28 +215,44 @@ class TrickPlayView {
       }
     }
 
+    this._resolveFinalized = false;
     this._setControlsLocked(true);
     const pauseId = this._antlion.schedule(RESOLVE_PAUSE_MS, () => {
       this._scheduledIds.delete(pauseId);
       this._collectFlightToWinner(winnerSeat);
     });
     this._scheduledIds.add(pauseId);
+    // Why: rAF is throttled/paused in occluded or background browser windows, so
+    // an onLand-only release can hang forever (the game lock would stay engaged and
+    // mountForPhase would stop firing). This setTimeout-based safety net guarantees
+    // the lock releases on a real-time deadline regardless of frame painting.
+    const safetyId = this._antlion.schedule(RESOLVE_PAUSE_MS + FLIGHT_MS + 200, () => {
+      this._scheduledIds.delete(safetyId);
+      this._finalizeTrickResolve();
+    });
+    this._scheduledIds.add(safetyId);
+  }
+
+  _finalizeTrickResolve() {
+    if (this._resolveFinalized) { return; }
+    this._resolveFinalized = true;
+    this._clearCenter();
+    this._setControlsLocked(false);
   }
 
   // For the 3rd-card opponent case where we don't have time for a flight before the
   // resolve pause: just drop the card into its slot, with the same arrival highlight
   // a tick or two before the collect-flight runs.
   _instantSnapToCenter(seat, cardId, rank, suit) {
-    this._commitToCenter(seat, cardId, rank, suit);
-    const entry = this._centerCards[this._centerCards.length - 1];
+    const entry = this._commitToCenter(seat, cardId, rank, suit);
+    if (!entry) { return; }
     entry.cardEl.classList.add('trick-center__card--just-played');
   }
 
   _collectFlightToWinner(winnerSeat) {
     const destEl = this._getSeatEl(winnerSeat);
     if (!destEl || this._centerCards.length === 0) {
-      this._clearCenter();
-      this._setControlsLocked(false);
+      this._finalizeTrickResolve();
       return;
     }
     const destRect = destEl.getBoundingClientRect();
@@ -242,8 +261,7 @@ class TrickPlayView {
     const onLand = () => {
       landed += 1;
       if (landed >= cards.length) {
-        this._clearCenter();
-        this._setControlsLocked(false);
+        this._finalizeTrickResolve();
       }
     };
     for (const entry of cards) {
@@ -275,8 +293,8 @@ class TrickPlayView {
     // Hide the source so the flying clone is the only visible instance.
     cardEl.style.visibility = 'hidden';
     // Reserve the slot space immediately by committing the destination card hidden.
-    this._commitToCenter(this._seats.self, cardId, card.rank, card.suit);
-    const entry = this._centerCards[this._centerCards.length - 1];
+    const entry = this._commitToCenter(this._seats.self, cardId, card.rank, card.suit);
+    if (!entry) { return; }
     entry.cardEl.style.visibility = 'hidden';
     const toRect = entry.cardEl.getBoundingClientRect();
     this._spawnFlight({
@@ -294,8 +312,8 @@ class TrickPlayView {
     }
     const fromRect = sourceEl.getBoundingClientRect();
     // Pre-commit the centre card hidden, so its rect is the flight destination.
-    this._commitToCenter(seat, cardId, rank, suit);
-    const entry = this._centerCards[this._centerCards.length - 1];
+    const entry = this._commitToCenter(seat, cardId, rank, suit);
+    if (!entry) { return; }
     entry.cardEl.style.visibility = 'hidden';
     const toRect = entry.cardEl.getBoundingClientRect();
     this._spawnFlight({
