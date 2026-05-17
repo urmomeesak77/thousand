@@ -43,12 +43,23 @@ class RoundActionDispatcher {
     this._socket.send({ type: 'exchange_pass', cardId, toSeat });
   }
 
-  sendPlayCard(cardId) {
-    this._socket.send({ type: 'play_card', cardId });
+  sendPlayCard(cardId, opts = {}) {
+    // Guard against stray callers that lost their cardId (e.g. a stale
+    // marriage-prompt handler whose original prompt was never destroyed).
+    if (typeof cardId !== 'number' || !Number.isFinite(cardId)) { return; }
+    const msg = { type: 'play_card', cardId };
+    if (opts.declareMarriage === true) {
+      msg.declareMarriage = true;
+    }
+    this._socket.send(msg);
   }
 
   sendContinueToNextRound() {
     this._socket.send({ type: 'continue_to_next_round' });
+  }
+
+  sendRequestSnapshot() {
+    this._socket.send({ type: 'request_snapshot' });
   }
 }
 

@@ -18,8 +18,13 @@ class CardExchangeView {
     };
     this._antlion.onInput('hand-card-click', this._handClickHandler);
 
-    this._antlion.bindInput(this._el, 'click', 'card-exchange-dest-click');
-    this._antlion.onInput('card-exchange-dest-click', (e) => {
+    // Why: previously this handler was created anonymously, leaving every
+    // round's CardExchangeView registered for the lifetime of the session.
+    // Subsequent rounds' dest-clicks would fire stale handlers too, with old
+    // _selectedCardId values from prior rounds (and stale dest-rows appended
+    // to the shared controls element). Store the handler so destroy()
+    // can offInput it.
+    this._destClickHandler = (e) => {
       const destBtn = e.target.closest('.card-exchange__dest-btn');
       if (!destBtn || this._selectedCardId === null) { return; }
       const toSeat = parseInt(destBtn.dataset.seat, 10);
@@ -30,7 +35,9 @@ class CardExchangeView {
       this._handView.markLeaving(cardId, direction);
       this._removeDestRow();
       this._dispatcher.sendExchangePass(cardId, toSeat);
-    });
+    };
+    this._antlion.bindInput(this._el, 'click', 'card-exchange-dest-click');
+    this._antlion.onInput('card-exchange-dest-click', this._destClickHandler);
   }
 
   render(snapshot) {
@@ -94,6 +101,7 @@ class CardExchangeView {
 
   destroy() {
     this._antlion.offInput('hand-card-click', this._handClickHandler);
+    this._antlion.offInput('card-exchange-dest-click', this._destClickHandler);
     this._handView.removeLeaving();
     this._handView.setSingleSelected(null);
     this._handView.setInteractive(false);

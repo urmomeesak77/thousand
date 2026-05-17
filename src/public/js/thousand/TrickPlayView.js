@@ -93,6 +93,14 @@ class TrickPlayView {
     this._handView.setInteractive(true);
 
     this._renderCollectedBadges(collectedTrickCounts);
+
+    // Self-healing watchdog: if it's our turn but we have cards yet none are
+    // legal, our HandView has drifted from server hands[] (the server's
+    // legalCardIds was computed from a different hand than ours). Ask for a
+    // fresh snapshot before the user is stuck staring at all-disabled cards.
+    if (viewerIsActive && handIds.length > 0 && legalSet.size === 0) {
+      this._dispatcher.sendRequestSnapshot();
+    }
   }
 
   _renderCollectedBadges(collectedTrickCounts) {
@@ -366,6 +374,7 @@ class TrickPlayView {
 
   destroy() {
     this._antlion.offInput('hand-card-click', this._handClickHandler);
+    this._prompt?.destroy();
     for (const id of this._scheduledIds) {
       this._antlion.cancelScheduled?.(id);
     }

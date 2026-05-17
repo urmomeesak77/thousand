@@ -7,6 +7,17 @@ const $ = (id) => document.getElementById(id);
 // switches to innerHTML this gate keeps the surface narrow.
 const isObj = (v) => v !== null && typeof v === 'object';
 
+// Reject reasons that genuinely report user/UI input problems (vs ones that
+// mean the client's view has drifted from server state). For NON_RESYNC
+// reasons we just show the toast; everything else implies the local hand /
+// turn / phase view is stale, so we request a fresh round_state_snapshot.
+const NON_RESYNC_REASONS = new Set([
+  'Not in a round',
+  'Not in a game',
+  'Game is not in progress',
+  'Cards must be distinct',
+]);
+
 const MESSAGE_VALIDATORS = {
   connected: (m) => (
     typeof m.playerId === 'string'
@@ -104,7 +115,7 @@ class ThousandMessageRouter {
       error:                (m) => app._toast.show(m.message || 'An error occurred'),
       round_started:        (m) => this._onRoundStarted(m),
       phase_changed:        (m) => app._gameScreen.updateStatus(m.gameStatus),
-      action_rejected:      (m) => { app._toast.show(m.reason); app._gameScreen?.revertOptimisticHand(); },
+      action_rejected:      (m) => this._onActionRejected(m),
       bid_accepted:         (m) => this._onBidAccepted(m),
       pass_accepted:        (m) => this._onPassAccepted(m),
       talon_absorbed:           (m) => app._gameScreen.sellPhase.absorbTalon(m),
@@ -138,6 +149,20 @@ class ThousandMessageRouter {
       return;
     }
     this._handlers[msg.type]?.(msg);
+  }
+
+  // Surface the reason as a toast and roll back any optimistic hand state. For
+  // state-divergence reasons ("Card not in hand", "Not your turn", follow-suit
+  // errors) the client's HandView or turn state has drifted from the server's,
+  // so self-heal by asking for a fresh round_state_snapshot. initFromSnapshot
+  // applies it via setHand / mountForPhase.
+  _onActionRejected(msg) {
+    const app = this._app;
+    app._toast.show(msg.reason);
+    app._gameScreen?.revertOptimisticHand();
+    if (!NON_RESYNC_REASONS.has(msg.reason)) {
+      app._socket?.send({ type: 'request_snapshot' });
+    }
   }
 
   // Server kicks this connection when another tab/browser connects with the same

@@ -440,6 +440,28 @@ class RoundActionHandler {
     }
   }
 
+  // Client-initiated resync: emit a fresh round_state_snapshot to the requester.
+  // Used by the client when it detects local state has diverged from the server
+  // (e.g. action_rejected with reason "Card not in hand"). Rate-limited like
+  // every other in-round action so it cannot be weaponized for flooding.
+  handleRequestSnapshot(playerId) {
+    if (!this._rateLimiter.isAllowed(playerId)) {
+      return;
+    }
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      return;
+    }
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      return;
+    }
+    const snapshot = game.round.getSnapshotFor(seat);
+    if (snapshot) {
+      this._store.sendToPlayer(playerId, snapshot);
+    }
+  }
+
   _startAndBroadcastNextRound(game) {
     const session = game.session;
     session.startNextRound();
