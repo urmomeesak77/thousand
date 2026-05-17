@@ -370,9 +370,13 @@ class GameScreen {
       this._antlion, sequence, this._cardsById, this._seats.self, this._cardTable,
       () => {
         this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
-        const selfCards = Object.values(this._cardsById)
-          .filter(c => !this._talonCardIds.includes(c.id));
-        this._handView.setHand(selfCards);
+        // Why: when bidding resolves before this completion fires (slow tabs, accumulated
+        // jank), talon_absorbed already added the talon identities to cardsById and called
+        // setHand(10). Filtering talon out here would shrink the hand back to 7, leaving
+        // the declarer's client with cards the server thinks they hold but cannot see
+        // (causing trick-play deadlock). cardsById only ever contains cards the viewer is
+        // authorized to see, so passing it through unfiltered is always safe.
+        this._handView.setHand(Object.values(this._cardsById));
         // Talon stays face-down during bidding; declarer reveals it on take
         this._talonView.setFaceDownCount(this._talonCardIds.length);
         this._leftOpponent.setCardCount(opponentHandSizes[this._seats.left] ?? OPPONENT_DEFAULT_HAND);

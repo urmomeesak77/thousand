@@ -23,8 +23,10 @@ class Round {
     this._game = game;
     this._store = store;
 
-    // seat 0 = Dealer = 1st joiner (host), seat 1 = P1 = 2nd joiner, seat 2 = P2 = 3rd joiner
-    this.dealerSeat = 0;
+    // seat 0 = Dealer = 1st joiner (host), seat 1 = P1 = 2nd joiner, seat 2 = P2 = 3rd joiner.
+    // After round 1, session.dealerSeat is rotated clockwise (FR-016); inherit it so every
+    // new Round honors the rotation. Falls back to 0 for tests that build Round without a session.
+    this.dealerSeat = game.session?.dealerSeat ?? 0;
     this.seatOrder = [...game.players];
     this.seatByPlayer = new Map(this.seatOrder.map((pid, idx) => [pid, idx]));
 
@@ -88,7 +90,7 @@ class Round {
   advanceFromDealingToBidding() {
     if (this.phase !== 'dealing') {return;}
     this.phase = 'bidding';
-    this.currentTurnSeat = 1; // P1 (clockwise-left of Dealer) bids first per FR-004
+    this.currentTurnSeat = (this.dealerSeat + 1) % 3; // P1 (clockwise-left of Dealer) bids first per FR-004
   }
 
   submitBid(seat, amount) {

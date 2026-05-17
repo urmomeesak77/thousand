@@ -10,8 +10,8 @@ const { spawn } = require('child_process');
 
 const PORT = 3099;
 const BASE_URL = `http://localhost:${PORT}`;
-const HEADLESS = true;    // set true to run without visible browsers
-const SLOW_MO = 20;       // ms between actions for visibility
+const HEADLESS = false;   // set true to run without visible browsers
+const SLOW_MO = 80;       // ms between actions for visibility
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Server management
@@ -310,6 +310,8 @@ async function main() {
     let lastActorIdx = -1;
     let stuckSnapshotted = false;
     const STUCK_THRESHOLD = 40;
+    let consecutiveNoActor = 0;
+    const NO_ACTOR_STUCK_THRESHOLD = 60;
 
     while (doneCnt < 3 && iter < MAX_ITER) {
       iter++;
@@ -341,8 +343,10 @@ async function main() {
         if (action) { anyActorThisIter = i; }
       }
 
-      // Stuck detector: same player acts alone for too long → dump state and bail.
+      // Stuck detector: same player acts alone too long, OR no actor for too long → dump state and bail.
+      let stuckReason = null;
       if (anyActorThisIter !== -1) {
+        consecutiveNoActor = 0;
         if (anyActorThisIter === lastActorIdx) {
           consecutiveSamePlayer++;
         } else {
@@ -350,26 +354,49 @@ async function main() {
           lastActorIdx = anyActorThisIter;
         }
         if (consecutiveSamePlayer >= STUCK_THRESHOLD && !stuckSnapshotted) {
-          stuckSnapshotted = true;
-          console.log(`\n⚠️  STUCK — ${players[lastActorIdx].name} acted alone ${consecutiveSamePlayer}x. Dumping state…\n`);
-          for (const { page, name } of players) {
-            try {
-              await page.screenshot({ path: `stuck-${name.toLowerCase()}.png` });
-              const state = await page.evaluate(() => {
-                const app = window.__thousandApp;
-                const gs = app?._gameScreen?._lastGameStatus ?? null;
-                const handCards = Array.from(document.querySelectorAll('.hand-view__card[data-card-id]'))
-                  .map((el) => ({ id: el.dataset.cardId, disabled: el.classList.contains('card--disabled') }));
-                const interactive = !!document.querySelector('.hand-view--interactive');
-                return { gameStatus: gs, handCards, interactive };
-              }).catch((e) => ({ error: e.message }));
-              console.log(`[STUCK ${name}]`, JSON.stringify(state, null, 2));
-            } catch (e) {
-              console.log(`[STUCK ${name}] error: ${e.message}`);
-            }
-          }
-          break;
+          stuckReason = `${players[lastActorIdx].name} acted alone ${consecutiveSamePlayer}x`;
         }
+      } else {
+        consecutiveNoActor++;
+        if (consecutiveNoActor >= NO_ACTOR_STUCK_THRESHOLD && !stuckSnapshotted) {
+          stuckReason = `no player acted for ${consecutiveNoActor} iterations (~${(consecutiveNoActor * 150 / 1000).toFixed(0)}s)`;
+        }
+      }
+      if (stuckReason) {
+        stuckSnapshotted = true;
+        console.log(`\n⚠️  STUCK — ${stuckReason}. Dumping state…\n`);
+        for (const { page, name } of players) {
+          try {
+            await page.screenshot({ path: `stuck-${name.toLowerCase()}.png` });
+            const state = await page.evaluate(() => {
+              const handCards = Array.from(document.querySelectorAll('.hand-view__card[data-card-id]'))
+                .map((el) => {
+                  const klass = el.className;
+                  const id = el.dataset.cardId;
+                  // Extract rank/suit from class card--XY (e.g. card--KD, card--10H)
+                  const m = klass.match(/card--([0-9]+|[A-Z])([CSHD])/);
+                  return { id, disabled: el.classList.contains('card--disabled'),
+                           rank: m?.[1] ?? null, suit: m?.[2] ?? null };
+                });
+              const interactive = !!document.querySelector('.hand-view--interactive');
+              const statusBar = document.querySelector('.status-bar')?.textContent ?? null;
+              const turnText = document.querySelector('.status-bar__turn')?.textContent ?? null;
+              const centerCards = Array.from(document.querySelectorAll('.trick-center__slot .card-sprite'))
+                .map((el) => {
+                  const m = el.className.match(/card--([0-9]+|[A-Z])([CSHD])/);
+                  return { rank: m?.[1] ?? null, suit: m?.[2] ?? null,
+                           cardId: el.dataset.cardId };
+                });
+              const collected = Array.from(document.querySelectorAll('.collected-tricks__badge'))
+                .map((el) => el.textContent);
+              return { statusBar, turnText, handCards, interactive, centerCards, collected };
+            }).catch((e) => ({ error: e.message }));
+            console.log(`[STUCK ${name}]`, JSON.stringify(state, null, 2));
+          } catch (e) {
+            console.log(`[STUCK ${name}] error: ${e.message}`);
+          }
+        }
+        break;
       }
 
       // Pause between cycles (shorter when something is happening)
