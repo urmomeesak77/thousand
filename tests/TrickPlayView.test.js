@@ -323,6 +323,113 @@ describe('TrickPlayView — trick resolve schedules collect-flight after pause',
   });
 });
 
+describe('TrickPlayView — marriage prompt cross-checks server-authoritative legal set', () => {
+  it('does NOT offer marriage when local hand has phantom Q (not in gameStatus.legalCardIds)', () => {
+    // Scenario: HandView still contains a card the server-side hand has lost
+    // (e.g. an own play whose card_played never landed — leaving the card
+    // as a phantom in HandView). legalCardIds is the authoritative truth.
+    const doc = dom.window.document;
+    const cardsById = {
+      // Real cards in server's hand: K♥, J♦, Q♦
+      16: { id: 16, rank: 'K', suit: '♥' },
+      19: { id: 19, rank: 'J', suit: '♦' },
+      22: { id: 22, rank: 'Q', suit: '♦' },
+      // PHANTOM — left over in cardsById and HandView from a failed optimistic play
+      99: { id: 99, rank: 'Q', suit: '♥' },
+    };
+    const { view, handView, antlion, dispatcher } = makeTrickPlayView(
+      DEFAULT_SEATS, { cardsById }
+    );
+    handView._setCardIds([16, 19, 22, 99]); // local view includes phantom
+    view.render(makeGameStatus({
+      trickNumber: 6,
+      viewerIsActive: true,
+      viewerIsLeading: true,
+      legalCardIds: [16, 19, 22], // server says: phantom is NOT a legal card
+      currentTrick: [],
+    }));
+
+    // Simulate a click on K♥ (cardId=16) and verify the marriage prompt
+    // would NOT be shown — the click should fall through to a regular play.
+    const hand = doc.createElement('div');
+    hand.className = 'hand-view--interactive';
+    const k = doc.createElement('div');
+    k.className = 'hand-view__card';
+    k.dataset.cardId = '16';
+    hand.appendChild(k);
+    doc.body.appendChild(hand);
+
+    // Trigger the click handler directly (simulating user click on K♥)
+    view._handClickHandler({ target: k });
+
+    // Verify that sendPlayCard was called WITHOUT declareMarriage,
+    // i.e. the prompt was not shown and the click went to direct play.
+    const playCalls = dispatcher._calls;
+    assert.equal(playCalls.length, 1, 'should send exactly one play action');
+    assert.equal(playCalls[0].cardId, 16, 'should play K♥');
+    // No declareMarriage in the call — direct play, not a marriage attempt.
+  });
+});
+
+describe('TrickPlayView — stale-centre self-heal on rejected optimistic play', () => {
+  it('trims local entries the server\'s currentTrick no longer contains', () => {
+    const { view, trickCenterEl } = makeTrickPlayView();
+
+    // Pretend the viewer optimistically committed their own 3rd card on top of
+    // two real opponent plays. Server then re-broadcasts a snapshot whose
+    // currentTrick only has the two opponent plays (own play was rejected).
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 1, cardId: 11, rank: '9', suit: '♣' },
+        { seat: 2, cardId: 23, rank: 'J', suit: '♣' },
+        { seat: 0, cardId: 2,  rank: '10', suit: '♣' },
+      ],
+    }));
+    assert.equal(trickCenterEl.querySelectorAll('.card-sprite').length, 3,
+      'precondition: three cards in centre');
+
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 1, cardId: 11, rank: '9', suit: '♣' },
+        { seat: 2, cardId: 23, rank: 'J', suit: '♣' },
+      ],
+    }));
+
+    const sprites = trickCenterEl.querySelectorAll('.card-sprite');
+    assert.equal(sprites.length, 2,
+      'stale optimistic 3rd card must be removed when server drops it');
+    const ids = [...sprites].map((el) => el.dataset.cardId).sort();
+    assert.deepEqual(ids, ['11', '23'],
+      'remaining sprites must be the two cards the server still has');
+  });
+
+  it('does not append a second sprite when the same own card is clicked twice', () => {
+    const doc = dom.window.document;
+    const cardsById = { 2: { id: 2, rank: '10', suit: '♣' } };
+    const { view, trickCenterEl, handView } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    handView._setCardIds([2]);
+    view.render(makeGameStatus({ currentTrick: [], legalCardIds: [2] }));
+
+    // Fabricate two click events on the same hand card, mirroring what
+    // a double-click before the server ack would trigger.
+    const hand = doc.createElement('div');
+    hand.className = 'hand-view--interactive';
+    const cardEl = doc.createElement('div');
+    cardEl.className = 'hand-view__card card-sprite';
+    cardEl.dataset.cardId = '2';
+    hand.appendChild(cardEl);
+    doc.body.appendChild(hand);
+
+    view._startOwnFlight(2, cardEl);
+    view._startOwnFlight(2, cardEl);
+
+    const selfSprites = trickCenterEl.querySelectorAll('.trick-center__slot--self .card-sprite');
+    assert.equal(selfSprites.length, 1,
+      'a double-click before server ack must not duplicate the centre sprite');
+  });
+});
+
 describe('TrickPlayView — destroy clears centre and removes class', () => {
   it('clears trick-center class and DOM children', () => {
     const { view, trickCenterEl } = makeTrickPlayView();

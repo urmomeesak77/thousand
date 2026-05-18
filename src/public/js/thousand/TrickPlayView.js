@@ -68,7 +68,12 @@ class TrickPlayView {
     const card = this._cardsById[cardId];
     if (!card) { return false; }
     if (card.rank !== 'K' && card.rank !== 'Q') { return false; }
-    const handIds = this._handView.getCardIds();
+    // Cross-check against server-authoritative legalCardIds. HandView can drift
+    // (e.g. a forceClick that silently failed leaves a phantom card behind),
+    // so we restrict the marriage check to ids the server agrees are still in
+    // hand. For a leader, legalCardIds is the entire hand — perfect for this.
+    const legalSet = new Set(gs.legalCardIds ?? []);
+    const handIds = this._handView.getCardIds().filter((id) => legalSet.has(id));
     const hand = handIds.map((id) => this._cardsById[id]).filter(Boolean);
     if (!MarriageDeclarationPrompt.canOffer(hand, gs.trickNumber)) { return false; }
     const hasK = hand.some((c) => c.rank === 'K' && c.suit === card.suit);
@@ -185,12 +190,26 @@ class TrickPlayView {
       return;
     }
 
-    // No pending message: this is an init/reconnect render. Mirror snapshot statelessly.
-    if (this._centerCards.length === 0 && incomingTrick.length > 0) {
-      for (const entry of incomingTrick) {
-        if (entry.rank && entry.suit) {
-          this._commitToCenter(entry.seat, entry.cardId, entry.rank, entry.suit);
-        }
+    // No pending message: reconcile statelessly against the server's currentTrick.
+    // Handles both init/reconnect (local empty) AND stale optimistic drift —
+    // e.g. an own play that the server never accepted (rejection or silent drop)
+    // leaves _centerCards with a card the server's currentTrick lacks, and the
+    // existing branches above don't touch it. Without this, the centre stays
+    // stuck and the user can't recover.
+    const serverIds = new Set(incomingTrick.map((e) => e.cardId));
+    const localIds  = new Set(this._centerCards.map((e) => e.cardId));
+    const diverged = serverIds.size !== localIds.size
+      || [...serverIds].some((id) => !localIds.has(id));
+    if (!diverged) { return; }
+
+    this._centerCards = this._centerCards.filter((entry) => {
+      if (serverIds.has(entry.cardId)) { return true; }
+      entry.cardEl.remove();
+      return false;
+    });
+    for (const entry of incomingTrick) {
+      if (!localIds.has(entry.cardId) && entry.rank && entry.suit) {
+        this._commitToCenter(entry.seat, entry.cardId, entry.rank, entry.suit);
       }
     }
   }
@@ -295,6 +314,9 @@ class TrickPlayView {
   _startOwnFlight(cardId, cardEl) {
     const card = this._cardsById[cardId];
     if (!card) { return; }
+    // Guard against double-click before server ack: don't append a second sprite
+    // to the same slot if this card is already committed.
+    if (this._centerCards.some((c) => c.cardId === cardId)) { return; }
     const slot = this._slotForSeat(this._seats.self);
     if (!slot) { return; }
     const fromRect = cardEl.getBoundingClientRect();

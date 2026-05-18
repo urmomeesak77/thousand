@@ -10,12 +10,19 @@ class RoundActionHandler {
   constructor({ store }) {
     this._store = store;
     this._rateLimiter = new RateLimiter(250, 1);
+    // Snapshot needs its own bucket: the rejection-recovery path fires
+    // request_snapshot immediately after a rejected action, which would
+    // otherwise be silently dropped by the shared limiter and leave the
+    // client stuck in a divergent state. 50 ms × 1 = 20 snapshots/sec/player,
+    // far above any natural recovery rate but bounded against flooding.
+    this._snapshotLimiter = new RateLimiter(50, 1);
   }
 
-  // Called by the periodic cleanup cron; without this, `_rateLimiter`'s internal
-  // Map keeps an entry for every player ID that ever submitted a round action.
+  // Called by the periodic cleanup cron; without this, the rate-limiter Maps
+  // keep an entry for every player ID that ever submitted a round action.
   cleanupRateLimiter() {
     this._rateLimiter.cleanup();
+    this._snapshotLimiter.cleanup();
   }
 
   _gameOf(playerId) {
@@ -32,6 +39,10 @@ class RoundActionHandler {
   }
 
   _reject(playerId, reason) {
+    const game = this._gameOf(playerId);
+    const phase = game?.round?.phase ?? '?';
+    const seat = this._seatOf(playerId);
+    console.log(`[reject] pid=${playerId} seat=${seat} phase=${phase} reason="${reason}"`);
     this._store.sendToPlayer(playerId, { type: 'action_rejected', reason });
   }
 
@@ -445,7 +456,7 @@ class RoundActionHandler {
   // (e.g. action_rejected with reason "Card not in hand"). Rate-limited like
   // every other in-round action so it cannot be weaponized for flooding.
   handleRequestSnapshot(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {
+    if (!this._snapshotLimiter.isAllowed(playerId)) {
       return;
     }
     const game = this._gameOf(playerId);

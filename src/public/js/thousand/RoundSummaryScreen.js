@@ -24,7 +24,10 @@ class RoundSummaryScreen {
   render(summary) {
     this._el.innerHTML = '';
     this._summary = summary;
-    this._continuePressedSeats.clear();
+    // _continuePressedSeats is owned by _onContinueClick (local) and update()
+    // (server broadcast). render() is also called by _onContinueClick to disable
+    // the button — clearing the set here would wipe the seat we just added and
+    // re-render the button enabled, letting test/users double-fire the action.
 
     const { declarerMadeBid, perPlayer, victoryReached } = summary;
 

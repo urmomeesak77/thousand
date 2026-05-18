@@ -70,13 +70,28 @@ describe('RoundActionHandler.handleRequestSnapshot', () => {
     assert.equal(sent.lone.length, 0, 'silent no-op when caller has no round');
   });
 
-  it('is rate-limited: second call within 250 ms produces no second snapshot', () => {
+  it('is rate-limited: second snapshot call back-to-back produces no second snapshot', () => {
     const { handler, sent } = makeSetup();
 
     handler.handleRequestSnapshot('p1');
     handler.handleRequestSnapshot('p1');
 
     const p1Snapshots = sent.p1.filter((m) => m.type === 'round_state_snapshot');
-    assert.equal(p1Snapshots.length, 1, 'rate-limited second call is dropped');
+    assert.equal(p1Snapshots.length, 1, 'rate-limited second snapshot call is dropped');
+  });
+
+  // The bug this guards against: an in-round action gets rejected, the client
+  // immediately fires request_snapshot to recover, but the snapshot was dropped
+  // by the same rate-limiter that just admitted the rejected action — leaving
+  // the client stuck in a divergent state. The two paths must NOT share a counter.
+  it('snapshot is allowed even when an action was just submitted (separate rate-limit buckets)', () => {
+    const { handler, sent } = makeSetup();
+
+    handler.handlePass('p1');
+    handler.handleRequestSnapshot('p1');
+
+    const p1Snapshots = sent.p1.filter((m) => m.type === 'round_state_snapshot');
+    assert.equal(p1Snapshots.length, 1,
+      'snapshot must go through immediately after an action — otherwise the rejection-recovery path deadlocks');
   });
 });

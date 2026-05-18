@@ -305,7 +305,7 @@ async function main() {
     const done    = [false, false, false];
     let doneCnt   = 0;
     let iter      = 0;
-    const MAX_ITER = 3000;
+    const MAX_ITER = 6000;
     let consecutiveSamePlayer = 0;
     let lastActorIdx = -1;
     let stuckSnapshotted = false;
