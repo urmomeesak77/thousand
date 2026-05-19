@@ -244,6 +244,11 @@ class GameScreen {
       this._talonView.clear();
     }
     this._applyOpponentHandSizes(gameStatus.opponentHandSizes);
+    // Why: forward to an active TrickPlayView before the mount check so that a
+    // last-trick resolve (phase changes Trick play → Round complete on the
+    // resolving card_played) can engage the controls-lock — otherwise
+    // mountForPhase destroys TrickPlayView before the 3s hold can run.
+    this._controls.forwardStatusToTrickPlayView(gameStatus);
     if (this._canMountNow(gameStatus)) {
       this._controls.mountForPhase(gameStatus);
       this._lastMountedPhase = gameStatus.phase;
