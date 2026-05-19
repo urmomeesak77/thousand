@@ -3,7 +3,6 @@ import { MARRIAGE_BONUS } from './constants.js';
 import { SUIT_LETTER } from './cardSymbols.js';
 
 const FLIGHT_MS = 500;
-const RESOLVE_PAUSE_MS = 350;
 const TRICK_WINNER_HOLD_MS = 5000;
 
 class TrickPlayView {
@@ -233,15 +232,13 @@ class TrickPlayView {
   _handleTrickResolve(winnerSeat) {
     // The 3rd card needs to appear before the collect-flight kicks off. For the
     // opponent case we run a normal flight (not a snap) so the play is visible —
-    // and extend the resolve pause by FLIGHT_MS so the flight has time to land
-    // before the collect-flight starts pulling everything to the winner.
+    // and add FLIGHT_MS to the hold so the flight lands before the 5s hold begins
+    // ticking down.
     let extraPauseMs = 0;
     if (this._pendingPlayed) {
       const { seat, cardId } = this._pendingPlayed;
       const identity = this._cardsById[cardId];
       if (identity && !this._centerCards.some((c) => c.cardId === cardId)) {
-        // Even an opponent's 3rd card is in cardsById now — ThousandApp seeded it
-        // from msg.card before forwarding notifyCardPlayed → updateStatus → render.
         if (seat === this._seats.self) {
           this._commitToCenter(seat, cardId, identity.rank, identity.suit);
         } else {
@@ -254,17 +251,30 @@ class TrickPlayView {
     this._resolveFinalized = false;
     this._pendingWinnerSeat = winnerSeat;
     this._setControlsLocked(true);
-    const totalPauseMs = RESOLVE_PAUSE_MS + extraPauseMs;
-    const pauseId = this._antlion.schedule(totalPauseMs, () => {
+
+    // Set the winner banner up front so it is visible during the hold AND the
+    // collect-flight. Duration spans the opponent-landing pause (if any), the
+    // 5s hold, and the collect-flight.
+    const nickname = this._getPlayerNickname(winnerSeat);
+    const totalSequenceMs = extraPauseMs + TRICK_WINNER_HOLD_MS + FLIGHT_MS;
+    if (nickname) {
+      this._setStatusOverride(`${nickname} won the trick`, totalSequenceMs);
+    }
+
+    // Hold the three cards in the centre for 5 seconds (plus any opponent-landing
+    // pause), then run the collect-flight to the winner's stack.
+    const holdMs = extraPauseMs + TRICK_WINNER_HOLD_MS;
+    const pauseId = this._antlion.schedule(holdMs, () => {
       this._scheduledIds.delete(pauseId);
       this._collectFlightToWinner(winnerSeat);
     });
     this._scheduledIds.add(pauseId);
+
     // Why: rAF is throttled/paused in occluded or background browser windows, so
     // an onLand-only release can hang forever (the game lock would stay engaged and
     // mountForPhase would stop firing). This setTimeout-based safety net guarantees
     // the lock releases on a real-time deadline regardless of frame painting.
-    const safetyId = this._antlion.schedule(totalPauseMs + FLIGHT_MS + 200, () => {
+    const safetyId = this._antlion.schedule(holdMs + FLIGHT_MS + 200, () => {
       this._scheduledIds.delete(safetyId);
       this._finalizeTrickResolve();
     });
@@ -275,20 +285,8 @@ class TrickPlayView {
     if (this._resolveFinalized) { return; }
     this._resolveFinalized = true;
     this._clearCenter();
-
-    const winnerSeat = this._pendingWinnerSeat;
     this._pendingWinnerSeat = null;
-    const nickname = winnerSeat != null ? this._getPlayerNickname(winnerSeat) : null;
-    if (nickname) {
-      this._setStatusOverride(`${nickname} won the trick`, TRICK_WINNER_HOLD_MS);
-      const holdId = this._antlion.schedule(TRICK_WINNER_HOLD_MS, () => {
-        this._scheduledIds.delete(holdId);
-        this._setControlsLocked(false);
-      });
-      this._scheduledIds.add(holdId);
-    } else {
-      this._setControlsLocked(false);
-    }
+    this._setControlsLocked(false);
   }
 
   // Returns a card-sized source rect for an opponent's play-to-centre flight.
