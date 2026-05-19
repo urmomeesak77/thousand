@@ -294,6 +294,12 @@ class ThousandMessageRouter {
 
   _onFinalResults(msg) {
     const app = this._app;
+    // Why: once final results land, the server has already torn down the game
+    // (player.gameId cleared, game record deleted). Pressing Escape from here
+    // should route to the back-to-lobby flow rather than re-opening the
+    // leave-confirm modal — issuing /api/leave at this point would 404 on the
+    // server. Match _onRoundAborted's behavior by flagging the round as ended.
+    app._roundEnded = true;
     app._gameScreen.updateSnapshot({ finalResults: msg.finalResults });
     app._gameScreen.updateStatus({ ...msg.gameStatus, phase: 'Game over' });
   }

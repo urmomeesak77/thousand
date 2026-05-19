@@ -75,13 +75,17 @@ class GameApi {
   }
 
   async leave(gameId) {
+    // Why: the server returns 404 when the game/membership no longer exists
+    // (round ended in victory, opponent already left and triggered cleanup,
+    // race after a round_aborted broadcast). The intent of /leave is "drop me
+    // from this game" — if the server has already done that, we've succeeded.
+    // Surfacing a toast just confuses the user with a phantom error.
+    if (!gameId) { return true; }
     try {
       const { res, data } = await this._post(`/api/games/${gameId}/leave`, {});
-      if (!res.ok) {
-        this._onError(data.message || 'Failed to leave game');
-        return false;
-      }
-      return true;
+      if (res.ok || res.status === 404) { return true; }
+      this._onError(data.message || 'Failed to leave game');
+      return false;
     } catch {
       this._onError('Network error. Please try again.');
       return false;

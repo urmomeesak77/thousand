@@ -334,7 +334,7 @@ class RoundActionHandler {
     const { victoryReached, finalResults } = isRoundComplete
       ? this._computeRoundEnd(game, round)
       : { victoryReached: false, finalResults: null };
-    this._broadcastPlayCardResults(game, round, playerId, marriageResult, isRoundComplete, victoryReached, finalResults);
+    this._broadcastPlayCardResults(game, round, playerId, cardId, marriageResult, isRoundComplete, victoryReached, finalResults);
     if (isRoundComplete && victoryReached) {
       this._store._cleanupRound(game.id);
     }
@@ -371,17 +371,15 @@ class RoundActionHandler {
     return { victoryReached, finalResults: victoryReached ? buildFinalResults(session) : null };
   }
 
-  _broadcastPlayCardResults(game, round, playerId, marriageResult, isRoundComplete, victoryReached, finalResults) {
+  _broadcastPlayCardResults(game, round, playerId, cardId, marriageResult, isRoundComplete, victoryReached, finalResults) {
     const trickNumber = round.trickNumber;
     const playerSeat = this._seatOf(playerId);
-    // The last trick entry holds the card that was just played; safe across both
-    // mid-trick (currentTrick has the new card) and end-of-trick (collectedTricks last).
-    const lastTrickEntry = round.currentTrick?.length > 0
-      ? round.currentTrick[round.currentTrick.length - 1]
-      : null;
-    const playedCardId = lastTrickEntry?.cardId
-      ?? round.collectedTricks?.[playerSeat]?.[round.collectedTricks[playerSeat].length - 1]
-      ?? null;
+    // Why: when the 3rd (trick-resolving) card is played, _resolveTrick clears
+    // currentTrick before broadcast — and the collected pile belongs to the
+    // *winner*, not necessarily the player who just played. Deriving from round
+    // state therefore mis-identified the card for a 3rd-card non-winner. The
+    // play_card handler already has the authoritative cardId; thread it through.
+    const playedCardId = cardId;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
