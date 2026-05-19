@@ -276,13 +276,38 @@ class TrickPlayView {
     entry.cardEl.classList.add('trick-center__card--just-played');
   }
 
+  // Returns a card-sized destination rect for the post-trick collect-flight.
+  // Anchors on the winner's hand-stack area so the flight clones don't scale
+  // up against a wide seat container.
+  _destRectForWinner(winnerSeat) {
+    const seatEl = this._getSeatEl(winnerSeat);
+    if (!seatEl) { return null; }
+    const cardWidth = this._centerCards[0]?.cardEl?.getBoundingClientRect().width ?? 0;
+    if (winnerSeat === this._seats?.self) {
+      const last = seatEl.querySelector('[data-card-id]:last-of-type');
+      if (last) { return last.getBoundingClientRect(); }
+    } else {
+      const stack = seatEl.querySelector('.opponent-view__stack');
+      if (stack) {
+        const r = stack.getBoundingClientRect();
+        const w = Math.min(r.width, cardWidth || r.width);
+        return { left: r.left, top: r.top, width: w, height: r.height, right: r.left + w, bottom: r.bottom };
+      }
+    }
+    const r = seatEl.getBoundingClientRect();
+    const w = cardWidth || Math.min(r.width, 100);
+    const h = w * 1.4;
+    const cx = r.left + r.width / 2;
+    const cy = r.top  + r.height / 2;
+    return { left: cx - w / 2, top: cy - h / 2, width: w, height: h, right: cx + w / 2, bottom: cy + h / 2 };
+  }
+
   _collectFlightToWinner(winnerSeat) {
-    const destEl = this._getSeatEl(winnerSeat);
-    if (!destEl || this._centerCards.length === 0) {
+    const destRect = this._destRectForWinner(winnerSeat);
+    if (!destRect || this._centerCards.length === 0) {
       this._finalizeTrickResolve();
       return;
     }
-    const destRect = destEl.getBoundingClientRect();
     const cards = [...this._centerCards];
     let landed = 0;
     const onLand = () => {
@@ -297,7 +322,6 @@ class TrickPlayView {
         fromRect, toRect: destRect, rank: entry.rank, suit: entry.suit,
         duration: FLIGHT_MS, onDone: onLand,
       });
-      // Hide the original card; the clone is what the user sees moving.
       entry.cardEl.style.visibility = 'hidden';
     }
   }

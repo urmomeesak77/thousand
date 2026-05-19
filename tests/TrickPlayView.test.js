@@ -446,6 +446,79 @@ describe('TrickPlayView — destroy clears centre and removes class', () => {
   });
 });
 
+describe('TrickPlayView — collect-flight destination is card-sized (no zoom)', () => {
+  it('_destRectForWinner returns width close to the source card width for an opponent winner', () => {
+    const doc = dom.window.document;
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+    };
+    const { view, trickCenterEl, seatEls } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    // Make the winner-seat container much wider than a card so a naive
+    // implementation would visibly zoom.
+    Object.defineProperty(seatEls[1], 'getBoundingClientRect', {
+      value: () => ({ left: 0, top: 0, right: 800, bottom: 200, width: 800, height: 200 }),
+    });
+    // Inject a card-sized .opponent-view__stack child as the real OpponentView would.
+    const stackEl = doc.createElement('div');
+    stackEl.className = 'opponent-view__stack';
+    Object.defineProperty(stackEl, 'getBoundingClientRect', {
+      value: () => ({ left: 0, top: 0, right: 80, bottom: 110, width: 80, height: 110 }),
+    });
+    seatEls[1].appendChild(stackEl);
+
+    // Render a centre card so _destRectForWinner has a source card width reference.
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 2, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+    for (const sprite of trickCenterEl.querySelectorAll('.card-sprite')) {
+      Object.defineProperty(sprite, 'getBoundingClientRect', {
+        value: () => ({ left: 0, top: 0, right: 80, bottom: 110, width: 80, height: 110 }),
+      });
+    }
+
+    const dest = view._destRectForWinner(1);
+    assert.ok(dest, 'destination rect must be returned');
+    assert.ok(dest.width <= 100,
+      `destination width must be card-sized (got ${dest.width}, expected <= 100)`);
+
+    view.destroy();
+  });
+
+  it('_destRectForWinner returns the last hand card rect for a self winner', () => {
+    const doc = dom.window.document;
+    const { view, seatEls, trickCenterEl } = makeTrickPlayView();
+    // Stub a card sprite in the self seat element (the hand row).
+    const lastCard = doc.createElement('div');
+    lastCard.dataset.cardId = '42';
+    Object.defineProperty(lastCard, 'getBoundingClientRect', {
+      value: () => ({ left: 200, top: 600, right: 280, bottom: 710, width: 80, height: 110 }),
+    });
+    seatEls[0].appendChild(lastCard);
+
+    view.render(makeGameStatus({
+      currentTrick: [{ seat: 0, cardId: 1, rank: 'A', suit: '♣' }],
+    }));
+    for (const sprite of trickCenterEl.querySelectorAll('.card-sprite')) {
+      Object.defineProperty(sprite, 'getBoundingClientRect', {
+        value: () => ({ left: 0, top: 0, right: 80, bottom: 110, width: 80, height: 110 }),
+      });
+    }
+
+    const dest = view._destRectForWinner(0);
+    assert.ok(dest, 'destination rect must be returned');
+    assert.ok(Math.abs(dest.width - 80) < 1,
+      `self destination width must match the last hand card width (got ${dest.width})`);
+
+    view.destroy();
+  });
+});
+
 describe('TrickPlayView — seat 0 badge shows × 3 after render (FR-008)', () => {
   it('after render with collectedTrickCounts: {0: 3, 1: 0, 2: 0}, seat 0 badge shows × 3', () => {
     const { view, el } = makeTrickPlayView();
