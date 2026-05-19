@@ -87,6 +87,7 @@ function buildViewModel(round, seat) {
         ? { onBarrel: true, barrelRoundsUsed: session.barrelState[s].barrelRoundsUsed }
         : null]))
       : null,
+    opponentHandSizes: buildOpponentHandSizesFor(round, seat),
   };
 }
 

@@ -410,3 +410,39 @@ describe('Round.trickplay — out-of-turn play is rejected', () => {
     assert.ok(r.reason);
   });
 });
+
+// ---------------------------------------------------------------------------
+// RoundSnapshot — gameStatus.opponentHandSizes (trick-play live counts)
+// ---------------------------------------------------------------------------
+
+function setupTrickPlay() {
+  const round = makeTrickPlayRound();
+  return { round };
+}
+
+describe('RoundSnapshot — gameStatus.opponentHandSizes (trick-play live counts)', () => {
+  it('view model includes opponentHandSizes for the two non-self seats', () => {
+    const { round } = setupTrickPlay();
+    const { buildViewModel } = require('../src/services/RoundSnapshot');
+
+    for (const selfSeat of [0, 1, 2]) {
+      const vm = buildViewModel(round, selfSeat);
+      assert.ok(vm.opponentHandSizes, `seat ${selfSeat}: opponentHandSizes must be present`);
+      const expected = {};
+      for (const s of [0, 1, 2]) {
+        if (s !== selfSeat) {expected[s] = round.hands[s].length;}
+      }
+      assert.deepEqual(vm.opponentHandSizes, expected,
+        `seat ${selfSeat}: opponentHandSizes must mirror round.hands lengths for non-self seats`);
+    }
+  });
+
+  it('opponentHandSizes shrinks as a non-self seat plays a card', () => {
+    const { round } = setupTrickPlay();
+    const { buildViewModel } = require('../src/services/RoundSnapshot');
+    const before = buildViewModel(round, 0).opponentHandSizes[1];
+    round.hands[1].pop();
+    const after = buildViewModel(round, 0).opponentHandSizes[1];
+    assert.equal(after, before - 1, 'opponent count must decrement with the hand');
+  });
+});
