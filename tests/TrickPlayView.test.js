@@ -326,8 +326,8 @@ describe('TrickPlayView — opponent card_played spawns a flight clone', () => {
   });
 });
 
-describe('TrickPlayView — trick resolve schedules collect-flight after pause', () => {
-  it('counts diff triggers controls-lock, 350ms pause holds 3 cards, then spawns collect-flight', () => {
+describe('TrickPlayView — trick resolve schedules collect-flight after hold', () => {
+  it('counts diff triggers controls-lock, 5s hold keeps 3 cards in centre, then spawns collect-flight', () => {
     const doc = dom.window.document;
     const cardsById = {
       1: { id: 1, rank: 'A', suit: '♣' },
