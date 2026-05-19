@@ -296,9 +296,9 @@ class TrickPlayView {
     }
     const r = seatEl.getBoundingClientRect();
     const w = cardWidth || Math.min(r.width, 100);
-    const h = w * 1.4;
+    const h = w * 1.4; // typical card aspect ratio (h/w ≈ 1.4)
     const cx = r.left + r.width / 2;
-    const cy = r.top  + r.height / 2;
+    const cy = r.top + r.height / 2;
     return { left: cx - w / 2, top: cy - h / 2, width: w, height: h, right: cx + w / 2, bottom: cy + h / 2 };
   }
 

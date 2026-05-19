@@ -484,8 +484,10 @@ describe('TrickPlayView — collect-flight destination is card-sized (no zoom)',
 
     const dest = view._destRectForWinner(1);
     assert.ok(dest, 'destination rect must be returned');
-    assert.ok(dest.width <= 100,
-      `destination width must be card-sized (got ${dest.width}, expected <= 100)`);
+    assert.equal(dest.width, 80, 'destination width must equal the stack width');
+    assert.equal(dest.height, 110, 'destination height must equal the stack height');
+    assert.equal(dest.left, 0, 'destination must anchor on the stack origin x');
+    assert.equal(dest.top, 0, 'destination must anchor on the stack origin y');
 
     view.destroy();
   });
