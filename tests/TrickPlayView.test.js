@@ -327,7 +327,7 @@ describe('TrickPlayView — opponent card_played spawns a flight clone', () => {
 });
 
 describe('TrickPlayView — trick resolve schedules collect-flight after hold', () => {
-  it('counts diff triggers controls-lock, 5s hold keeps 3 cards in centre, then spawns collect-flight', () => {
+  it('counts diff triggers controls-lock, 3s hold keeps 3 cards in centre, then spawns collect-flight', () => {
     const doc = dom.window.document;
     const cardsById = {
       1: { id: 1, rank: 'A', suit: '♣' },
@@ -384,8 +384,8 @@ describe('TrickPlayView — trick resolve schedules collect-flight after hold', 
   });
 });
 
-describe('TrickPlayView — trick resolve holds 5 seconds before collect-flight', () => {
-  it('pause-schedule delay is 5000ms (TRICK_WINNER_HOLD_MS), not 350ms', () => {
+describe('TrickPlayView — trick resolve holds 3 seconds before collect-flight', () => {
+  it('pause-schedule delay is 3000ms (TRICK_WINNER_HOLD_MS), not 350ms', () => {
     const cardsById = {
       1: { id: 1, rank: 'A', suit: '♣' },
       2: { id: 2, rank: 'K', suit: '♣' },
@@ -409,10 +409,10 @@ describe('TrickPlayView — trick resolve holds 5 seconds before collect-flight'
     }));
 
     // Two schedules: the pause (collect-flight trigger) and the safety-net.
-    // The lower of the two delays is the pause; assert it is the 5s hold.
+    // The lower of the two delays is the pause; assert it is the 3s hold.
     const delays = antlion._scheduled.map((s) => s.delay).sort((a, b) => a - b);
-    assert.equal(delays[0], 5000,
-      'pause schedule must be 5000ms (TRICK_WINNER_HOLD_MS), not the old 350ms');
+    assert.equal(delays[0], 3000,
+      'pause schedule must be 3000ms (TRICK_WINNER_HOLD_MS), not the old 350ms');
   });
 
   it('opponent-3rd-card adds FLIGHT_MS to the pause delay', () => {
@@ -431,7 +431,7 @@ describe('TrickPlayView — trick resolve holds 5 seconds before collect-flight'
     }));
 
     // Opponent (seat 2) plays the 3rd card. extraPauseMs is FLIGHT_MS (500),
-    // so the pause schedule delay is 5500.
+    // so the pause schedule delay is 3500.
     view.notifyCardPlayed(2, 3);
     view.render(makeGameStatus({
       currentTrick: [],
@@ -439,7 +439,7 @@ describe('TrickPlayView — trick resolve holds 5 seconds before collect-flight'
     }));
 
     const delays = antlion._scheduled.map((s) => s.delay).sort((a, b) => a - b);
-    assert.equal(delays[0], 5500,
+    assert.equal(delays[0], 3500,
       'opponent-3rd-card: pause delay must be TRICK_WINNER_HOLD_MS + FLIGHT_MS');
   });
 
@@ -491,8 +491,8 @@ describe('TrickPlayView — trick resolve holds 5 seconds before collect-flight'
     assert.equal(overrideCalls.length, 1,
       'setStatusOverride must be called exactly once during trick resolve');
     assert.equal(overrideCalls[0].text, 'kashka won the trick');
-    // Duration spans the 5s hold + 500ms collect-flight = 5500ms (own 3rd card).
-    assert.equal(overrideCalls[0].ms, 5500,
+    // Duration spans the 3s hold + 500ms collect-flight = 3500ms (own 3rd card).
+    assert.equal(overrideCalls[0].ms, 3500,
       'override duration must cover hold + flight');
   });
 });

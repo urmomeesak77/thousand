@@ -10,10 +10,10 @@ After the 3rd card of a trick lands, the current sequence is:
 
 1. Brief ~350 ms pause with cards in center.
 2. Cards fly to the winner's stack.
-3. Status box shows "X won the trick" for 5 s with the center already empty.
+3. Status box shows "X won the trick" for ~5 s with the center already empty.
 4. Controls unlock; next trick begins.
 
-The 5 s winner announcement is disconnected from the cards — by the time the
+The winner announcement is disconnected from the cards — by the time the
 player reads who won, the cards have already flown away. The "hold" feels like
 dead time rather than a celebration of the resolved trick.
 
@@ -22,7 +22,7 @@ dead time rather than a celebration of the resolved trick.
 After the 3rd card lands:
 
 1. Status box immediately shows "X won the trick".
-2. **5 s hold** with the three played cards still sitting in the center slots
+2. **3 s hold** with the three played cards still sitting in the center slots
    and controls locked.
 3. Cards fly to the winner's stack (existing collect-flight, ~500 ms).
 4. Center clears, controls unlock. Whatever the server sends next (next-trick
@@ -38,7 +38,7 @@ Single file: `src/public/js/thousand/TrickPlayView.js`.
 | Constant | Before | After |
 |----------|--------|-------|
 | `RESOLVE_PAUSE_MS` | 350 (used as pre-flight pause) | removed |
-| `TRICK_WINNER_HOLD_MS` | 5000 (post-flight hold) | 5000 (pre-flight hold) |
+| `TRICK_WINNER_HOLD_MS` | 5000 (post-flight hold) | 3000 (pre-flight hold) |
 | `FLIGHT_MS` | 500 | 500 (unchanged) |
 
 ### `_handleTrickResolve(winnerSeat)` — new sequence
@@ -84,7 +84,7 @@ Both flow naturally after `_finalizeTrickResolve` unlocks controls.
 - Existing collect-flight test (`tests/...trick-collect-flight*.test.js`)
   asserts on flight destination, not timing — should pass unchanged.
 - If any test asserts on the 350 ms pause or on cards being cleared before the
-  5 s window, update it to match the new sequence.
+  3 s window, update it to match the new sequence.
 - Add a focused test: after 3rd-card render, `_centerCards` still contains all
   three cards while controls are locked and the override is active; flight
   starts after the hold; finalize clears center.

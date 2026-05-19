@@ -3,7 +3,7 @@ import { MARRIAGE_BONUS } from './constants.js';
 import { SUIT_LETTER } from './cardSymbols.js';
 
 const FLIGHT_MS = 500;
-const TRICK_WINNER_HOLD_MS = 5000;
+const TRICK_WINNER_HOLD_MS = 3000;
 
 class TrickPlayView {
   constructor(el, opts) {
@@ -232,7 +232,7 @@ class TrickPlayView {
   _handleTrickResolve(winnerSeat) {
     // The 3rd card needs to appear before the collect-flight kicks off. For the
     // opponent case we run a normal flight (not a snap) so the play is visible —
-    // and add FLIGHT_MS to the hold so the flight lands before the 5s hold begins
+    // and add FLIGHT_MS to the hold so the flight lands before the 3s hold begins
     // ticking down.
     let extraPauseMs = 0;
     if (this._pendingPlayed) {
@@ -254,14 +254,14 @@ class TrickPlayView {
 
     // Set the winner banner up front so it is visible during the hold AND the
     // collect-flight. Duration spans the opponent-landing pause (if any), the
-    // 5s hold, and the collect-flight.
+    // 3s hold, and the collect-flight.
     const nickname = this._getPlayerNickname(winnerSeat);
     const totalSequenceMs = extraPauseMs + TRICK_WINNER_HOLD_MS + FLIGHT_MS;
     if (nickname) {
       this._setStatusOverride(`${nickname} won the trick`, totalSequenceMs);
     }
 
-    // Hold the three cards in the centre for 5 seconds (plus any opponent-landing
+    // Hold the three cards in the centre for 3 seconds (plus any opponent-landing
     // pause), then run the collect-flight to the winner's stack.
     const holdMs = extraPauseMs + TRICK_WINNER_HOLD_MS;
     const pauseId = this._antlion.schedule(holdMs, () => {
