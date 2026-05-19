@@ -47,8 +47,9 @@ Single file: `src/public/js/thousand/TrickPlayView.js`.
    play-to-center flight (existing branch). Track `extraPauseMs = FLIGHT_MS`
    so the hold begins only after that card has landed.
 2. Lock controls, set `_resolveFinalized = false`, remember `_pendingWinnerSeat`.
-3. Call `setStatusOverride(\`${nickname} won the trick\`, TRICK_WINNER_HOLD_MS + FLIGHT_MS)`
-   so the message persists through both hold and flight.
+3. Call `setStatusOverride(\`${nickname} won the trick\`, extraPauseMs + TRICK_WINNER_HOLD_MS + FLIGHT_MS)`
+   so the message persists through the opponent-landing pause, the hold, and
+   the collect-flight.
 4. Schedule a single Antlion timer at `extraPauseMs + TRICK_WINNER_HOLD_MS`
    that fires `_collectFlightToWinner(winnerSeat)`.
 5. Keep the rAF-throttle safety net: schedule a fallback at
