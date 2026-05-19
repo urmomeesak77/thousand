@@ -263,6 +263,57 @@ function makeGameScreenForUpdate(opts = {}) {
   return { gameScreen, captureOpponentCounts };
 }
 
+describe('GameScreen — updateStatus forwards to TrickPlayView only on transition out of Trick play', () => {
+  it('forwards on Trick play → Round complete transition (last-trick resolve)', () => {
+    const { gameScreen } = makeGameScreenForUpdate();
+    // Pretend Trick play was the previously-mounted phase.
+    gameScreen._lastMountedPhase = 'Trick play';
+    const forwardCalls = [];
+    gameScreen._controls.forwardStatusToTrickPlayView = (gs) => forwardCalls.push(gs.phase);
+
+    gameScreen.updateStatus({
+      phase: 'Round complete',
+      opponentHandSizes: { 1: 0, 2: 0 },
+      collectedTrickCounts: { 0: 8, 1: 1, 2: 1 },
+    });
+
+    assert.deepEqual(forwardCalls, ['Round complete'],
+      'forward must fire exactly once on Trick play → Round complete');
+  });
+
+  it('does NOT forward on same-phase Trick play updates (mid-trick)', () => {
+    const { gameScreen } = makeGameScreenForUpdate();
+    gameScreen._lastMountedPhase = 'Trick play';
+    const forwardCalls = [];
+    gameScreen._controls.forwardStatusToTrickPlayView = (gs) => forwardCalls.push(gs.phase);
+
+    gameScreen.updateStatus({
+      phase: 'Trick play',
+      opponentHandSizes: { 1: 5, 2: 5 },
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    });
+
+    assert.deepEqual(forwardCalls, [],
+      'forward must NOT fire when phase stays Trick play — mountForPhase already re-renders');
+  });
+
+  it('does NOT forward when not transitioning out of Trick play', () => {
+    const { gameScreen } = makeGameScreenForUpdate();
+    gameScreen._lastMountedPhase = 'Bidding';
+    const forwardCalls = [];
+    gameScreen._controls.forwardStatusToTrickPlayView = (gs) => forwardCalls.push(gs.phase);
+
+    gameScreen.updateStatus({
+      phase: 'Declarer deciding',
+      opponentHandSizes: { 1: 10, 2: 10 },
+      collectedTrickCounts: { 0: 0, 1: 0, 2: 0 },
+    });
+
+    assert.deepEqual(forwardCalls, [],
+      'forward must not fire outside trick-play context');
+  });
+});
+
 describe('GameScreen — updateStatus applies opponentHandSizes to opponent views', () => {
   it('setCardCount is called for left and right opponents from gameStatus.opponentHandSizes', () => {
     const { gameScreen, captureOpponentCounts } = makeGameScreenForUpdate();
