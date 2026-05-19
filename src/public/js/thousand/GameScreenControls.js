@@ -280,6 +280,8 @@ class GameScreenControls {
         trickCenterEl: this._gs.trickCenterEl,
         getSeatEl: (s) => this._gs.getSeatEl(s),
         setControlsLocked: (v) => this._gs.setControlsLocked(v),
+        setStatusOverride: (text, ms) => this._gs.setStatusOverride(text, ms),
+        getPlayerNickname: (s) => this._gs.playerNicknameForSeat(s),
       });
     }
 

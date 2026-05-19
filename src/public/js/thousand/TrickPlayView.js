@@ -2,8 +2,9 @@ import MarriageDeclarationPrompt from './MarriageDeclarationPrompt.js';
 import { MARRIAGE_BONUS } from './constants.js';
 import { SUIT_LETTER } from './cardSymbols.js';
 
-const FLIGHT_MS = 250;
+const FLIGHT_MS = 500;
 const RESOLVE_PAUSE_MS = 350;
+const TRICK_WINNER_HOLD_MS = 5000;
 
 class TrickPlayView {
   constructor(el, opts) {
@@ -16,7 +17,10 @@ class TrickPlayView {
     this._trickCenterEl = opts.trickCenterEl ?? null;
     this._getSeatEl = opts.getSeatEl ?? (() => null);
     this._setControlsLocked = opts.setControlsLocked ?? (() => {});
+    this._setStatusOverride = opts.setStatusOverride ?? (() => {});
+    this._getPlayerNickname = opts.getPlayerNickname ?? (() => null);
     this._gameStatus = null;
+    this._pendingWinnerSeat = null;
 
     this._centerCards = [];             // { seat, cardId, rank, suit, slotEl }
     this._pendingPlayed = null;         // { seat, cardId } from card_played, consumed by next render
@@ -243,6 +247,7 @@ class TrickPlayView {
     }
 
     this._resolveFinalized = false;
+    this._pendingWinnerSeat = winnerSeat;
     this._setControlsLocked(true);
     const pauseId = this._antlion.schedule(RESOLVE_PAUSE_MS, () => {
       this._scheduledIds.delete(pauseId);
@@ -264,7 +269,20 @@ class TrickPlayView {
     if (this._resolveFinalized) { return; }
     this._resolveFinalized = true;
     this._clearCenter();
-    this._setControlsLocked(false);
+
+    const winnerSeat = this._pendingWinnerSeat;
+    this._pendingWinnerSeat = null;
+    const nickname = winnerSeat != null ? this._getPlayerNickname(winnerSeat) : null;
+    if (nickname) {
+      this._setStatusOverride(`${nickname} won the trick`, TRICK_WINNER_HOLD_MS);
+      const holdId = this._antlion.schedule(TRICK_WINNER_HOLD_MS, () => {
+        this._scheduledIds.delete(holdId);
+        this._setControlsLocked(false);
+      });
+      this._scheduledIds.add(holdId);
+    } else {
+      this._setControlsLocked(false);
+    }
   }
 
   // For the 3rd-card opponent case where we don't have time for a flight before the

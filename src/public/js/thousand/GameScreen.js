@@ -35,6 +35,8 @@ class GameScreen {
     this._talonCardIds = [];
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
+    this._statusOverride = null;
+    this._statusOverrideScheduleId = null;
 
     this._buildDom(antlion, container);
 
@@ -402,11 +404,30 @@ class GameScreen {
 
   _renderStatus(gameStatus) {
     this._statusBar.render(gameStatus, this._sellWinnerNickname);
+    if (this._statusOverride) { return; }
     const { text, isActive } = computeStatusText(gameStatus, {
       viewerIsNewDeclarer: this._viewerIsNewDeclarer,
       sellSubPhase: this._sellSubPhase,
     });
     this._statusBox.setText(text, isActive);
+  }
+
+  setStatusOverride(text, durationMs) {
+    if (this._statusOverrideScheduleId != null) {
+      this._antlion.cancelScheduled?.(this._statusOverrideScheduleId);
+      this._statusOverrideScheduleId = null;
+    }
+    this._statusOverride = { text };
+    this._statusBox.setText(text, true);
+    this._statusOverrideScheduleId = this._antlion.schedule(durationMs, () => {
+      this._statusOverrideScheduleId = null;
+      this._statusOverride = null;
+      if (this._lastGameStatus) { this._renderStatus(this._lastGameStatus); }
+    });
+  }
+
+  playerNicknameForSeat(seat) {
+    return this._seats?.players.find((p) => p.seat === seat)?.nickname ?? null;
   }
 }
 
