@@ -231,7 +231,11 @@ class TrickPlayView {
   }
 
   _handleTrickResolve(winnerSeat) {
-    // The 3rd card needs to appear before the collect-flight kicks off.
+    // The 3rd card needs to appear before the collect-flight kicks off. For the
+    // opponent case we run a normal flight (not a snap) so the play is visible —
+    // and extend the resolve pause by FLIGHT_MS so the flight has time to land
+    // before the collect-flight starts pulling everything to the winner.
+    let extraPauseMs = 0;
     if (this._pendingPlayed) {
       const { seat, cardId } = this._pendingPlayed;
       const identity = this._cardsById[cardId];
@@ -241,7 +245,8 @@ class TrickPlayView {
         if (seat === this._seats.self) {
           this._commitToCenter(seat, cardId, identity.rank, identity.suit);
         } else {
-          this._instantSnapToCenter(seat, cardId, identity.rank, identity.suit);
+          this._startOpponentFlight(seat, cardId, identity.rank, identity.suit);
+          extraPauseMs = FLIGHT_MS;
         }
       }
     }
@@ -249,7 +254,8 @@ class TrickPlayView {
     this._resolveFinalized = false;
     this._pendingWinnerSeat = winnerSeat;
     this._setControlsLocked(true);
-    const pauseId = this._antlion.schedule(RESOLVE_PAUSE_MS, () => {
+    const totalPauseMs = RESOLVE_PAUSE_MS + extraPauseMs;
+    const pauseId = this._antlion.schedule(totalPauseMs, () => {
       this._scheduledIds.delete(pauseId);
       this._collectFlightToWinner(winnerSeat);
     });
@@ -258,7 +264,7 @@ class TrickPlayView {
     // an onLand-only release can hang forever (the game lock would stay engaged and
     // mountForPhase would stop firing). This setTimeout-based safety net guarantees
     // the lock releases on a real-time deadline regardless of frame painting.
-    const safetyId = this._antlion.schedule(RESOLVE_PAUSE_MS + FLIGHT_MS + 200, () => {
+    const safetyId = this._antlion.schedule(totalPauseMs + FLIGHT_MS + 200, () => {
       this._scheduledIds.delete(safetyId);
       this._finalizeTrickResolve();
     });
@@ -285,13 +291,35 @@ class TrickPlayView {
     }
   }
 
-  // For the 3rd-card opponent case where we don't have time for a flight before the
-  // resolve pause: just drop the card into its slot, with the same arrival highlight
-  // a tick or two before the collect-flight runs.
-  _instantSnapToCenter(seat, cardId, rank, suit) {
-    const entry = this._commitToCenter(seat, cardId, rank, suit);
-    if (!entry) { return; }
-    entry.cardEl.classList.add('trick-center__card--just-played');
+  // Returns a card-sized source rect for an opponent's play-to-centre flight.
+  // Mirrors _destRectForWinner: anchors on .opponent-view__stack and clamps to
+  // a card width so the flight clone is card-sized rather than seat-container-sized.
+  // Why: the seat container is a 1fr CSS-grid column wrapping nickname + stack +
+  // last-action — much bigger than a card. Using its bounding rect as the
+  // flight source produced a HUGE clone whose card sprite-sheet (sized via
+  // --card-width CSS vars) tiled inside it, and the flight appeared to "drop in
+  // from above" because the top of the column sits above the actual stack.
+  _sourceRectForOpponent(seatEl, cardWidth) {
+    const stack = seatEl.querySelector('.opponent-view__stack');
+    if (stack) {
+      const r = stack.getBoundingClientRect();
+      const w = Math.min(r.width, cardWidth || r.width);
+      // Anchor on the right edge of the stack — the "top" of the deck visually,
+      // where the just-played card was lifted from.
+      return {
+        left: r.right - w, top: r.top, width: w, height: r.height,
+        right: r.right, bottom: r.bottom,
+      };
+    }
+    const r = seatEl.getBoundingClientRect();
+    const w = cardWidth || Math.min(r.width, 100);
+    const h = w * 1.4;
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    return {
+      left: cx - w / 2, top: cy - h / 2, width: w, height: h,
+      right: cx + w / 2, bottom: cy + h / 2,
+    };
   }
 
   // Returns a card-sized destination rect for the post-trick collect-flight.
@@ -382,12 +410,13 @@ class TrickPlayView {
       this._commitToCenter(seat, cardId, rank, suit);
       return;
     }
-    const fromRect = sourceEl.getBoundingClientRect();
-    // Pre-commit the centre card hidden, so its rect is the flight destination.
+    // Pre-commit the centre card hidden, so its rect is the flight destination
+    // AND so toRect's card width is available as a sizing reference for fromRect.
     const entry = this._commitToCenter(seat, cardId, rank, suit);
     if (!entry) { return; }
     entry.cardEl.style.visibility = 'hidden';
     const toRect = entry.cardEl.getBoundingClientRect();
+    const fromRect = this._sourceRectForOpponent(sourceEl, toRect.width);
     this._spawnFlight({
       fromRect, toRect, rank, suit, duration: FLIGHT_MS,
       onDone: () => { entry.cardEl.style.visibility = ''; },

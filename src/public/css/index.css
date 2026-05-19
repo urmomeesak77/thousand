@@ -1208,12 +1208,6 @@ fieldset legend {
   inset: 0;
 }
 
-/* Flash applied to the 3rd (trick-resolving) card when there's no time
-   for a full hand-to-centre flight before the collect-flight. */
-.trick-center__card--just-played {
-  animation: card-arrive 200ms ease-out;
-}
-
 /* Card-shaped clone flown across the page during the hand→centre and
    centre→winner-seat animations. position: fixed so we can drive it via
    client coordinates regardless of the source/destination layout context. */

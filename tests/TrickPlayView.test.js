@@ -268,6 +268,62 @@ describe('TrickPlayView — opponent card_played spawns a flight clone', () => {
     assert.equal(doc.querySelectorAll('.card-flight-clone').length, 0,
       'destroy() must clean up flight clones');
   });
+
+  it('flight clone is card-sized (not seat-container-sized), anchored on opponent stack', () => {
+    // Why: the seat container is a 1fr CSS-grid column wrapping the opponent's
+    // nickname + stack + last-action — much wider/taller than a card. Using its
+    // bounding rect as fromRect makes the clone enormous, so the card sprite-sheet
+    // (sized via --card-width CSS vars) tiles inside the giant clone, and the
+    // flight appears to "drop in from above" because the top of the column is
+    // higher than the actual card position.
+    const doc = dom.window.document;
+    const cardsById = { 7: { id: 7, rank: 'K', suit: '♠' } };
+    const { view, trickCenterEl, seatEls } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    // Pretend the seat container is huge (a wide grid column with header text).
+    Object.defineProperty(seatEls[1], 'getBoundingClientRect', {
+      value: () => ({ left: 0, top: 0, right: 600, bottom: 400, width: 600, height: 400 }),
+    });
+    // Inject a card-sized .opponent-view__stack so the flight has a sensible anchor.
+    const stackEl = doc.createElement('div');
+    stackEl.className = 'opponent-view__stack';
+    Object.defineProperty(stackEl, 'getBoundingClientRect', {
+      value: () => ({ left: 50, top: 80, right: 130, bottom: 190, width: 80, height: 110 }),
+    });
+    seatEls[1].appendChild(stackEl);
+
+    // Pin the destination centre-slot sprite to a card-sized rect.
+    view.notifyCardPlayed(1, 7);
+    // Stub getBoundingClientRect for any card-sprite added under trickCenterEl.
+    const origAppend = trickCenterEl.appendChild.bind(trickCenterEl);
+    // (We don't need to stub the slot sprite explicitly; the slot's children
+    // get their layout rect via the patched .trick-center__slot below.)
+    void origAppend;
+    view.render(makeGameStatus({
+      currentTrick: [{ seat: 1, cardId: 7, rank: 'K', suit: '♠' }],
+    }));
+    // Stub the slot sprite's rect AFTER it's been committed.
+    for (const sprite of trickCenterEl.querySelectorAll('.card-sprite')) {
+      Object.defineProperty(sprite, 'getBoundingClientRect', {
+        value: () => ({ left: 300, top: 200, right: 380, bottom: 310, width: 80, height: 110 }),
+      });
+    }
+
+    const clone = doc.querySelector('.card-flight-clone');
+    assert.ok(clone, 'flight clone must exist');
+    const widthPx = parseFloat(clone.style.width);
+    const heightPx = parseFloat(clone.style.height);
+    assert.ok(
+      widthPx <= 100,
+      `flight clone width must be card-sized, not seat-container-sized (got ${widthPx}px)`,
+    );
+    assert.ok(
+      heightPx <= 150,
+      `flight clone height must be card-sized, not seat-container-sized (got ${heightPx}px)`,
+    );
+
+    view.destroy();
+  });
 });
 
 describe('TrickPlayView — trick resolve schedules collect-flight after pause', () => {
@@ -300,9 +356,14 @@ describe('TrickPlayView — trick resolve schedules collect-flight after pause',
 
     assert.deepEqual(lockCalls, [true], 'controls must be locked when trick resolves');
     assert.equal(antlion._scheduled.length, 2,
-      'two schedules: 350ms pause for the collect-flight and a setTimeout-based safety-net release');
+      'two schedules: pause for the collect-flight and a setTimeout-based safety-net release');
     assert.equal(trickCenterEl.querySelectorAll('.card-sprite').length, 3,
       '3 cards must be visible during the resolve pause');
+    // The 3rd opponent card runs a real flight (not an instant snap), so a clone
+    // is in-flight at this point.
+    const clonesMid = doc.querySelectorAll('.card-flight-clone').length;
+    assert.equal(clonesMid - clonesBefore, 1,
+      '3rd opponent card spawns a play-to-centre flight clone');
 
     // Fire the pause callback in isolation so we can assert flights spawned before
     // the safety-net fires and clears the centre.
@@ -310,7 +371,7 @@ describe('TrickPlayView — trick resolve schedules collect-flight after pause',
     pauseEntry.cb();
 
     const clonesAfter = doc.querySelectorAll('.card-flight-clone').length;
-    assert.equal(clonesAfter - clonesBefore, 3,
+    assert.equal(clonesAfter - clonesMid, 3,
       'pause callback must spawn 3 collect-flight clones (one per centre card)');
 
     // Now drain the remaining safety-net schedule.
