@@ -384,6 +384,119 @@ describe('TrickPlayView — trick resolve schedules collect-flight after pause',
   });
 });
 
+describe('TrickPlayView — trick resolve holds 5 seconds before collect-flight', () => {
+  it('pause-schedule delay is 5000ms (TRICK_WINNER_HOLD_MS), not 350ms', () => {
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+    };
+    const { view, antlion } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+
+    // Own play (seat 0) of the 3rd card. extraPauseMs is 0 in this branch,
+    // so the pause schedule delay equals TRICK_WINNER_HOLD_MS exactly.
+    view.notifyCardPlayed(0, 3);
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    // Two schedules: the pause (collect-flight trigger) and the safety-net.
+    // The lower of the two delays is the pause; assert it is the 5s hold.
+    const delays = antlion._scheduled.map((s) => s.delay).sort((a, b) => a - b);
+    assert.equal(delays[0], 5000,
+      'pause schedule must be 5000ms (TRICK_WINNER_HOLD_MS), not the old 350ms');
+  });
+
+  it('opponent-3rd-card adds FLIGHT_MS to the pause delay', () => {
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+    };
+    const { view, antlion } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+
+    // Opponent (seat 2) plays the 3rd card. extraPauseMs is FLIGHT_MS (500),
+    // so the pause schedule delay is 5500.
+    view.notifyCardPlayed(2, 3);
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    const delays = antlion._scheduled.map((s) => s.delay).sort((a, b) => a - b);
+    assert.equal(delays[0], 5500,
+      'opponent-3rd-card: pause delay must be TRICK_WINNER_HOLD_MS + FLIGHT_MS');
+  });
+
+  it('setStatusOverride is called up front with the winner nickname', () => {
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+    };
+    const overrideCalls = [];
+    const doc = dom.window.document;
+    const el = doc.createElement('div');
+    doc.body.appendChild(el);
+    const trickCenterEl = doc.createElement('div');
+    doc.body.appendChild(trickCenterEl);
+    const seatEls = {
+      0: doc.createElement('div'),
+      1: doc.createElement('div'),
+      2: doc.createElement('div'),
+    };
+    for (const e of Object.values(seatEls)) { doc.body.appendChild(e); }
+
+    const antlion = makeMockAntlion();
+    const view = new dom.window.TrickPlayView(el, {
+      antlion,
+      dispatcher: makeMockDispatcher(),
+      seats: DEFAULT_SEATS,
+      handView: makeMockHandView(),
+      cardsById,
+      trickCenterEl,
+      getSeatEl: (s) => seatEls[s] ?? null,
+      setControlsLocked: () => {},
+      setStatusOverride: (text, ms) => overrideCalls.push({ text, ms }),
+      getPlayerNickname: (seat) => (seat === 0 ? 'kashka' : `seat${seat}`),
+    });
+
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+    view.notifyCardPlayed(0, 3);
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    assert.equal(overrideCalls.length, 1,
+      'setStatusOverride must be called exactly once during trick resolve');
+    assert.equal(overrideCalls[0].text, 'kashka won the trick');
+    // Duration spans the 5s hold + 500ms collect-flight = 5500ms (own 3rd card).
+    assert.equal(overrideCalls[0].ms, 5500,
+      'override duration must cover hold + flight');
+  });
+});
+
 describe('TrickPlayView — marriage prompt cross-checks server-authoritative legal set', () => {
   it('does NOT offer marriage when local hand has phantom Q (not in gameStatus.legalCardIds)', () => {
     // Scenario: HandView still contains a card the server-side hand has lost
