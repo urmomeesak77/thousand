@@ -241,6 +241,7 @@ class GameScreen {
     if (gameStatus.phase === 'Card exchange') {
       this._talonView.clear();
     }
+    this._applyOpponentHandSizes(gameStatus.opponentHandSizes);
     if (this._canMountNow(gameStatus)) {
       this._controls.mountForPhase(gameStatus);
       this._lastMountedPhase = gameStatus.phase;
@@ -248,6 +249,14 @@ class GameScreen {
     } else {
       this._pendingMountStatus = gameStatus;
     }
+  }
+
+  _applyOpponentHandSizes(sizes) {
+    if (!sizes || !this._seats) { return; }
+    const left = sizes[this._seats.left];
+    const right = sizes[this._seats.right];
+    if (typeof left === 'number') { this._leftOpponent.setCardCount(left); }
+    if (typeof right === 'number') { this._rightOpponent.setCardCount(right); }
   }
 
   // Why: the controls-lock is only meant to defer phase TRANSITIONS until the
