@@ -1,6 +1,6 @@
 ﻿# thousand Development Guidelines
 
-Last updated: 2026-05-14
+Last updated: 2026-05-20
 
 
 > Architectural principles are governed by `.specify/memory/constitution.md`, which supersedes this file on matters of principle.
@@ -23,6 +23,10 @@ src/services/
   RoundPhases.js                       # phase-transition helpers (extracted from Round for size)
   DealSequencer.js                     # deal-sequence computation (extracted from Round for size)
   RoundSnapshot.js                     # per-viewer view-model, seats, snapshot payload (extracted from Round for size)
+  TrickPlay.js                         # trick-play state machine (lead/follow/trump, collected tricks) — delegated to by Round
+  Scoring.js                           # pure scoring functions (card points, round deltas, winner, final results)
+  Game.js                              # persists-across-rounds session: cumulative scores, dealer, barrel/zero state, round history
+  GameRules.js                         # numeric rule constants (barrel thresholds, victory threshold, special penalty)
   Deck.js                              # deck creation and shuffle
 src/controllers/
   RequestHandler.js                    # HTTP routing
@@ -38,6 +42,7 @@ src/utils/
 src/public/
   index.html / css/index.css           # lobby entry point + lobby/waiting-room styles
   css/game.css                         # in-round game-screen styles (split out of index.css)
+  css/cards.css                        # card sprite / card-table styling
   js/
     index.js                           # bootstrap — creates ThousandApp, starts Antlion
     core/
@@ -81,7 +86,15 @@ src/public/
       DealAnimation.js                 # deal card animation sequencer
       RoundActionDispatcher.js         # client-side round action dispatch
       cardSymbols.js                   # `SUIT_LETTER` constants
-      constants.js                     # bid/round numeric constants (MIN_BID, MAX_BID, BID_STEP)
+      constants.js                     # bid/round + scoring constants (MIN_BID, MAX_BID, BID_STEP, CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER)
+      CardExchangeView.js              # card-exchange phase UI (declarer passes 1 card to each opponent)
+      TrickPlayView.js                 # trick-play phase UI (centre slot, follow-suit gating, trick animations)
+      MarriageDeclarationPrompt.js     # marriage-declaration modal (tricks 2–6)
+      CollectedTricksStack.js          # per-seat face-down collected-tricks stack + count badge
+      RoundSummaryScreen.js            # round summary (made/missed, deltas) + Continue / Back-to-Lobby
+      FinalResultsScreen.js            # final ranking + per-round history table at victory
+      ScoreboardPanel.js               # always-available top-right live scoreboard (collapsible)
+      roundStatsText.js                # `formatRoundStats()` — per-seat "Tricks N, Points M" label
 tests/                                 # Node.js built-in test runner (*.test.js)
 specs/                                 # feature specs, plans, and contracts (read-only at runtime)
 docs/                                  # developer documentation
@@ -125,7 +138,9 @@ See `docs/CODING_CONVENTIONS.md` for the full reference. Key points:
 
 ## Active Feature Branch
 
-**004-game-round-bidding-selling** (feature complete; post-feature refactor pass landed): Implements the full round lifecycle — dealing, bidding, declarer decision, selling — with server-side `Round.js` driving phase transitions and a full frontend UI under `src/public/js/thousand/`. Branches 002 (Antlion engine) and 003 (persistent player identity) are fully merged in. The R-001 size-budget mitigation produced three Round extractions (`RoundPhases.js`, `DealSequencer.js`, `RoundSnapshot.js`) and three frontend extractions (`GameScreenControls.js`, `SellPhaseView.js`, shared-base `BiddingControls.js`).
+**005-play-phase-scoring** (feature complete; all four user stories landed): Implements the full gameplay loop on top of feature 004 — card exchange, 8-trick play with follow-suit/trump/marriages, made/missed scoring, multi-round flow with dealer rotation and cumulative carry-over, victory at 1000+, and special scoring (barrel + three-consecutive-zeros). Server-side this added the persists-across-rounds `Game.js` entity, the `TrickPlay.js` state machine, the pure-function `Scoring.js` module, and the `GameRules.js` constants. The frontend gained `CardExchangeView`, `TrickPlayView`, `MarriageDeclarationPrompt`, `CollectedTricksStack`, `RoundSummaryScreen`, and `FinalResultsScreen`. Branches 002 (Antlion engine), 003 (persistent identity), and 004 (round/bidding/selling) are fully merged in.
+
+Post-feature enhancements (landed on this branch, no separate spec dir — design/plan docs live under `docs/superpowers/`): a collapsible live scoreboard (`ScoreboardPanel.js`, fed by a compact `scoreHistory` view-model field) and a per-seat round-stats label (`roundStatsText.js`, fed by the `roundPoints` view-model field).
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

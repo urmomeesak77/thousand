@@ -291,6 +291,12 @@ Extends feature 004's view-model with the new fields required by FR-018. Same sh
   exchangePassesCommitted: 0 | 1 | 2 | null,                      // null outside card-exchange
   continuePressedSeats: number[] | null,                          // seats that have pressed Continue on the current round-summary; null outside round-summary
   roundNumber: 1..N,                                              // current round number (Game.currentRoundNumber)
+
+  // post-feature enhancement fields (live scoreboard + per-seat round stats):
+  scoreHistory: [                                                 // compact per-round history for the live ScoreboardPanel; [] before round 1 completes
+    { roundNumber: 1..N, perPlayer: { [seatIdx]: { delta: int, cumulativeAfter: int } } }
+  ],
+  roundPoints: { [seatIdx]: int } | null,                         // per-seat trick points so far this round (Scoring.roundScores); null outside trick-play / round-summary
 }
 ```
 
@@ -317,6 +323,28 @@ phase ∈ {
 - `exchangePassesCommitted`: 0 or 1 during `Card exchange`; absent (null) otherwise.
 - `continuePressedSeats`: present iff `phase === 'Round complete'`; lists the seats that have pressed Continue so far.
 - `roundNumber`: always present from round 1 onwards.
+- `scoreHistory`: always present (empty array until round 1 completes); one compact entry per finished round, in round order. The full history (with declarer / bid / penalties) is sent only at game-end via `buildFinalResults`.
+- `roundPoints`: present during `Trick play` and `Round complete`; `null` otherwise.
+
+---
+
+## Server constants (`GameRules.js`)
+
+The barrel / victory / special-penalty magic numbers used across `Game.js` and `Scoring.js` live in a single module so they have one source of truth:
+
+```js
+// src/services/GameRules.js
+{
+  BARREL_MIN: 880,           // FR-021 — cumulative ≥ this enters barrel
+  BARREL_MAX: 1000,          // FR-021 — cumulative ≥ this is victory, not barrel
+  VICTORY_THRESHOLD: 1000,   // FR-017 — game ends when any seat reaches this
+  SPECIAL_PENALTY: 120,      // FR-023 / FR-024 — barrel-3rd-round and three-zeros penalty
+  BARREL_ROUND_LIMIT: 3,     // FR-023 — on-barrel rounds before the penalty fires
+  ZERO_ROUND_LIMIT: 3,       // FR-024 — consecutive zero rounds before the penalty fires
+}
+```
+
+Card-point values, marriage bonuses, and `RANK_ORDER` (above) live in `Scoring.js` (server) and `constants.js` (client).
 
 ---
 

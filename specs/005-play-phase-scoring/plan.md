@@ -77,11 +77,12 @@ specs/005-play-phase-scoring/
 src/services/Game.js                                # Persists-across-rounds entity: cumulativeScores, dealerSeat, barrelState, consecutiveZeros, continuePresses, history, gameStatus
 src/services/TrickPlay.js                           # R-001 mitigation: trick-play state machine (lead, currentTrick, currentTrumpSuit, declaredMarriages, collectedTricks)
 src/services/Scoring.js                             # Pure functions: cardPoints, roundScores, roundDeltas, determineWinner, buildFinalResults
+src/services/GameRules.js                           # Numeric rule constants (BARREL_MIN/MAX, VICTORY_THRESHOLD, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT) — shared by Game.js + Scoring.js
 
 # Modified backend files
 src/services/Round.js                               # Adds card-exchange action (FR-002/FR-003); delegates trick-play to TrickPlay; round-summary build (FR-013/FR-014/FR-015)
 src/services/RoundPhases.js                         # Adds card-exchange ↔ trick-play and trick-play → round-summary transitions
-src/services/RoundSnapshot.js                       # Adds reconnect-snapshot fields for card-exchange / trick-play / round-summary / final-results (FR-026)
+src/services/RoundSnapshot.js                       # Adds reconnect-snapshot fields for card-exchange / trick-play / round-summary / final-results (FR-026); also surfaces the compact `scoreHistory` and per-seat `roundPoints` view-model fields (post-feature scoreboard/round-stats enhancements)
 src/services/ThousandStore.js                       # Instantiates Game once per game-session; persists across rounds; new cleanup callsites (FR-029)
 src/controllers/RoundActionHandler.js               # New message branches: exchange_pass, play_card, continue_to_next_round; barrel-aware bid validation (FR-022)
 src/services/ConnectionManager.js                   # New message branches dispatched to RoundActionHandler
@@ -93,6 +94,8 @@ src/public/js/thousand/MarriageDeclarationPrompt.js # FR-009 prompt — Declare 
 src/public/js/thousand/CollectedTricksStack.js      # Per-seat face-down stack + "× N" badge (FR-008)
 src/public/js/thousand/RoundSummaryScreen.js        # Round summary view; Continue button gating; sticky-press indicator (FR-015 / FR-016)
 src/public/js/thousand/FinalResultsScreen.js        # Final ranking + per-round history table + Back-to-Lobby (FR-017)
+src/public/js/thousand/ScoreboardPanel.js           # Post-feature enhancement: collapsible top-right live scoreboard (per-round cum/rnd rows + pinned total). Design: docs/superpowers/specs/2026-05-20-live-scoreboard-design.md
+src/public/js/thousand/roundStatsText.js            # Post-feature enhancement: formatRoundStats() — per-seat "Tricks N, Points M" label. Design: docs/superpowers/specs/2026-05-20-per-seat-round-stats-design.md
 
 # Modified frontend files
 src/public/js/thousand/GameScreen.js                # Phase routing: 'Card exchange' → CardExchangeView, 'Trick play' → TrickPlayView, 'Round complete' → RoundSummaryScreen, 'Game over' → FinalResultsScreen
@@ -100,9 +103,12 @@ src/public/js/thousand/GameScreenControls.js        # Mount/unmount the new cont
 src/public/js/thousand/StatusBar.js                 # Renders new fields: trickNumber, currentTrumpSuit, cumulativeScores (always visible), barrelMarkers, roundNumber
 src/public/js/thousand/RoundActionDispatcher.js     # Outbound wrappers for exchange_pass, play_card, continue_to_next_round
 src/public/js/thousand/constants.js                 # Adds MARRIAGE_BONUS, CARD_POINT_VALUE, RANK_ORDER constants
+src/public/js/thousand/OpponentView.js              # Renders the per-seat round-stats label under each opponent (post-feature enhancement)
+src/public/js/thousand/GameScreen.js                # Also mounts ScoreboardPanel and surfaces per-seat round-stats (post-feature enhancement)
 src/public/js/core/ThousandApp.js                   # Final-results / game-aborted lifecycle handling
 src/public/js/core/ThousandMessageRouter.js         # Validators + handlers for all new server→client messages
-src/public/css/index.css                            # Layout for destination buttons, centre slot, collected-tricks stacks, round-summary table, final-results ranking + history table, barrel-marker badge
+src/public/css/game.css                             # In-round layout (split out of index.css after this feature): destination buttons, centre slot, collected-tricks stacks, round-summary table, final-results ranking + history table, barrel-marker badge, scoreboard panel
+src/public/css/cards.css                            # Card sprite / card-table styling (split out of index.css)
 
 # New test files
 tests/Round.cardexchange.test.js                    # FR-002 / FR-003 pass validation; final on commit; second-pass destination restriction
@@ -120,6 +126,17 @@ tests/MarriageDeclarationPrompt.test.js             # FR-009 Cancel returns to s
 tests/RoundSummaryScreen.test.js                    # FR-015 made/missed rendering, Continue button gating, sticky press indicator
 tests/FinalResultsScreen.test.js                    # FR-017 ranking sort, history table, winner highlight
 tests/StatusBar.005.test.js                         # FR-018 new fields rendered (trick number, trump, cumulative scores, barrel markers, round number)
+
+# Additional test files added during/after implementation
+tests/Round.buildSummary.penalties.test.js          # buildSummary surfaces barrel + zero penalty line items (FR-023 / FR-024)
+tests/Round.dealerRotation.test.js                  # dealer-seat rotation across rounds (FR-016)
+tests/round-messages.cardPlayed.test.js             # card_played broadcast / per-viewer identity behaviour
+tests/GameScreen.gating.test.js                     # phase-routing / control-gating regressions in GameScreen
+tests/GameScreen.lasttrick.test.js                  # last-trick resolve must not wipe the round summary (regression)
+tests/input-handler-leaks.test.js                   # UI controls must not leak Antlion input handlers between rounds (regression)
+tests/RoundSnapshot.scorehistory.test.js            # compact scoreHistory view-model field (live-scoreboard enhancement)
+tests/ScoreboardPanel.test.js                       # ScoreboardPanel rendering, collapse persistence, 3-round window (live-scoreboard enhancement)
+tests/GameScreen.roundstats.test.js                 # per-seat round-stats label rendering (round-stats enhancement)
 ```
 
 **Structure Decision**: Single project (unchanged from feature 004). Backend services in `src/services/`, controllers in `src/controllers/`, frontend modules in `src/public/js/thousand/`, tests in `tests/`. No new top-level directories.

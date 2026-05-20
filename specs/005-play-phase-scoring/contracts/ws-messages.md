@@ -392,7 +392,7 @@ The server purges the game record (FR-029) immediately after broadcasting.
 
 ### Modified: `phase_changed` (carried-through field set extended)
 
-The `phase_changed` message shape is unchanged but its embedded `gameStatus` view-model gains the new fields documented in `data-model.md` (`trickNumber`, `currentTrumpSuit`, `cumulativeScores`, `barrelMarkers`, `collectedTrickCounts`, `exchangePassesCommitted`, `continuePressedSeats`, `roundNumber`).
+The `phase_changed` message shape is unchanged but its embedded `gameStatus` view-model gains the new fields documented in `data-model.md` (`trickNumber`, `currentTrumpSuit`, `cumulativeScores`, `barrelMarkers`, `collectedTrickCounts`, `exchangePassesCommitted`, `continuePressedSeats`, `roundNumber`). Post-feature enhancements add two more view-model fields (no new message): `scoreHistory` (compact per-round history for the live scoreboard) and `roundPoints` (per-seat trick points so far this round). The same view-model is carried in `round_state_snapshot`, so reconnecting clients rehydrate the scoreboard and round-stats display too.
 
 The `phase` field's enum gains the new labels: `'Card exchange'`, `'Trick play'`, `'Round complete'`, `'Game over'`, `'Game aborted'`.
 
