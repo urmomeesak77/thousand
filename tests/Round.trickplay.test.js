@@ -410,3 +410,71 @@ describe('Round.trickplay — out-of-turn play is rejected', () => {
     assert.ok(r.reason);
   });
 });
+
+// ---------------------------------------------------------------------------
+// RoundSnapshot — gameStatus.opponentHandSizes (trick-play live counts)
+// ---------------------------------------------------------------------------
+
+function setupTrickPlay() {
+  const round = makeTrickPlayRound();
+  return { round };
+}
+
+describe('RoundSnapshot — gameStatus.opponentHandSizes (trick-play live counts)', () => {
+  it('view model includes opponentHandSizes for the two non-self seats', () => {
+    const { round } = setupTrickPlay();
+    const { buildViewModel } = require('../src/services/RoundSnapshot');
+
+    for (const selfSeat of [0, 1, 2]) {
+      const vm = buildViewModel(round, selfSeat);
+      assert.ok(vm.opponentHandSizes, `seat ${selfSeat}: opponentHandSizes must be present`);
+      const expected = {};
+      for (const s of [0, 1, 2]) {
+        if (s !== selfSeat) {expected[s] = round.hands[s].length;}
+      }
+      assert.deepEqual(vm.opponentHandSizes, expected,
+        `seat ${selfSeat}: opponentHandSizes must mirror round.hands lengths for non-self seats`);
+    }
+  });
+
+  it('opponentHandSizes shrinks as a non-self seat plays a card', () => {
+    const { round } = setupTrickPlay();
+    const { buildViewModel } = require('../src/services/RoundSnapshot');
+    const before = buildViewModel(round, 0).opponentHandSizes[1];
+    round.hands[1].pop();
+    const after = buildViewModel(round, 0).opponentHandSizes[1];
+    assert.equal(after, before - 1, 'opponent count must decrement with the hand');
+  });
+});
+
+describe('Round view-model — roundPoints (per-seat running points)', () => {
+  it('is null before trick-play (bidding phase)', () => {
+    const round = makeRound();
+    round.advanceFromDealingToBidding();
+    const vm = round.getViewModelFor(0);
+    assert.equal(vm.roundPoints, null, 'roundPoints must be null outside trick-play/round-summary');
+  });
+
+  it('reports collected-card points per seat during trick-play', () => {
+    const round = makeTrickPlayRound();
+    round.collectedTricks = {
+      0: [findCardId(round.deck, 'A', '♣'), findCardId(round.deck, '10', '♣')],
+      1: [],
+      2: [findCardId(round.deck, 'K', '♠')],
+    };
+    const vm = round.getViewModelFor(0);
+    assert.equal(vm.roundPoints[0], 21, 'seat 0 = 11 + 10');
+    assert.equal(vm.roundPoints[1], 0, 'seat 1 = 0');
+    assert.equal(vm.roundPoints[2], 4, 'seat 2 = King(4)');
+  });
+
+  it('adds declared-marriage bonus to the owning seat', () => {
+    const round = makeTrickPlayRound();
+    round.collectedTricks = { 0: [], 1: [], 2: [] };
+    // Use ♠ (80) so the assertion exercises the MARRIAGE_BONUS lookup rather than
+    // coinciding with a value carried on the fixture.
+    round.declaredMarriages = [{ playerSeat: 1, suit: '♠', trickNumber: 2 }];
+    const vm = round.getViewModelFor(1);
+    assert.equal(vm.roundPoints[1], 80, 'seat 1 gets the ♠ marriage bonus of 80');
+  });
+});

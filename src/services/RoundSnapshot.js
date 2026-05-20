@@ -73,9 +73,24 @@ function buildViewModel(round, seat) {
     currentTrumpSuit: round.currentTrumpSuit ?? null,
     cumulativeScores: session ? session.cumulativeScores : { 0: 0, 1: 0, 2: 0 },
     collectedTrickCounts: round.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 },
+    roundPoints: (round.phase === 'trick-play' || round.phase === 'round-summary')
+      ? Scoring.roundScores(round)
+      : null,
+    legalCardIds: round.phase === 'trick-play' ? _computeLegalCardIds(round, seat) : null,
+    viewerIsLeading: round.phase === 'trick-play'
+      && round.currentTurnSeat === seat
+      && (round.currentTrick?.length ?? 0) === 0,
     exchangePassesCommitted: round.phase === 'card-exchange' ? round.exchangePassesCommitted : null,
+    exchangePassesToSeats: round.phase === 'card-exchange' ? [...round._usedExchangeDestSeats] : null,
     continuePressedSeats: isPhaseFinal && session ? [...session.continuePresses] : null,
     roundNumber: session ? session.currentRoundNumber : 1,
+    // Absent when no player is on barrel (null entry per seat when onBarrel === false)
+    barrelMarkers: session
+      ? Object.fromEntries([0, 1, 2].map(s => [s, session.barrelState[s].onBarrel
+        ? { onBarrel: true, barrelRoundsUsed: session.barrelState[s].barrelRoundsUsed }
+        : null]))
+      : null,
+    opponentHandSizes: buildOpponentHandSizesFor(round, seat),
   };
 }
 
@@ -184,6 +199,7 @@ function buildSnapshot(round, seat) {
 
   if (round.phase === 'card-exchange') {
     payload.exchangePassesCommitted = round.exchangePassesCommitted;
+    payload.exchangePassesToSeats = [...round._usedExchangeDestSeats];
     payload.myHand = buildHandIdentitiesFor(round, seat);
     payload.receivedFromExchange = null;
     payload.isDeclarerView = seat === round.declarerSeat;

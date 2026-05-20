@@ -2,6 +2,8 @@
 // OpponentView — one opponent's face-down hand
 // ============================================================
 
+import { formatRoundStats } from './roundStatsText.js';
+
 class OpponentView {
   constructor(container) {
     this._container = container;
@@ -10,6 +12,8 @@ class OpponentView {
     this._cardCount = 0;
     this._isDisconnected = false;
     this._lastAction = '';
+    this._roundTricks = null;
+    this._roundPoints = null;
     this._render();
   }
 
@@ -30,6 +34,12 @@ class OpponentView {
 
   setLastAction(text) {
     this._lastAction = text;
+    this._render();
+  }
+
+  setRoundStats(tricks, points) {
+    this._roundTricks = tricks;
+    this._roundPoints = points;
     this._render();
   }
 
@@ -62,6 +72,15 @@ class OpponentView {
       stackEl.appendChild(card);
     }
     this._container.appendChild(stackEl);
+
+    // points presence is the authoritative signal that round stats exist (server
+    // sends roundPoints only during trick-play/round-summary); tricks tag along.
+    if (this._roundPoints != null) {
+      const stats = document.createElement('div');
+      stats.className = 'opponent-view__round-stats';
+      stats.textContent = formatRoundStats(this._roundTricks, this._roundPoints);
+      this._container.appendChild(stats);
+    }
 
     if (this._lastAction) {
       const actionEl = document.createElement('div');

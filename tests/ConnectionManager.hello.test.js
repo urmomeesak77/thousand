@@ -139,17 +139,30 @@ describe('ConnectionManager IP rate limit', () => {
 });
 
 describe('ConnectionManager message rate limit', () => {
-  it('31st message in same window triggers close 1008', () => {
+  // Why: previously the Nth message in a window closed the socket with 1008.
+  // The reconnect race that followed caused a real hand-state desync in the
+  // live e2e test (3 bots stuck at round 33). Mirror FR-030 here: drop silently,
+  // keep the connection alive so legitimate retries succeed. The limit itself
+  // was also raised so a single stuck-and-retrying player doesn't exhaust
+  // it in a few seconds — the new value lives in ConnectionManager.js.
+  it('messages beyond the per-window limit are dropped silently — connection stays open', () => {
     const store = new ThousandStore();
     const cm = new ConnectionManager(store);
     const ws = makeWs();
     cm.handleConnection(ws);
     sendMsg(ws, { type: 'hello' });
-    for (let i = 0; i < 29; i++) {
+    // Fire enough pings to be certain the limit is exceeded regardless of
+    // future tuning. Stop probing for a response — we just want zero new
+    // outbound traffic + an open socket.
+    for (let i = 0; i < 300; i++) {
       sendMsg(ws, { type: 'ping' });
     }
-    sendMsg(ws, { type: 'ping' });
-    assert.equal(ws._closedCode, 1008);
+    const sentBefore = ws._sent.length;
+    for (let i = 0; i < 50; i++) {
+      sendMsg(ws, { type: 'ping' });
+    }
+    assert.equal(ws._closedCode, undefined, 'connection must NOT be closed');
+    assert.equal(ws._sent.length, sentBefore, 'rate-limited messages must produce no response');
   });
 });
 

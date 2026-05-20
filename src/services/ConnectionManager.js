@@ -5,7 +5,12 @@ const RoundActionHandler = require('../controllers/RoundActionHandler');
 
 const MAX_CONNECTIONS_PER_IP = 10;
 const HELLO_TIMEOUT_MS = 5000;
-const MESSAGE_RATE_LIMIT = 30;
+// 100 messages / 10 s ≈ 10 actions/sec — still well above any human rate but
+// gives bot drivers (live e2e) and the auto-resync recovery loop enough
+// headroom to escape transient desyncs without tripping the connection-level
+// throttle. The original 30/10s was tight enough that a single stuck player
+// would silently exhaust the budget within a few seconds.
+const MESSAGE_RATE_LIMIT = 100;
 const MESSAGE_RATE_WINDOW_MS = 10000;
 
 const ACTION_DISPATCH = {
@@ -20,6 +25,7 @@ const ACTION_DISPATCH = {
   exchange_pass:          (h, pid, m) => h.handleExchangePass(pid, m.cardId, m.toSeat),
   play_card:              (h, pid, m) => h.handlePlayCard(pid, m.cardId, m.declareMarriage === true),
   continue_to_next_round: (h, pid)    => h.handleContinueToNextRound(pid),
+  request_snapshot:       (h, pid)    => h.handleRequestSnapshot(pid),
 };
 
 class ConnectionManager {
@@ -112,7 +118,11 @@ class ConnectionManager {
     ws.send(JSON.stringify({ type: 'error', code: 'invalid_message', message: 'Unrecognized message type' }));
   }
 
-  // Returns true if this message should be dropped (rate-limit exceeded — connection closed).
+  // Returns true if this message should be dropped (rate-limit exceeded — silent drop).
+  // Why: closing the socket caused a reconnect race that left the client's hand
+  // out of sync with the server (live e2e test stuck at round 33 with
+  // "Card not in hand" on a card the UI still showed). FR-030 already specifies
+  // silent drop for in-round actions; mirror that at the WS layer too.
   _enforceRateLimit(ws) {
     const now = Date.now();
     const entry = this._wsMessageCounts.get(ws);
@@ -121,7 +131,6 @@ class ConnectionManager {
       return false;
     }
     if (entry.count >= MESSAGE_RATE_LIMIT) {
-      ws.close(1008, 'Message rate limit exceeded');
       return true;
     }
     entry.count++;

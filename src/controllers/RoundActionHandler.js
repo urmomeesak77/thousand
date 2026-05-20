@@ -2,6 +2,7 @@
 
 const RateLimiter = require('../utils/RateLimiter');
 const { roundScores, roundDeltas, buildFinalResults } = require('../services/Scoring');
+const { VICTORY_THRESHOLD } = require('../services/GameRules');
 const Round = require('../services/Round');
 const RoundSnapshot = require('../services/RoundSnapshot');
 
@@ -9,12 +10,19 @@ class RoundActionHandler {
   constructor({ store }) {
     this._store = store;
     this._rateLimiter = new RateLimiter(250, 1);
+    // Snapshot needs its own bucket: the rejection-recovery path fires
+    // request_snapshot immediately after a rejected action, which would
+    // otherwise be silently dropped by the shared limiter and leave the
+    // client stuck in a divergent state. 50 ms × 1 = 20 snapshots/sec/player,
+    // far above any natural recovery rate but bounded against flooding.
+    this._snapshotLimiter = new RateLimiter(50, 1);
   }
 
-  // Called by the periodic cleanup cron; without this, `_rateLimiter`'s internal
-  // Map keeps an entry for every player ID that ever submitted a round action.
+  // Called by the periodic cleanup cron; without this, the rate-limiter Maps
+  // keep an entry for every player ID that ever submitted a round action.
   cleanupRateLimiter() {
     this._rateLimiter.cleanup();
+    this._snapshotLimiter.cleanup();
   }
 
   _gameOf(playerId) {
@@ -31,6 +39,10 @@ class RoundActionHandler {
   }
 
   _reject(playerId, reason) {
+    const game = this._gameOf(playerId);
+    const phase = game?.round?.phase ?? '?';
+    const seat = this._seatOf(playerId);
+    console.log(`[reject] pid=${playerId} seat=${seat} phase=${phase} reason="${reason}"`);
     this._store.sendToPlayer(playerId, { type: 'action_rejected', reason });
   }
 
@@ -312,85 +324,85 @@ class RoundActionHandler {
         return;
       }
     }
-
     const result = round.playCard(seat, cardId);
-    if (!result || result.noop) {
-      return;
-    }
+    if (!result || result.noop) { return; }
     if (result.rejected) {
       this._reject(playerId, result.reason);
       return;
     }
     const isRoundComplete = result.trickResolved && result.roundComplete;
-    let victoryReached = false;
-    let finalResults = null;
-    if (isRoundComplete) {
-      round.roundScores = roundScores(round);
-      round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);
-
-      // Build the round summary view-model (populates perPlayer with trickPoints, marriageBonus, etc.)
-      round.buildSummary(game);
-
-      const session = game.session;
-      if (session) {
-        const deltas = round.roundDeltas;
-
-        // Compute cumulativeAfter for each seat = current cumulative + delta
-        for (const seat of [0, 1, 2]) {
-          round.summary.perPlayer[seat].cumulativeAfter =
-            session.cumulativeScores[seat] + deltas[seat];
-        }
-
-        // Build the RoundHistoryEntry for Game.history
-        const declarerPid = round.seatOrder[round.declarerSeat];
-        const summaryEntry = {
-          roundNumber: session.currentRoundNumber,
-          declarerSeat: round.declarerSeat,
-          declarerNickname: this._store.players.get(declarerPid)?.nickname ?? null,
-          bid: round.currentHighBid,
-          perPlayer: Object.fromEntries(
-            [0, 1, 2].map((seat) => [seat, { ...round.summary.perPlayer[seat] }])
-          ),
-        };
-
-        // Apply round end: mutates cumulativeScores, barrelState, appends history
-        session.applyRoundEnd(deltas, summaryEntry);
-
-        // Patch summary roundNumber with the session's current round number
-        round.summary.roundNumber = session.currentRoundNumber;
-
-        // Check victory: any seat at >= 1000
-        victoryReached = [0, 1, 2].some((s) => session.cumulativeScores[s] >= 1000);
-        round.summary.victoryReached = victoryReached;
-
-        if (victoryReached) {
-          session.gameStatus = 'game-over';
-          finalResults = buildFinalResults(session);
-        }
-      }
+    const { victoryReached, finalResults } = isRoundComplete
+      ? this._computeRoundEnd(game, round)
+      : { victoryReached: false, finalResults: null };
+    this._broadcastPlayCardResults(game, round, playerId, cardId, marriageResult, isRoundComplete, victoryReached, finalResults);
+    if (isRoundComplete && victoryReached) {
+      this._store._cleanupRound(game.id);
     }
+  }
+
+  _computeRoundEnd(game, round) {
+    round.roundScores = roundScores(round);
+    round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);
+    round.buildSummary(game);
+    const session = game.session;
+    if (!session) { return { victoryReached: false, finalResults: null }; }
+
+    const declarerPid = round.seatOrder[round.declarerSeat];
+    const summaryEntry = {
+      roundNumber: session.currentRoundNumber,
+      declarerSeat: round.declarerSeat,
+      declarerNickname: this._store.players.get(declarerPid)?.nickname ?? null,
+      bid: round.currentHighBid,
+      perPlayer: Object.fromEntries(
+        [0, 1, 2].map((s) => [s, { ...round.summary.perPlayer[s] }])
+      ),
+    };
+    session.applyRoundEnd(round.roundDeltas, summaryEntry);
+    // cumulativeAfter must be read after applyRoundEnd so barrel/zero penalties are reflected
+    for (const s of [0, 1, 2]) {
+      round.summary.perPlayer[s].cumulativeAfter = session.cumulativeScores[s];
+      summaryEntry.perPlayer[s].cumulativeAfter = session.cumulativeScores[s];
+      summaryEntry.perPlayer[s].penalties = round.summary.perPlayer[s].penalties;
+    }
+    round.summary.roundNumber = session.currentRoundNumber;
+    const victoryReached = [0, 1, 2].some((s) => session.cumulativeScores[s] >= VICTORY_THRESHOLD);
+    round.summary.victoryReached = victoryReached;
+    if (victoryReached) { session.gameStatus = 'game-over'; }
+    return { victoryReached, finalResults: victoryReached ? buildFinalResults(session) : null };
+  }
+
+  _broadcastPlayCardResults(game, round, playerId, cardId, marriageResult, isRoundComplete, victoryReached, finalResults) {
     const trickNumber = round.trickNumber;
+    const playerSeat = this._seatOf(playerId);
+    // Why: when the 3rd (trick-resolving) card is played, _resolveTrick clears
+    // currentTrick before broadcast — and the collected pile belongs to the
+    // *winner*, not necessarily the player who just played. Deriving from round
+    // state therefore mis-identified the card for a 3rd-card non-winner. The
+    // play_card handler already has the authoritative cardId; thread it through.
+    const playedCardId = cardId;
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
       if (marriageResult) {
         this._broadcastMarriage(pid, gameStatus, marriageResult, trickNumber, playerId);
       }
-      this._store.sendToPlayer(pid, { type: 'card_played', gameStatus });
+      const cardPlayedMsg = { type: 'card_played', gameStatus };
+      if (playerSeat !== null && playedCardId !== null) {
+        cardPlayedMsg.playerSeat = playerSeat;
+        cardPlayedMsg.cardId = playedCardId;
+        // Centre-card identity travels with every card_played so the centre-flight
+        // animation can render the 3rd (trick-resolving) card even though the
+        // post-resolve snapshot has already cleared currentTrick.
+        const cardObj = round.deck[playedCardId];
+        if (cardObj) { cardPlayedMsg.card = { rank: cardObj.rank, suit: cardObj.suit }; }
+      }
+      this._store.sendToPlayer(pid, cardPlayedMsg);
       if (isRoundComplete) {
         this._broadcastRoundSummary(pid, gameStatus, round.summary);
         if (victoryReached) {
-          this._store.sendToPlayer(pid, {
-            type: 'final_results',
-            finalResults,
-            gameStatus,
-          });
+          this._store.sendToPlayer(pid, { type: 'final_results', finalResults, gameStatus });
         }
       }
-    }
-    // FR-029: purge the game record after broadcasting final_results
-    if (isRoundComplete && victoryReached) {
-      this._store._cleanupRound(game.id);
     }
   }
 
@@ -404,16 +416,13 @@ class RoundActionHandler {
       this._reject(playerId, 'Not in a game');
       return;
     }
-    const gameId = player.gameId;
-    const game = this._store.games.get(gameId);
+    const game = this._store.games.get(player.gameId);
     if (!game?.round) {
       this._reject(playerId, 'Not in a round');
       return;
     }
     const round = game.round;
     const session = game.session;
-
-    // Validate phase and game status
     if (round.phase !== 'round-summary') {
       this._reject(playerId, 'Not in round-summary phase');
       return;
@@ -422,59 +431,60 @@ class RoundActionHandler {
       this._reject(playerId, 'Game is not in progress');
       return;
     }
-
-    // Get the sender's seat
     const seat = round.seatByPlayer.get(playerId);
     if (seat === null || seat === undefined) {
       this._reject(playerId, 'Not in a round');
       return;
     }
-
-    // Record the press (idempotent)
     session.recordContinuePress(seat);
-
     const continuePressedSeats = [...session.continuePresses];
-
-    // Broadcast continue_press_recorded + phase_changed to all players
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, {
-        type: 'continue_press_recorded',
-        seat,
-        continuePressedSeats,
-        gameStatus,
-      });
+      this._store.sendToPlayer(pid, { type: 'continue_press_recorded', seat, continuePressedSeats, gameStatus });
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
-
-    // If all 3 players have pressed, start the next round
     if (session.continuePresses.size === 3) {
-      // Rotate dealer + increment round number + clear continuePresses
-      session.startNextRound();
+      this._startAndBroadcastNextRound(game);
+    }
+  }
 
-      // Create a new round
-      game.round = new Round({ game, store: this._store });
-      game.round.start();
-      game.round.advanceFromDealingToBidding();
+  // Client-initiated resync: emit a fresh round_state_snapshot to the requester.
+  // Used by the client when it detects local state has diverged from the server
+  // (e.g. action_rejected with reason "Card not in hand"). Rate-limited like
+  // every other in-round action so it cannot be weaponized for flooding.
+  handleRequestSnapshot(playerId) {
+    if (!this._snapshotLimiter.isAllowed(playerId)) {
+      return;
+    }
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      return;
+    }
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      return;
+    }
+    const snapshot = game.round.getSnapshotFor(seat);
+    if (snapshot) {
+      this._store.sendToPlayer(playerId, snapshot);
+    }
+  }
 
-      const newRound = game.round;
-      const roundNumber = session.currentRoundNumber;
-
-      // Broadcast next_round_started to each player (per-viewer payload)
-      for (const pid of game.players) {
-        const selfSeat = newRound.seatByPlayer.get(pid);
-        const gameStatus = newRound.getViewModelFor(selfSeat);
-        const seats = RoundSnapshot.buildSeatLayout(newRound, selfSeat);
-        const dealSequence = RoundSnapshot.buildDealSequenceFor(newRound, selfSeat);
-        this._store.sendToPlayer(pid, {
-          type: 'next_round_started',
-          roundNumber,
-          seats,
-          dealSequence,
-          gameStatus,
-        });
-      }
+  _startAndBroadcastNextRound(game) {
+    const session = game.session;
+    session.startNextRound();
+    game.round = new Round({ game, store: this._store });
+    game.round.start();
+    game.round.advanceFromDealingToBidding();
+    const newRound = game.round;
+    const roundNumber = session.currentRoundNumber;
+    for (const pid of game.players) {
+      const selfSeat = newRound.seatByPlayer.get(pid);
+      const gameStatus = newRound.getViewModelFor(selfSeat);
+      const seats = RoundSnapshot.buildSeatLayout(newRound, selfSeat);
+      const dealSequence = RoundSnapshot.buildDealSequenceFor(newRound, selfSeat);
+      this._store.sendToPlayer(pid, { type: 'next_round_started', roundNumber, seats, dealSequence, gameStatus });
     }
   }
 }

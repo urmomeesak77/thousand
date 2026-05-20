@@ -153,6 +153,27 @@ describe('round-messages.005 — exchange_pass broadcasts card_passed', () => {
   });
 });
 
+// FR-019 — passedCard identity sent only to recipient, not to the third player
+describe('round-messages.005 — exchange_pass passedCard identity visible only to recipient (FR-019)', () => {
+  it('card_passed to seat 1 includes passedCard for recipient but not for the third player', () => {
+    const { store, ws, gameId } = setupPostBidGame();
+    const round = store.games.get(gameId).round;
+    round.phase = 'card-exchange';
+    round.exchangePassesCommitted = 0;
+    round._usedExchangeDestSeats = new Set();
+    ws.forEach((w) => { w._sent.length = 0; });
+    const cardToPass = round.hands[0][0];
+    sendMsg(ws[0], { type: 'exchange_pass', cardId: cardToPass, toSeat: 1 });
+    // ws[1] is seat 1 (recipient) — must receive passedCard identity
+    const recipientMsg = ws[1]._sent.find((m) => m.type === 'card_passed');
+    assert.ok(recipientMsg?.passedCard, 'recipient must receive the passedCard identity');
+    // ws[2] is seat 2 (third player) — must NOT receive passedCard identity
+    const thirdMsg = ws[2]._sent.find((m) => m.type === 'card_passed');
+    assert.ok(thirdMsg, 'third player must still receive card_passed message');
+    assert.equal(thirdMsg.passedCard, undefined, 'third player must not see the passed card identity');
+  });
+});
+
 // After trick_play_started, play_card broadcasts card_played to all 3 players
 describe('round-messages.005 — play_card broadcasts card_played', () => {
   it('after trick-play starts, play_card from the leading player broadcasts card_played to all 3', () => {

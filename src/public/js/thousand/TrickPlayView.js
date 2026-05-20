@@ -1,117 +1,484 @@
 import MarriageDeclarationPrompt from './MarriageDeclarationPrompt.js';
 import { MARRIAGE_BONUS } from './constants.js';
+import { SUIT_LETTER } from './cardSymbols.js';
+
+const FLIGHT_MS = 500;
+const TRICK_WINNER_HOLD_MS = 3000;
 
 class TrickPlayView {
-  constructor(el, { antlion, dispatcher, seats }) {
+  constructor(el, opts) {
     this._el = el;
-    this._antlion = antlion;
-    this._dispatcher = dispatcher;
-    this._seats = seats;
-    this._snapshot = null;
+    this._antlion = opts.antlion;
+    this._dispatcher = opts.dispatcher;
+    this._seats = opts.seats;
+    this._handView = opts.handView;
+    this._cardsById = opts.cardsById ?? {};
+    this._trickCenterEl = opts.trickCenterEl ?? null;
+    this._getSeatEl = opts.getSeatEl ?? (() => null);
+    this._setControlsLocked = opts.setControlsLocked ?? (() => {});
+    this._setStatusOverride = opts.setStatusOverride ?? (() => {});
+    this._getPlayerNickname = opts.getPlayerNickname ?? (() => null);
+    this._gameStatus = null;
+    this._pendingWinnerSeat = null;
 
-    // Container for the marriage declaration prompt
+    this._centerCards = [];             // { seat, cardId, rank, suit, slotEl }
+    this._pendingPlayed = null;         // { seat, cardId } from card_played, consumed by next render
+    this._lastCollectedCounts = { 0: 0, 1: 0, 2: 0 };
+    this._flightCancels = new Set();    // Antlion.onTick deregister fns for in-flight clones
+    this._scheduledIds = new Set();     // active Antlion.schedule ids (for teardown)
+    this._activeClones = new Set();     // DOM nodes for in-flight clones (for teardown)
+    this._resolveFinalized = true;      // becomes false during a trick-resolve sequence
+
+    this._buildCenter();
+
     this._promptEl = document.createElement('div');
     this._promptEl.className = 'trick-play__marriage-prompt';
     this._promptEl.style.display = 'none';
     this._el.appendChild(this._promptEl);
 
-    this._prompt = new MarriageDeclarationPrompt(this._promptEl, { antlion, dispatcher });
+    this._prompt = new MarriageDeclarationPrompt(this._promptEl, {
+      antlion: this._antlion, dispatcher: this._dispatcher,
+    });
 
-    this._antlion.bindInput(this._el, 'click', 'trick-play-card-click');
-    this._antlion.onInput('trick-play-card-click', (e) => {
-      const btn = e.target.closest('.trick-play__card');
-      if (!btn || btn.classList.contains('card--disabled')) {return;}
-      const cardId = parseInt(btn.dataset.cardId, 10);
+    this._handClickHandler = (e) => {
+      const cardEl = e.target.closest('[data-card-id]');
+      if (!cardEl || cardEl.classList.contains('card--disabled')) { return; }
+      const cardId = parseInt(cardEl.dataset.cardId, 10);
 
-      // T052: Check if a marriage can be offered for this card
-      if (this._snapshot && this._canOfferMarriage(cardId)) {
-        const card = this._snapshot.myHand.find((c) => c.id === cardId);
+      if (this._canOfferMarriage(cardId)) {
+        const card = this._cardsById[cardId];
         const bonus = MARRIAGE_BONUS[card.suit] ?? 0;
         this._prompt.show(cardId, card.suit, bonus);
         return;
       }
 
-      // Trigger CSS hand→centre animation; 250ms matches the CSS transition
-      // duration so the card reaches the centre slot before the server's
-      // play-card acknowledgment causes a re-render.
-      btn.classList.add('trick-play__card--playing');
-      this._antlion.schedule(250, () => {
-        // No-op: render(snapshot) from the server response handles removal.
-      });
+      this._startOwnFlight(cardId, cardEl);
       this._dispatcher.sendPlayCard(cardId);
-    });
+    };
+    this._antlion.onInput('hand-card-click', this._handClickHandler);
+  }
+
+  // Capture the just-played card's identity so the next render() can animate it.
+  // Called by GameScreen before updateStatus → render fires.
+  notifyCardPlayed(playerSeat, cardId) {
+    this._pendingPlayed = { seat: playerSeat, cardId };
   }
 
   _canOfferMarriage(cardId) {
-    const snap = this._snapshot;
-    if (!snap.isMyTurn) { return false; }
-    if (!snap.currentTrick || snap.currentTrick.length !== 0) { return false; }
-    if (!MarriageDeclarationPrompt.canOffer(snap.myHand, snap.trickNumber)) { return false; }
-    const card = snap.myHand.find((c) => c.id === cardId);
+    const gs = this._gameStatus;
+    if (!gs?.viewerIsLeading) { return false; }
+    if (gs.trickNumber == null || gs.trickNumber < 2) { return false; }
+    const card = this._cardsById[cardId];
     if (!card) { return false; }
     if (card.rank !== 'K' && card.rank !== 'Q') { return false; }
-    const hasK = snap.myHand.some((c) => c.rank === 'K' && c.suit === card.suit);
-    const hasQ = snap.myHand.some((c) => c.rank === 'Q' && c.suit === card.suit);
+    // Cross-check against server-authoritative legalCardIds. HandView can drift
+    // (e.g. a forceClick that silently failed leaves a phantom card behind),
+    // so we restrict the marriage check to ids the server agrees are still in
+    // hand. For a leader, legalCardIds is the entire hand — perfect for this.
+    const legalSet = new Set(gs.legalCardIds ?? []);
+    const handIds = this._handView.getCardIds().filter((id) => legalSet.has(id));
+    const hand = handIds.map((id) => this._cardsById[id]).filter(Boolean);
+    if (!MarriageDeclarationPrompt.canOffer(hand, gs.trickNumber)) { return false; }
+    const hasK = hand.some((c) => c.rank === 'K' && c.suit === card.suit);
+    const hasQ = hand.some((c) => c.rank === 'Q' && c.suit === card.suit);
     return hasK && hasQ;
   }
 
-  render(snapshot) {
-    this._snapshot = snapshot;
+  render(gameStatus) {
+    this._gameStatus = gameStatus;
 
-    // Preserve and reattach the prompt container so it survives innerHTML resets
-    this._el.innerHTML = '';
+    // Reconcile the centre area before mutating the controls strip
+    this._reconcileCenter(gameStatus);
+
+    this._el.textContent = '';
     this._el.appendChild(this._promptEl);
 
-    const { myHand, legalCardIds, isMyTurn, collectedTrickCounts } = snapshot;
+    const { legalCardIds, viewerIsActive } = gameStatus;
+    const legalSet = new Set(legalCardIds ?? []);
+    const handIds = this._handView.getCardIds();
+    const disabledIds = handIds.filter((id) => !viewerIsActive || !legalSet.has(id));
+    this._handView.setDisabledIds(disabledIds);
+    this._handView.setInteractive(true);
 
-    this._renderHand(myHand, legalCardIds, isMyTurn);
-    this._renderCollectedBadges(collectedTrickCounts);
+    // Self-healing watchdog: if it's our turn but we have cards yet none are
+    // legal, our HandView has drifted from server hands[] (the server's
+    // legalCardIds was computed from a different hand than ours). Ask for a
+    // fresh snapshot before the user is stuck staring at all-disabled cards.
+    if (viewerIsActive && handIds.length > 0 && legalSet.size === 0) {
+      this._dispatcher.sendRequestSnapshot();
+    }
   }
 
-  _renderHand(myHand, legalCardIds, isMyTurn) {
-    const legalSet = new Set(legalCardIds);
-    const handEl = document.createElement('div');
-    handEl.className = 'trick-play__hand';
+  // -------- centre rendering & reconciliation --------
 
-    for (const card of myHand) {
-      const btn = document.createElement('button');
-      btn.className = 'trick-play__card card';
-      btn.dataset.cardId = card.id;
-      btn.textContent = `${card.rank}${card.suit}`;
+  _buildCenter() {
+    if (!this._trickCenterEl) { return; }
+    this._trickCenterEl.classList.add('trick-center');
+    this._trickCenterEl.textContent = '';
+    for (const slotName of ['self', 'left', 'right']) {
+      const slot = document.createElement('div');
+      slot.className = `trick-center__slot trick-center__slot--${slotName}`;
+      slot.dataset.slot = slotName;
+      this._trickCenterEl.appendChild(slot);
+    }
+  }
 
-      const disabled = !isMyTurn || !legalSet.has(card.id);
-      if (disabled) {
-        btn.classList.add('card--disabled');
+  _slotForSeat(seat) {
+    if (!this._trickCenterEl) { return null; }
+    const slotName = seat === this._seats.self ? 'self'
+      : seat === this._seats.left ? 'left'
+      : seat === this._seats.right ? 'right' : null;
+    return slotName ? this._trickCenterEl.querySelector(`[data-slot="${slotName}"]`) : null;
+  }
+
+  _reconcileCenter(gameStatus) {
+    if (!this._trickCenterEl) { return; }
+    const incomingTrick = gameStatus.currentTrick ?? [];
+    const prevCounts = this._lastCollectedCounts;
+    const curCounts = gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 };
+
+    // Detect trick-resolve: the count went up for some seat (3rd card landed and was collected).
+    let winnerSeat = null;
+    for (const s of [0, 1, 2]) {
+      if ((curCounts[s] ?? 0) > (prevCounts[s] ?? 0)) { winnerSeat = s; break; }
+    }
+    this._lastCollectedCounts = { ...curCounts };
+
+    if (winnerSeat !== null) {
+      this._handleTrickResolve(winnerSeat);
+      this._pendingPlayed = null;
+      return;
+    }
+
+    // A trick-resolve sequence is still animating. Don't commit the next trick's
+    // cards into the centre yet: the collect-flight and _clearCenter operate on
+    // _centerCards wholesale, so any card added now would be swept up and removed
+    // when the resolve finalizes. This bites only the last trick, where every
+    // player holds a single forced card and plays instantly — inside the 3.5s
+    // resolve window. The plays live in gameStatus.currentTrick;
+    // _finalizeTrickResolve re-reconciles against the latest status once the
+    // centre is clear, so the deferred cards render then.
+    if (!this._resolveFinalized) {
+      this._pendingPlayed = null;
+      return;
+    }
+
+    // Detect a new card mid-trick. _pendingPlayed identifies whose card just landed;
+    // its identity is in cardsById (own card) or in gameStatus.currentTrick (opponent).
+    if (this._pendingPlayed) {
+      const { seat, cardId } = this._pendingPlayed;
+      this._pendingPlayed = null;
+      const alreadyShown = this._centerCards.some((c) => c.cardId === cardId);
+      if (!alreadyShown) {
+        const identity = this._cardsById[cardId] ?? incomingTrick.find((t) => t.cardId === cardId);
+        if (identity) {
+          if (seat === this._seats.self) {
+            // Own flight was started in the click handler; commit only.
+            this._commitToCenter(seat, cardId, identity.rank, identity.suit);
+          } else {
+            this._startOpponentFlight(seat, cardId, identity.rank, identity.suit);
+          }
+        }
       }
-
-      handEl.appendChild(btn);
+      return;
     }
 
-    this._el.appendChild(handEl);
+    // No pending message: reconcile statelessly against the server's currentTrick.
+    // Handles both init/reconnect (local empty) AND stale optimistic drift —
+    // e.g. an own play that the server never accepted (rejection or silent drop)
+    // leaves _centerCards with a card the server's currentTrick lacks, and the
+    // existing branches above don't touch it. Without this, the centre stays
+    // stuck and the user can't recover.
+    const serverIds = new Set(incomingTrick.map((e) => e.cardId));
+    const localIds  = new Set(this._centerCards.map((e) => e.cardId));
+    const diverged = serverIds.size !== localIds.size
+      || [...serverIds].some((id) => !localIds.has(id));
+    if (!diverged) { return; }
+
+    this._centerCards = this._centerCards.filter((entry) => {
+      if (serverIds.has(entry.cardId)) { return true; }
+      entry.cardEl.remove();
+      return false;
+    });
+    for (const entry of incomingTrick) {
+      if (!localIds.has(entry.cardId) && entry.rank && entry.suit) {
+        this._commitToCenter(entry.seat, entry.cardId, entry.rank, entry.suit);
+      }
+    }
   }
 
-  _renderCollectedBadges(collectedTrickCounts) {
-    const stackEl = document.createElement('div');
-    stackEl.className = 'trick-play__collected';
+  _commitToCenter(seat, cardId, rank, suit) {
+    const slot = this._slotForSeat(seat);
+    if (!slot) { return null; }
+    const cardEl = document.createElement('div');
+    cardEl.className = `card-sprite card-sprite--up card--${rank}${SUIT_LETTER[suit]}`;
+    cardEl.dataset.cardId = cardId;
+    slot.appendChild(cardEl);
+    const entry = { seat, cardId, rank, suit, slotEl: slot, cardEl };
+    this._centerCards.push(entry);
+    return entry;
+  }
 
-    for (const [seatStr, count] of Object.entries(collectedTrickCounts)) {
-      const seat = Number(seatStr);
-      const item = document.createElement('div');
-      item.className = 'collected-tricks__item';
-      item.dataset.seat = seat;
-
-      const badge = document.createElement('span');
-      badge.className = 'collected-tricks__badge';
-      badge.textContent = `× ${count}`;
-
-      item.appendChild(badge);
-      stackEl.appendChild(item);
+  _handleTrickResolve(winnerSeat) {
+    // The 3rd card needs to appear before the collect-flight kicks off. For the
+    // opponent case we run a normal flight (not a snap) so the play is visible —
+    // and add FLIGHT_MS to the hold so the flight lands before the 3s hold begins
+    // ticking down.
+    let extraPauseMs = 0;
+    if (this._pendingPlayed) {
+      const { seat, cardId } = this._pendingPlayed;
+      const identity = this._cardsById[cardId];
+      if (identity && !this._centerCards.some((c) => c.cardId === cardId)) {
+        if (seat === this._seats.self) {
+          this._commitToCenter(seat, cardId, identity.rank, identity.suit);
+        } else {
+          this._startOpponentFlight(seat, cardId, identity.rank, identity.suit);
+          extraPauseMs = FLIGHT_MS;
+        }
+      }
     }
 
-    this._el.appendChild(stackEl);
+    this._resolveFinalized = false;
+    this._pendingWinnerSeat = winnerSeat;
+    this._setControlsLocked(true);
+
+    // Set the winner banner up front so it is visible during the hold AND the
+    // collect-flight. Duration spans the opponent-landing pause (if any), the
+    // 3s hold, and the collect-flight.
+    const nickname = this._getPlayerNickname(winnerSeat);
+    const totalSequenceMs = extraPauseMs + TRICK_WINNER_HOLD_MS + FLIGHT_MS;
+    if (nickname) {
+      this._setStatusOverride(`${nickname} won the trick`, totalSequenceMs);
+    }
+
+    // Hold the three cards in the centre for 3 seconds (plus any opponent-landing
+    // pause), then run the collect-flight to the winner's stack.
+    const holdMs = extraPauseMs + TRICK_WINNER_HOLD_MS;
+    const pauseId = this._antlion.schedule(holdMs, () => {
+      this._scheduledIds.delete(pauseId);
+      this._collectFlightToWinner(winnerSeat);
+    });
+    this._scheduledIds.add(pauseId);
+
+    // Why: rAF is throttled/paused in occluded or background browser windows, so
+    // an onLand-only release can hang forever (the game lock would stay engaged and
+    // mountForPhase would stop firing). This setTimeout-based safety net guarantees
+    // the lock releases on a real-time deadline regardless of frame painting.
+    const safetyId = this._antlion.schedule(holdMs + FLIGHT_MS + 200, () => {
+      this._scheduledIds.delete(safetyId);
+      this._finalizeTrickResolve();
+    });
+    this._scheduledIds.add(safetyId);
   }
 
-  destroy() {}
+  _finalizeTrickResolve() {
+    if (this._resolveFinalized) { return; }
+    this._resolveFinalized = true;
+    this._clearCenter();
+    this._pendingWinnerSeat = null;
+    this._setControlsLocked(false);
+    // Cards played during the resolve window were deferred (see _reconcileCenter).
+    // Now that the centre is clear, render whatever the next trick already holds.
+    if (this._gameStatus) { this._reconcileCenter(this._gameStatus); }
+  }
+
+  // Returns a card-sized source rect for an opponent's play-to-centre flight.
+  // Mirrors _destRectForWinner: anchors on .opponent-view__stack and clamps to
+  // a card width so the flight clone is card-sized rather than seat-container-sized.
+  // Why: the seat container is a 1fr CSS-grid column wrapping nickname + stack +
+  // last-action — much bigger than a card. Using its bounding rect as the
+  // flight source produced a HUGE clone whose card sprite-sheet (sized via
+  // --card-width CSS vars) tiled inside it, and the flight appeared to "drop in
+  // from above" because the top of the column sits above the actual stack.
+  _sourceRectForOpponent(seatEl, cardWidth) {
+    const stack = seatEl.querySelector('.opponent-view__stack');
+    if (stack) {
+      const r = stack.getBoundingClientRect();
+      const w = Math.min(r.width, cardWidth || r.width);
+      // Anchor on the right edge of the stack — the "top" of the deck visually,
+      // where the just-played card was lifted from.
+      return {
+        left: r.right - w, top: r.top, width: w, height: r.height,
+        right: r.right, bottom: r.bottom,
+      };
+    }
+    const r = seatEl.getBoundingClientRect();
+    const w = cardWidth || Math.min(r.width, 100);
+    const h = w * 1.4;
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    return {
+      left: cx - w / 2, top: cy - h / 2, width: w, height: h,
+      right: cx + w / 2, bottom: cy + h / 2,
+    };
+  }
+
+  // Returns a card-sized destination rect for the post-trick collect-flight.
+  // Anchors on the winner's hand-stack area so the flight clones don't scale
+  // up against a wide seat container.
+  _destRectForWinner(winnerSeat) {
+    const seatEl = this._getSeatEl(winnerSeat);
+    if (!seatEl) { return null; }
+    const cardWidth = this._centerCards[0]?.cardEl?.getBoundingClientRect().width ?? 0;
+    if (winnerSeat === this._seats?.self) {
+      const last = seatEl.querySelector('[data-card-id]:last-of-type');
+      if (last) { return last.getBoundingClientRect(); }
+    } else {
+      const stack = seatEl.querySelector('.opponent-view__stack');
+      if (stack) {
+        const r = stack.getBoundingClientRect();
+        const w = Math.min(r.width, cardWidth || r.width);
+        return { left: r.left, top: r.top, width: w, height: r.height, right: r.left + w, bottom: r.bottom };
+      }
+    }
+    const r = seatEl.getBoundingClientRect();
+    const w = cardWidth || Math.min(r.width, 100);
+    const h = w * 1.4; // typical card aspect ratio (h/w ≈ 1.4)
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    return { left: cx - w / 2, top: cy - h / 2, width: w, height: h, right: cx + w / 2, bottom: cy + h / 2 };
+  }
+
+  _collectFlightToWinner(winnerSeat) {
+    const destRect = this._destRectForWinner(winnerSeat);
+    if (!destRect || this._centerCards.length === 0) {
+      this._finalizeTrickResolve();
+      return;
+    }
+    const cards = [...this._centerCards];
+    let landed = 0;
+    const onLand = () => {
+      landed += 1;
+      if (landed >= cards.length) {
+        this._finalizeTrickResolve();
+      }
+    };
+    for (const entry of cards) {
+      const fromRect = entry.cardEl.getBoundingClientRect();
+      this._spawnFlight({
+        fromRect, toRect: destRect, rank: entry.rank, suit: entry.suit,
+        duration: FLIGHT_MS, onDone: onLand,
+      });
+      entry.cardEl.style.visibility = 'hidden';
+    }
+  }
+
+  _clearCenter() {
+    for (const entry of this._centerCards) {
+      entry.cardEl.remove();
+    }
+    this._centerCards = [];
+  }
+
+  // -------- per-card flight animation (FLIP-style) --------
+
+  _startOwnFlight(cardId, cardEl) {
+    const card = this._cardsById[cardId];
+    if (!card) { return; }
+    // Guard against double-click before server ack: don't append a second sprite
+    // to the same slot if this card is already committed.
+    if (this._centerCards.some((c) => c.cardId === cardId)) { return; }
+    const slot = this._slotForSeat(this._seats.self);
+    if (!slot) { return; }
+    const fromRect = cardEl.getBoundingClientRect();
+    // Hide the source so the flying clone is the only visible instance.
+    cardEl.style.visibility = 'hidden';
+    // Reserve the slot space immediately by committing the destination card hidden.
+    const entry = this._commitToCenter(this._seats.self, cardId, card.rank, card.suit);
+    if (!entry) { return; }
+    entry.cardEl.style.visibility = 'hidden';
+    const toRect = entry.cardEl.getBoundingClientRect();
+    this._spawnFlight({
+      fromRect, toRect, rank: card.rank, suit: card.suit, duration: FLIGHT_MS,
+      onDone: () => { entry.cardEl.style.visibility = ''; },
+    });
+  }
+
+  _startOpponentFlight(seat, cardId, rank, suit) {
+    const sourceEl = this._getSeatEl(seat);
+    const slot = this._slotForSeat(seat);
+    if (!sourceEl || !slot) {
+      this._commitToCenter(seat, cardId, rank, suit);
+      return;
+    }
+    // Pre-commit the centre card hidden, so its rect is the flight destination
+    // AND so toRect's card width is available as a sizing reference for fromRect.
+    const entry = this._commitToCenter(seat, cardId, rank, suit);
+    if (!entry) { return; }
+    entry.cardEl.style.visibility = 'hidden';
+    const toRect = entry.cardEl.getBoundingClientRect();
+    const fromRect = this._sourceRectForOpponent(sourceEl, toRect.width);
+    this._spawnFlight({
+      fromRect, toRect, rank, suit, duration: FLIGHT_MS,
+      onDone: () => { entry.cardEl.style.visibility = ''; },
+    });
+  }
+
+  _spawnFlight({ fromRect, toRect, rank, suit, duration, onDone }) {
+    const clone = document.createElement('div');
+    clone.className = `card-sprite card-sprite--up card--${rank}${SUIT_LETTER[suit]} card-flight-clone`;
+    clone.style.position = 'fixed';
+    clone.style.left = `${fromRect.left}px`;
+    clone.style.top = `${fromRect.top}px`;
+    clone.style.width = `${fromRect.width}px`;
+    clone.style.height = `${fromRect.height}px`;
+    clone.style.transform = 'translate3d(0,0,0)';
+    clone.style.willChange = 'transform';
+    clone.style.zIndex = '1000';
+    document.body.appendChild(clone);
+    this._activeClones.add(clone);
+
+    const dx = toRect.left - fromRect.left;
+    const dy = toRect.top - fromRect.top;
+    const scale = toRect.width / Math.max(fromRect.width, 1);
+
+    const start = Date.now();
+    let cancelTick;
+    const finish = () => {
+      if (cancelTick) {
+        this._flightCancels.delete(cancelTick);
+        cancelTick();
+        cancelTick = null;
+      }
+      this._activeClones.delete(clone);
+      clone.remove();
+      onDone?.();
+    };
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const t = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      clone.style.transform = `translate3d(${dx * eased}px, ${dy * eased}px, 0) scale(${1 + (scale - 1) * eased})`;
+      if (t >= 1) { finish(); }
+    };
+    // §XI: per-frame work goes through Antlion.onTick.
+    cancelTick = this._antlion.onTick(tick);
+    if (cancelTick) { this._flightCancels.add(cancelTick); }
+  }
+
+  destroy() {
+    this._antlion.offInput('hand-card-click', this._handClickHandler);
+    this._prompt?.destroy();
+    for (const id of this._scheduledIds) {
+      this._antlion.cancelScheduled?.(id);
+    }
+    this._scheduledIds.clear();
+    for (const cancel of this._flightCancels) {
+      cancel();
+    }
+    this._flightCancels.clear();
+    for (const clone of this._activeClones) {
+      clone.remove();
+    }
+    this._activeClones.clear();
+    if (this._trickCenterEl) {
+      this._trickCenterEl.classList.remove('trick-center');
+      this._trickCenterEl.textContent = '';
+    }
+    this._centerCards = [];
+    this._handView.setDisabledIds([]);
+    this._handView.setInteractive(false);
+  }
 }
 
 export default TrickPlayView;

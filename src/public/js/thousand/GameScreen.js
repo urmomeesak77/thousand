@@ -13,6 +13,7 @@ import RoundReadyScreen from './RoundReadyScreen.js';
 import GameScreenControls from './GameScreenControls.js';
 import SellPhaseView from './SellPhaseView.js';
 import { computeStatusText } from './statusText.js';
+import { formatRoundStats } from './roundStatsText.js';
 
 const FLASH_DURATION_MS = 600;
 const OPPONENT_DEFAULT_HAND = 7;
@@ -26,6 +27,8 @@ class GameScreen {
     this._seats = null;
     this._isControlsLocked = false;
     this._lastGameStatus = null;
+    this._lastMountedPhase = null;
+    this._pendingMountStatus = null;
     this._lastSnapshot = null;
     this._sellSubPhase = null;
     this._exposedCardIds = [];
@@ -33,6 +36,8 @@ class GameScreen {
     this._talonCardIds = [];
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
+    this._statusOverride = null;
+    this._statusOverrideScheduleId = null;
 
     this._buildDom(antlion, container);
 
@@ -54,6 +59,8 @@ class GameScreen {
     centerColEl.append(statusBoxEl, talonEl);
     const rightEl = document.createElement('div');
     const handEl = document.createElement('div');
+    const selfStatsEl = document.createElement('div');
+    selfStatsEl.className = 'self-round-stats hidden';
     this._controlsEl = document.createElement('div');
     this._controlsEl.className = 'game-controls';
 
@@ -61,13 +68,15 @@ class GameScreen {
     lastActionEl.className = 'last-action-box hidden';
     this._lastActionEl = lastActionEl;
 
-    tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, handEl);
+    tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, selfStatsEl, handEl);
     container.append(statusBarEl, tableEl, this._controlsEl);
 
     this._tableEl = tableEl;
     this._leftEl = leftEl;
     this._rightEl = rightEl;
     this._handEl = handEl;
+    this._selfStatsEl = selfStatsEl;
+    this._talonEl = talonEl;
 
     this._statusBar = new StatusBar(statusBarEl);
     this._statusBox = new GameStatusBox(statusBoxEl);
@@ -77,6 +86,11 @@ class GameScreen {
     this._rightOpponent = new OpponentView(rightEl);
     this._talonView = new TalonView(talonEl);
   }
+
+  // Exposed to TrickPlayView so it can mount its centre cards into the talon area
+  // and look up source elements for the seat-to-centre flight animation.
+  get trickCenterEl() { return this._talonEl; }
+  getSeatEl(seat) { return this._elForSeat(seat); }
 
   _seatOf(playerId) {
     return this._seats?.players.find((p) => p.playerId === playerId)?.seat ?? null;
@@ -146,6 +160,8 @@ class GameScreen {
     this._seats = msg.seats;
     this._cardsById = {};
     this._isControlsLocked = false;
+    this._lastMountedPhase = null;
+    this._pendingMountStatus = null;
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
     this._clearLastAction();
@@ -177,8 +193,13 @@ class GameScreen {
   // Called when a fresh snapshot arrives mid-round (e.g. card exchange or trick play update).
   updateSnapshot(snapshot) {
     this._lastSnapshot = { ...(this._lastSnapshot ?? {}), ...snapshot };
-    if (!this._isControlsLocked) {
-      this._controls.mountForPhase(this._lastGameStatus ?? snapshot.gameStatus);
+    const status = this._lastGameStatus ?? snapshot.gameStatus;
+    if (this._canMountNow(status)) {
+      this._controls.mountForPhase(status);
+      this._lastMountedPhase = status?.phase ?? this._lastMountedPhase;
+      this._pendingMountStatus = null;
+    } else {
+      this._pendingMountStatus = status;
     }
   }
 
@@ -223,9 +244,46 @@ class GameScreen {
   updateStatus(gameStatus) {
     this._lastGameStatus = gameStatus;
     this._renderStatus(gameStatus);
-    if (!this._isControlsLocked) {
-      this._controls.mountForPhase(gameStatus);
+    if (gameStatus.phase === 'Card exchange') {
+      this._talonView.clear();
     }
+    this._applyOpponentHandSizes(gameStatus.opponentHandSizes);
+    // Why: when the last trick's card_played arrives, gameStatus.phase has
+    // already moved to 'Round complete'. Without this, mountForPhase swaps to
+    // RoundSummaryScreen and destroys TrickPlayView before _reconcileCenter
+    // can see the count diff. Forwarding the status only on this transition
+    // lets the active TrickPlayView engage the controls-lock, deferring the
+    // RoundSummaryScreen mount until _finalizeTrickResolve unlocks. Skipped
+    // for same-phase updates because mountForPhase below already re-renders.
+    if (this._lastMountedPhase === 'Trick play' && gameStatus.phase !== 'Trick play') {
+      this._controls.forwardStatusToTrickPlayView(gameStatus);
+    }
+    if (this._canMountNow(gameStatus)) {
+      this._controls.mountForPhase(gameStatus);
+      this._lastMountedPhase = gameStatus.phase;
+      this._pendingMountStatus = null;
+    } else {
+      this._pendingMountStatus = gameStatus;
+    }
+  }
+
+  _applyOpponentHandSizes(sizes) {
+    if (!sizes || !this._seats) { return; }
+    const left = sizes[this._seats.left];
+    const right = sizes[this._seats.right];
+    if (typeof left === 'number') { this._leftOpponent.setCardCount(left); }
+    if (typeof right === 'number') { this._rightOpponent.setCardCount(right); }
+  }
+
+  // Why: the controls-lock is only meant to defer phase TRANSITIONS until the
+  // trick-resolve animation finishes (so RoundSummaryScreen doesn't replace
+  // TrickPlayView mid-flight). Same-phase re-renders are always safe — they
+  // reuse the existing view and just update disabled-state etc. Blocking them
+  // would freeze the UI in whatever state it had when the lock engaged.
+  _canMountNow(gameStatus) {
+    if (!this._isControlsLocked) { return true; }
+    const incomingPhase = gameStatus?.phase ?? null;
+    return incomingPhase != null && incomingPhase === this._lastMountedPhase;
   }
 
   get cardsById() {
@@ -237,7 +295,14 @@ class GameScreen {
   }
 
   setControlsLocked(isLocked) {
+    const wasLocked = this._isControlsLocked;
     this._isControlsLocked = isLocked;
+    if (wasLocked && !isLocked && this._pendingMountStatus) {
+      const status = this._pendingMountStatus;
+      this._pendingMountStatus = null;
+      this._controls.mountForPhase(status);
+      this._lastMountedPhase = status.phase;
+    }
   }
 
   flashPlayer(playerId) {
@@ -262,6 +327,31 @@ class GameScreen {
   // Updates the "Connection lost…" indicator for an opponent (FR-021).
   setPlayerDisconnected(playerId, disconnected) {
     this._opponentForSeat(this._seatOf(playerId))?.setDisconnected(disconnected);
+  }
+
+  // Reverts optimistic UI applied before server confirmation (e.g. fading a card
+  // marked for exchange-pass). Called when an action is rejected.
+  revertOptimisticHand() {
+    this._handView.clearLeavingMarks();
+  }
+
+  // Inserts a card into the viewer's hand — called when the viewer is the recipient
+  // of an exchange pass (FR-019). The new card is briefly highlighted.
+  addCardToHand(card) {
+    this._handView.addCard(card);
+  }
+
+  // Removes a card from the viewer's hand when the server confirms it was played.
+  // No-op when the player who played isn't the viewer (we don't track opponent hand identities).
+  handlePlayedCard(playerSeat, cardId) {
+    if (playerSeat !== this._seats?.self) { return; }
+    this._handView.removeCard(cardId);
+  }
+
+  // Forwarded to the active TrickPlayView so the centre-flight animation can capture
+  // the just-played card's seat + cardId BEFORE the post-resolve snapshot lands.
+  notifyCardPlayed(playerSeat, cardId) {
+    this._controls.notifyCardPlayed(playerSeat, cardId);
   }
 
   // Hides the table/controls and shows the round-ready (or aborted) screen.
@@ -305,27 +395,73 @@ class GameScreen {
       this._antlion, sequence, this._cardsById, this._seats.self, this._cardTable,
       () => {
         this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
-        const selfCards = Object.values(this._cardsById)
-          .filter(c => !this._talonCardIds.includes(c.id));
-        this._handView.setHand(selfCards);
+        // Why: when bidding resolves before this completion fires (slow tabs, accumulated
+        // jank), talon_absorbed already added the talon identities to cardsById and called
+        // setHand(10). Filtering talon out here would shrink the hand back to 7, leaving
+        // the declarer's client with cards the server thinks they hold but cannot see
+        // (causing trick-play deadlock). cardsById only ever contains cards the viewer is
+        // authorized to see, so passing it through unfiltered is always safe.
+        this._handView.setHand(Object.values(this._cardsById));
         // Talon stays face-down during bidding; declarer reveals it on take
         this._talonView.setFaceDownCount(this._talonCardIds.length);
         this._leftOpponent.setCardCount(opponentHandSizes[this._seats.left] ?? OPPONENT_DEFAULT_HAND);
         this._rightOpponent.setCardCount(opponentHandSizes[this._seats.right] ?? OPPONENT_DEFAULT_HAND);
-        this._isControlsLocked = false;
-        if (this._lastGameStatus) {this._controls.mountForPhase(this._lastGameStatus);}
+        this.setControlsLocked(false);
+        if (this._lastGameStatus && this._pendingMountStatus !== this._lastGameStatus) {
+          this._controls.mountForPhase(this._lastGameStatus);
+          this._lastMountedPhase = this._lastGameStatus.phase;
+        }
       },
     );
     animation.start(this._tableEl);
   }
 
+  // Why: round stats only exist during trick-play/round-summary (roundPoints is
+  // null otherwise). Driving self + both opponents from the same view-model keeps
+  // the three seat displays consistent on every render.
+  _renderRoundStats(gameStatus) {
+    const points = gameStatus.roundPoints;
+    if (points == null || !this._seats) {
+      this._selfStatsEl.classList.add('hidden');
+      this._leftOpponent.setRoundStats(null, null);
+      this._rightOpponent.setRoundStats(null, null);
+      return;
+    }
+    const counts = gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 };
+    const { self, left, right } = this._seats;
+    this._selfStatsEl.textContent = formatRoundStats(counts[self], points[self]);
+    this._selfStatsEl.classList.remove('hidden');
+    this._leftOpponent.setRoundStats(counts[left] ?? 0, points[left] ?? 0);
+    this._rightOpponent.setRoundStats(counts[right] ?? 0, points[right] ?? 0);
+  }
+
   _renderStatus(gameStatus) {
     this._statusBar.render(gameStatus, this._sellWinnerNickname);
+    this._renderRoundStats(gameStatus);
+    if (this._statusOverride) { return; }
     const { text, isActive } = computeStatusText(gameStatus, {
       viewerIsNewDeclarer: this._viewerIsNewDeclarer,
       sellSubPhase: this._sellSubPhase,
     });
     this._statusBox.setText(text, isActive);
+  }
+
+  setStatusOverride(text, durationMs) {
+    if (this._statusOverrideScheduleId != null) {
+      this._antlion.cancelScheduled?.(this._statusOverrideScheduleId);
+      this._statusOverrideScheduleId = null;
+    }
+    this._statusOverride = { text };
+    this._statusBox.setText(text, true);
+    this._statusOverrideScheduleId = this._antlion.schedule(durationMs, () => {
+      this._statusOverrideScheduleId = null;
+      this._statusOverride = null;
+      if (this._lastGameStatus) { this._renderStatus(this._lastGameStatus); }
+    });
+  }
+
+  playerNicknameForSeat(seat) {
+    return this._seats?.players.find((p) => p.seat === seat)?.nickname ?? null;
   }
 }
 

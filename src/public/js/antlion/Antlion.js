@@ -20,6 +20,11 @@ class Antlion {
     this._bus.on(type, handler);
   }
 
+  // Deregister a handler previously registered with onInput
+  offInput(type, handler) {
+    this._bus.off(type, handler);
+  }
+
   // Register a per-frame callback; returns a cancel function to remove the handler.
   onTick(handler) {
     this._tickHandlers.push(handler);

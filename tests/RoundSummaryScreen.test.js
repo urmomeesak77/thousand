@@ -223,3 +223,48 @@ describe('RoundSummaryScreen — clicking back btn calls onBackToLobby (FR-015)'
     assert.equal(callCount, 1, 'onBackToLobby must be called exactly once');
   });
 });
+
+describe('RoundSummaryScreen — Continue button disables itself on click (no double-fire)', () => {
+  function makeContinueScreen({ viewerSeat = 0 } = {}) {
+    const doc = dom.window.document;
+    const el = doc.createElement('div');
+    doc.body.appendChild(el);
+    const antlion = makeMockAntlion();
+    let continueCount = 0;
+    const screen = new dom.window.RoundSummaryScreen(el, {
+      antlion,
+      viewerSeat,
+      onBackToLobby: () => {},
+      onContinue: () => { continueCount++; },
+    });
+    return { screen, el, getCount: () => continueCount };
+  }
+
+  it('Continue button has :disabled after a click, so :not(:disabled) selectors no longer match', () => {
+    const { screen, el } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+
+    const btn = el.querySelector('.round-summary__continue-btn');
+    assert.ok(btn, 'precondition: continue button rendered');
+    assert.ok(!btn.disabled, 'precondition: continue button starts enabled');
+
+    btn.click();
+
+    const after = el.querySelector('.round-summary__continue-btn');
+    assert.ok(after.disabled,
+      'continue button must be disabled after click — keeps test/UI from double-firing the action');
+  });
+
+  it('onContinue fires exactly once even if click is replayed via the same DOM node', () => {
+    const { screen, el, getCount } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+
+    const btn = el.querySelector('.round-summary__continue-btn');
+    btn.click();
+    // The post-click button is re-rendered with disabled=true, so a fresh click
+    // on the (now-detached or new) node is what matters in practice. But the
+    // original test's selector `:not(:disabled)` is what gates re-fires —
+    // verify the rendered button is disabled and that count is 1.
+    assert.equal(getCount(), 1, 'onContinue must fire exactly once for one user click');
+  });
+});

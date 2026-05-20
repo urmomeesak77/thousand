@@ -910,6 +910,12 @@ fieldset legend {
   text-align: center;
 }
 
+.opponent-view__round-stats {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 /* ============================================================
    Hand view — viewer's own sorted face-up hand
    ============================================================ */
@@ -917,6 +923,17 @@ fieldset legend {
 /* Span all 3 grid columns so the hand centres across the full table width */
 .game-table > .hand-view {
   grid-column: 1 / -1;
+}
+
+.game-table > .self-round-stats {
+  grid-column: 1 / -1;
+}
+
+.self-round-stats {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  padding: 0.25rem 0;
 }
 
 .hand-view {
@@ -1080,40 +1097,6 @@ fieldset legend {
    Card exchange phase (.card-exchange__*)
    ============================================================ */
 
-.card-exchange__hand {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.5rem;
-  min-height: calc(var(--card-height) + 1rem);
-}
-
-/* Card button in exchange — shares card-sprite sizing; position relative
-   so it flows in the flex row (same pattern as hand-view__card) */
-.card-exchange__card {
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.card-exchange__card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
-}
-
-.card-exchange__card--selected {
-  transform: translateY(-18px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--color-primary);
-  z-index: 1;
-}
-
-/* Card animates off to its recipient when exchange is confirmed */
-.card-exchange__card--leaving {
-  animation: card-leave 250ms ease-out forwards;
-}
-
 /* Row of destination seat buttons rendered below the hand */
 .card-exchange__dest-row {
   display: flex;
@@ -1163,68 +1146,90 @@ fieldset legend {
    Trick play (.trick-play__*)
    ============================================================ */
 
-.trick-play__hand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.5rem;
-  min-height: calc(var(--card-height) + 1rem);
-}
-
-/* Individual card button in trick play — flows in flex row */
-.trick-play__card {
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.trick-play__card:hover:not(.card--disabled) {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
-}
-
-/* Card animates toward the centre trick area when played */
-.trick-play__card--playing {
-  animation: card-to-centre 250ms ease-out forwards;
-}
-
 /* Greyed-out / unplayable card state */
 .card--disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* Area that shows collected tricks summary */
-.trick-play__collected {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.4rem 0.75rem;
-  flex-wrap: wrap;
+/* Suppress hover lift on disabled cards in hand */
+.hand-view__card.card--disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
-/* Per-player collected trick entry */
-.collected-tricks__item {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
+/* Pointer cursor on interactive hand cards (trick play / card exchange) */
+.hand-view--interactive .hand-view__card {
+  cursor: pointer;
 }
 
-/* "× N" tricks count badge */
-.collected-tricks__badge {
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 0.1rem 0.4rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-text);
-  font-family: monospace;
+.hand-view--interactive .hand-view__card.card--disabled {
+  cursor: not-allowed;
+}
+
+/* Card animates off to its recipient during card exchange. Direction modifier
+   classes (--leaving-left / --leaving-right) override the X translation. */
+.hand-view__card--leaving {
+  animation: card-leave-right 250ms ease-out forwards;
+}
+
+.hand-view__card--leaving-left {
+  animation: card-leave-left 250ms ease-out forwards;
+}
+
+.hand-view__card--leaving-right {
+  animation: card-leave-right 250ms ease-out forwards;
+}
+
+/* Card briefly highlights when received via exchange pass (recipient view). */
+.hand-view__card--arriving {
+  animation: card-arrive 400ms ease-out;
+  box-shadow: 0 0 12px 4px rgba(110, 180, 255, 0.65);
+}
+
+/* Trick centre — 3 absolutely-positioned slots inside the talon container
+   during trick-play. Each slot holds one face-up card sprite mapped to the
+   seat that played it (self at the bottom, left/right toward their players). */
+.trick-center {
+  position: relative;
+  width: calc(var(--card-width) * 2.4);
+  height: calc(var(--card-height) * 1.6);
+  min-height: var(--card-height);
+  overflow: visible;
+}
+
+.trick-center__slot {
+  position: absolute;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+.trick-center__slot--self {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.trick-center__slot--left {
+  top: 0;
+  left: 0;
+}
+
+.trick-center__slot--right {
+  top: 0;
+  right: 0;
+}
+
+.trick-center__slot .card-sprite {
+  position: absolute;
+  inset: 0;
+}
+
+/* Card-shaped clone flown across the page during the hand→centre and
+   centre→winner-seat animations. position: fixed so we can drive it via
+   client coordinates regardless of the source/destination layout context. */
+.card-flight-clone {
+  pointer-events: none;
 }
 
 /* ============================================================
@@ -1322,17 +1327,6 @@ fieldset legend {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-/* Per-seat cumulative score chip */
-.status-bar__cumulative-score {
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 0.1rem 0.5rem;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
 }
 
 /* Trump suit indicator chip */
@@ -1484,6 +1478,33 @@ fieldset legend {
 }
 
 /* ============================================================
+   Barrel penalty row (.round-summary__penalty-row)
+   ============================================================ */
+
+.round-summary__penalty-row td {
+  color: var(--color-error);
+  font-size: 0.85rem;
+  font-style: italic;
+  padding-top: 0;
+  padding-left: 1.5rem;
+}
+
+/* ============================================================
+   On-barrel marker badge (.status-bar__barrel-marker)
+   ============================================================ */
+
+.status-bar__barrel-marker {
+  background: #3d2a06;
+  border: 1px solid #8a5c10;
+  border-radius: var(--radius);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  color: #d4a843;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* ============================================================
    Final Results Screen (.final-results__*)
    ============================================================ */
 
@@ -1632,24 +1653,20 @@ fieldset legend {
    Play-phase animations
    ============================================================ */
 
-@keyframes card-leave {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(200px);
-    opacity: 0;
-  }
+@keyframes card-leave-right {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(200px); opacity: 0; }
 }
 
-@keyframes card-to-centre {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-60px);
-  }
+@keyframes card-leave-left {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-200px); opacity: 0; }
+}
+
+@keyframes card-arrive {
+  from { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 /* ============================================================

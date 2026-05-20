@@ -72,7 +72,9 @@ class GameScreenControls {
     this._declarerControls = null;
     this._sellSelectionControls = null;
     this._sellBidControls = null;
+    this._cardExchangeView?.destroy();
     this._cardExchangeView = null;
+    this._trickPlayView?.destroy();
     this._trickPlayView = null;
     this._roundSummaryScreen = null;
     if (this._finalResultsScreen) {
@@ -85,6 +87,22 @@ class GameScreenControls {
   // Called on continue_press_recorded; forwards to the active RoundSummaryScreen if present.
   updateContinuePressedSeats(seats) {
     this._roundSummaryScreen?.update(seats);
+  }
+
+  // Forwarded from GameScreen on card_played; lets TrickPlayView capture the
+  // just-played seat + cardId before the next render fires.
+  notifyCardPlayed(playerSeat, cardId) {
+    this._trickPlayView?.notifyCardPlayed(playerSeat, cardId);
+  }
+
+  // Why: the last trick's card_played arrives with phase='Round complete'.
+  // Without this, GameScreen.updateStatus calls mountForPhase → _mountRoundSummary
+  // destroys TrickPlayView before _reconcileCenter can detect the count diff,
+  // so the 3s hold + collect-flight for the last trick never runs. Forwarding
+  // first lets TrickPlayView engage the controls-lock, which then defers the
+  // RoundSummaryScreen mount until _finalizeTrickResolve unlocks.
+  forwardStatusToTrickPlayView(gameStatus) {
+    this._trickPlayView?.render(gameStatus);
   }
 
   // Sell flow drops these directly when entering bidding sub-phase or resolving.
@@ -101,6 +119,7 @@ class GameScreenControls {
 
   _drop(name) {
     if (!this[name]) {return false;}
+    this[name].destroy?.();
     this[name] = null;
     return true;
   }
@@ -114,6 +133,9 @@ class GameScreenControls {
       this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
     }
     this._bidControls.setCurrentHighBid(gameStatus.currentHighBid);
+    const viewerSeat = this._gs._seats?.self;
+    const viewerOnBarrel = viewerSeat != null && gameStatus.barrelMarkers?.[viewerSeat] != null;
+    this._bidControls.setOnBarrel(viewerOnBarrel);
     const seats = this._gs._seats;
     const viewerPlayer = seats?.players.find((p) => p.seat === seats.self);
     const viewerNickname = viewerPlayer?.nickname;
@@ -196,6 +218,10 @@ class GameScreenControls {
         this._sellBidControls = new SellBidControls(this._controlsEl, this._antlion, this._dispatcher);
       }
       this._sellBidControls.setCurrentHighBid(gameStatus.currentHighBid ?? SELL_BID_DEFAULT);
+      const viewerSeatSell = this._gs._seats?.self;
+      this._sellBidControls.setOnBarrel(
+        viewerSeatSell != null && gameStatus.barrelMarkers?.[viewerSeatSell] != null,
+      );
 
       const viewerPlayer = seats?.players.find(p => p.seat === seats.self);
       const viewerNickname = viewerPlayer?.nickname;
@@ -216,6 +242,7 @@ class GameScreenControls {
       left: seats?.left ?? null,
       right: seats?.right ?? null,
       declarerSeat: gameStatus.declarer?.seat ?? null,
+      players: seats?.players ?? [],
     };
   }
 
@@ -232,13 +259,17 @@ class GameScreenControls {
         antlion: this._antlion,
         dispatcher: this._dispatcher,
         seats: this._buildSeats(gameStatus),
+        handView: this._handView,
       });
     }
 
-    const snapshot = this._gs._lastSnapshot;
-    if (snapshot) {
-      this._cardExchangeView.render(snapshot);
-    }
+    const snapshot = this._gs._lastSnapshot ?? {};
+    this._cardExchangeView.render({
+      ...snapshot,
+      exchangePassesCommitted: gameStatus.exchangePassesCommitted ?? 0,
+      exchangePassesToSeats: gameStatus.exchangePassesToSeats ?? [],
+      isDeclarerView: gameStatus.viewerIsActive,
+    });
   }
 
   _mountTrickPlay(gameStatus) {
@@ -254,13 +285,17 @@ class GameScreenControls {
         antlion: this._antlion,
         dispatcher: this._dispatcher,
         seats: this._buildSeats(gameStatus),
+        handView: this._handView,
+        cardsById: this._gs.cardsById,
+        trickCenterEl: this._gs.trickCenterEl,
+        getSeatEl: (s) => this._gs.getSeatEl(s),
+        setControlsLocked: (v) => this._gs.setControlsLocked(v),
+        setStatusOverride: (text, ms) => this._gs.setStatusOverride(text, ms),
+        getPlayerNickname: (s) => this._gs.playerNicknameForSeat(s),
       });
     }
 
-    const snapshot = this._gs._lastSnapshot;
-    if (snapshot) {
-      this._trickPlayView.render(snapshot);
-    }
+    this._trickPlayView.render(gameStatus);
   }
 
   _mountRoundSummary(_gameStatus) {

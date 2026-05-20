@@ -13,11 +13,17 @@ class MarriageDeclarationPrompt {
 
   constructor(el, { antlion, dispatcher }) {
     this._el = el;
+    this._antlion = antlion;
     this._dispatcher = dispatcher;
     this._cardId = null;
 
-    antlion.bindInput(el, 'click', 'marriage-prompt-click');
-    antlion.onInput('marriage-prompt-click', (e) => {
+    // Why: previously this handler was created anonymously, leaving every
+    // round's prompt registered for the lifetime of the session. Subsequent
+    // rounds' declare-clicks fired every old handler too — each replaying
+    // sendPlayCard with the previous round's (or null) cardId, producing
+    // bogus "Card not in hand" rejections from the server. Store the handler
+    // so destroy() can offInput it.
+    this._clickHandler = (e) => {
       const action = e.target.dataset.action;
       if (action === 'declare') {
         this._dispatcher.sendPlayCard(this._cardId, { declareMarriage: true });
@@ -28,7 +34,13 @@ class MarriageDeclarationPrompt {
       } else if (action === 'cancel') {
         this.hide();
       }
-    });
+    };
+    antlion.bindInput(el, 'click', 'marriage-prompt-click');
+    antlion.onInput('marriage-prompt-click', this._clickHandler);
+  }
+
+  destroy() {
+    this._antlion.offInput('marriage-prompt-click', this._clickHandler);
   }
 
   show(cardId, suit, bonus) {

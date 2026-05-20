@@ -5,13 +5,14 @@
 // ============================================================
 
 import HtmlUtil from '../utils/HtmlUtil.js';
-import { MAX_BID, BID_STEP } from './constants.js';
+import { MAX_BID, BID_STEP, BARREL_BID_FLOOR } from './constants.js';
 
 class BiddingControls {
   constructor(container, antlion, config) {
     this._antlion = antlion;
     this._config = config;
     this._smallestLegalBid = config.defaultBid;
+    this._barrelFloor = 0;
     this._state = 'hidden';
 
     this._el = document.createElement('div');
@@ -40,8 +41,9 @@ class BiddingControls {
     this._smallestLegalBid = currentHighBid === null
       ? this._config.defaultBid
       : currentHighBid + BID_STEP;
-    const isCapReached = this._smallestLegalBid > MAX_BID;
-    this._input.value = isCapReached ? String(MAX_BID) : String(this._smallestLegalBid);
+    const floor = this._effectiveFloor();
+    const isCapReached = floor > MAX_BID;
+    this._input.value = isCapReached ? String(MAX_BID) : String(floor);
     this._applyState();
   }
 
@@ -60,6 +62,21 @@ class BiddingControls {
     this._applyState();
   }
 
+  // Per FR-022: barrel players cannot bid below BARREL_BID_FLOOR.
+  setOnBarrel(isOnBarrel) {
+    this._barrelFloor = isOnBarrel ? BARREL_BID_FLOOR : 0;
+    const floor = this._effectiveFloor();
+    const cur = parseInt(this._input.value, 10);
+    if (isNaN(cur) || cur < floor) {
+      this._input.value = String(floor);
+    }
+    this._applyState();
+  }
+
+  _effectiveFloor() {
+    return Math.max(this._smallestLegalBid, this._barrelFloor);
+  }
+
   _applyState() {
     if (this._state === 'hidden') {
       this._el.classList.add('hidden');
@@ -74,7 +91,7 @@ class BiddingControls {
       return;
     }
 
-    const isCapReached = this._smallestLegalBid > MAX_BID;
+    const isCapReached = this._effectiveFloor() > MAX_BID;
     this._input.disabled = isCapReached;
     this._decreaseBtn.disabled = isCapReached;
     this._increaseBtn.disabled = isCapReached;
@@ -87,7 +104,7 @@ class BiddingControls {
     return (
       !isNaN(val) &&
       val % BID_STEP === 0 &&
-      val >= this._smallestLegalBid &&
+      val >= this._effectiveFloor() &&
       val <= MAX_BID
     );
   }
@@ -132,9 +149,10 @@ class BiddingControls {
       return;
     }
     const cur = parseInt(this._input.value, 10);
-    const base = isNaN(cur) ? this._smallestLegalBid : cur;
+    const floor = this._effectiveFloor();
+    const base = isNaN(cur) ? floor : cur;
     const next = delta < 0
-      ? Math.max(this._smallestLegalBid, base + delta)
+      ? Math.max(floor, base + delta)
       : Math.min(MAX_BID, base + delta);
     this._input.value = String(next);
     this._applyState();

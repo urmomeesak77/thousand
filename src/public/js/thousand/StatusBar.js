@@ -32,7 +32,7 @@ class StatusBar {
       this._renderTrumpSuit(gameStatus.currentTrumpSuit);
     }
     this._renderExchangePasses(gameStatus.exchangePassesCommitted);
-    this._renderCumulativeScores(gameStatus.cumulativeScores);
+    this._renderBarrelMarkers(gameStatus.barrelMarkers);
   }
 
   _renderRoundNumber(roundNumber) {
@@ -109,16 +109,22 @@ class StatusBar {
     );
   }
 
-  _renderCumulativeScores(cumulativeScores) {
-    if (cumulativeScores == null) {
+  _renderBarrelMarkers(barrelMarkers) {
+    if (barrelMarkers == null) {
+      return;
+    }
+    const seatsOnBarrel = Object.keys(barrelMarkers).filter((seat) => barrelMarkers[seat]);
+    if (seatsOnBarrel.length === 0) {
       return;
     }
     const div = document.createElement('div');
     div.className = 'status-bar__scores';
-    for (const seat of Object.keys(cumulativeScores)) {
-      const span = this._span('status-bar__cumulative-score', `${cumulativeScores[seat]} pts`);
-      span.dataset.seat = seat;
-      div.appendChild(span);
+    for (const seat of seatsOnBarrel) {
+      const marker = barrelMarkers[seat];
+      const round = marker.barrelRoundsUsed + 1;
+      const barrelSpan = this._span('status-bar__barrel-marker', `On barrel — round ${round} of 3`);
+      barrelSpan.dataset.seat = seat;
+      div.appendChild(barrelSpan);
     }
     this._el.appendChild(div);
   }

@@ -95,3 +95,27 @@ describe('HandView — FR-005 sort order (♣→♠→♥→♦, 9→A within ea
     assert.equal(hv._container.querySelectorAll('[data-card-id]').length, 0);
   });
 });
+
+// Regression: card_passed gives the recipient only `passedCard` (no full myHand).
+// Previously the recipient's HandView never grew — they finished card-exchange
+// with one fewer card than the server thought they had.
+describe('HandView — addCard inserts a card at sorted position (recipient of exchange pass)', () => {
+  it('addCard appends and re-sorts so the new card lands in the correct position', () => {
+    const hv = makeHandView();
+    hv.setHand([
+      { id: 1, rank: '9', suit: '♣' },
+      { id: 2, rank: 'A', suit: '♦' },
+    ]);
+    hv.addCard({ id: 3, rank: 'K', suit: '♠' });
+    // ♠ sorts between ♣ and ♦, so order should be: ♣9=1, ♠K=3, ♦A=2
+    assert.deepEqual(cardIds(hv), [1, 3, 2]);
+  });
+
+  it('addCard is idempotent for the same id', () => {
+    const hv = makeHandView();
+    hv.setHand([{ id: 1, rank: '9', suit: '♣' }]);
+    hv.addCard({ id: 2, rank: 'K', suit: '♠' });
+    hv.addCard({ id: 2, rank: 'K', suit: '♠' });
+    assert.equal(hv._container.querySelectorAll('[data-card-id]').length, 2);
+  });
+});

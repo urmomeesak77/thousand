@@ -4,7 +4,7 @@
 // snapshot/view-model serialization → RoundSnapshot.js
 const { makeDeck, shuffle } = require('./Deck');
 const { buildDealDistribution } = require('./DealSequencer');
-const { MARRIAGE_BONUS } = require('./Scoring');
+const { MARRIAGE_BONUS, applyPenaltyAnnotations } = require('./Scoring');
 const {
   absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned,
 } = require('./RoundPhases');
@@ -14,6 +14,7 @@ const TrickPlay = require('./TrickPlay');
 const MIN_BID = 100;
 const MAX_BID = 300;
 const BID_STEP = 5;
+const BARREL_BID_FLOOR = 120;
 const SELL_SELECTION_SIZE = 3;
 const MAX_SELL_ATTEMPTS = 3;
 
@@ -22,8 +23,10 @@ class Round {
     this._game = game;
     this._store = store;
 
-    // seat 0 = Dealer = 1st joiner (host), seat 1 = P1 = 2nd joiner, seat 2 = P2 = 3rd joiner
-    this.dealerSeat = 0;
+    // seat 0 = Dealer = 1st joiner (host), seat 1 = P1 = 2nd joiner, seat 2 = P2 = 3rd joiner.
+    // After round 1, session.dealerSeat is rotated clockwise (FR-016); inherit it so every
+    // new Round honors the rotation. Falls back to 0 for tests that build Round without a session.
+    this.dealerSeat = game.session?.dealerSeat ?? 0;
     this.seatOrder = [...game.players];
     this.seatByPlayer = new Map(this.seatOrder.map((pid, idx) => [pid, idx]));
 
@@ -56,14 +59,13 @@ class Round {
     this.collectedTricks = { 0: [], 1: [], 2: [] };
     this.collectedTrickCounts = { 0: 0, 1: 0, 2: 0 };
     this.exchangePassesCommitted = 0;
-    this._usedExchangeDestSeats = null;
+    this._usedExchangeDestSeats = new Set();
     this.roundScores = null;
     this.roundDeltas = null;
     this.summary = null;
     this._trickPlay = null;  // TrickPlay instance, set on entry to trick-play phase
   }
 
-  // T021
   start() {
     const shuffled = shuffle(makeDeck());
     this.deck = shuffled.map((card, i) => ({ id: i, rank: card.rank, suit: card.suit }));
@@ -75,7 +77,6 @@ class Round {
     this.currentHighBid = null;
   }
 
-  // T022
   getRoundStartedPayloadFor(playerId) {
     const selfSeat = this.seatByPlayer.get(playerId);
     return {
@@ -86,14 +87,12 @@ class Round {
     };
   }
 
-  // T023
   advanceFromDealingToBidding() {
     if (this.phase !== 'dealing') {return;}
     this.phase = 'bidding';
-    this.currentTurnSeat = 1; // P1 (clockwise-left of Dealer) bids first per FR-004
+    this.currentTurnSeat = (this.dealerSeat + 1) % 3; // P1 (clockwise-left of Dealer) bids first per FR-004
   }
 
-  // T024
   submitBid(seat, amount) {
     if (this.phase !== 'bidding') {return { rejected: true, reason: 'Not in bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -101,6 +100,9 @@ class Round {
     if (!Number.isInteger(amount)) {return { rejected: true, reason: 'Bid must be an integer' };}
     if (amount % BID_STEP !== 0) {return { rejected: true, reason: `Bid must be a multiple of ${BID_STEP}` };}
     if (amount > MAX_BID) {return { rejected: true, reason: `Bid cannot exceed ${MAX_BID}` };}
+    if (this._game.session?.barrelState?.[seat]?.onBarrel && amount < BARREL_BID_FLOOR) {
+      return { rejected: true, reason: `Players on barrel must bid at least ${BARREL_BID_FLOOR}.` };
+    }
     const smallest = this.currentHighBid === null ? MIN_BID : this.currentHighBid + BID_STEP;
     if (amount < smallest) {return { rejected: true, reason: `Bid must be at least ${smallest}` };}
 
@@ -112,7 +114,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T025
   submitPass(seat) {
     if (this.phase !== 'bidding') {return { rejected: true, reason: 'Not in bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -124,7 +125,10 @@ class Round {
     const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
     if (remaining.length === 1) {
       this.declarerSeat = remaining[0];
-      if (this.currentHighBid === null) {this.currentHighBid = MIN_BID;}
+      if (this.currentHighBid === null) {
+        const dealerOnBarrel = this._game.session?.barrelState?.[this.declarerSeat]?.onBarrel === true;
+        this.currentHighBid = dealerOnBarrel ? BARREL_BID_FLOOR : MIN_BID;
+      }
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = remaining[0];
       const { talonIds, identities } = this._absorbTalon();
@@ -148,12 +152,10 @@ class Round {
     return fromSeat;
   }
 
-  // T026
   getViewModelFor(seat) {
     return RoundSnapshot.buildViewModel(this, seat);
   }
 
-  // T045
   markDisconnected(seat) {
     this.disconnectedSeats.add(seat);
     if (seat === this.currentTurnSeat) {this.isPausedByDisconnect = true;}
@@ -169,12 +171,10 @@ class Round {
     this.currentTurnSeat = null;
   }
 
-  // T047
   getSnapshotFor(seat) {
     return RoundSnapshot.buildSnapshot(this, seat);
   }
 
-  // T042
   startGame(seat) {
     if (this.phase === 'card-exchange') {return { noop: true };}
     if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
@@ -182,6 +182,7 @@ class Round {
     this.phase = 'card-exchange';
     this.currentTurnSeat = this.declarerSeat;
     this.exchangePassesCommitted = 0;
+    this._usedExchangeDestSeats = new Set();
     return { noop: false, declarerId: this.seatOrder[this.declarerSeat], finalBid: this.currentHighBid };
   }
 
@@ -192,14 +193,10 @@ class Round {
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
     if (!this.hands[seat].includes(cardId)) {return { rejected: true, reason: 'Card not in hand' };}
     if (destSeat === this.declarerSeat) {return { rejected: true, reason: 'Cannot pass to yourself' };}
-    if (this._usedExchangeDestSeats && this._usedExchangeDestSeats.has(destSeat)) {
+    if (this._usedExchangeDestSeats.has(destSeat)) {
       return { rejected: true, reason: 'Already passed to that opponent' };
     }
 
-    // Initialize used destinations tracker if needed
-    if (!this._usedExchangeDestSeats) {this._usedExchangeDestSeats = new Set();}
-
-    // Move card from declarer to recipient
     this.hands[seat] = this.hands[seat].filter(id => id !== cardId);
     this.hands[destSeat].push(cardId);
     this._usedExchangeDestSeats.add(destSeat);
@@ -286,7 +283,6 @@ class Round {
   buildSummary(_game) {
     const { roundScores: scores, roundDeltas: deltas } = this;
 
-    // T048: compute per-seat marriage bonus from declaredMarriages
     const marriageBonusBySeat = { 0: 0, 1: 0, 2: 0 };
     for (const m of this.declaredMarriages) {
       marriageBonusBySeat[m.playerSeat] += MARRIAGE_BONUS[m.suit] ?? 0;
@@ -299,17 +295,25 @@ class Round {
       const marriageBonus = marriageBonusBySeat[seat];
       const roundTotal = scores ? scores[seat] : 0;
       const trickPoints = roundTotal - marriageBonus;
+      const delta = deltas ? deltas[seat] : 0;
       perPlayer[seat] = {
         nickname: player?.nickname ?? null,
         seat,
         trickPoints,
         marriageBonus,
         roundTotal,
-        delta: deltas ? deltas[seat] : 0,
-        cumulativeAfter: deltas ? deltas[seat] : 0,  // US3 replaces
+        delta,
+        cumulativeAfter: delta,  // US3 replaces
         penalties: [],
       };
     }
+
+    // FR-023/FR-024: pre-compute which penalties will fire this round before applyRoundEnd runs.
+    const session = this._game?.session;
+    if (session && deltas) {
+      applyPenaltyAnnotations(session, perPlayer, deltas);
+    }
+
     this.summary = {
       roundNumber: 1,  // US3 replaces with game.currentRoundNumber
       declarerSeat: this.declarerSeat,
@@ -323,7 +327,6 @@ class Round {
     return this.summary;
   }
 
-  // T059
   startSelling(seat) {
     if (this.phase !== 'post-bid-decision') {return { rejected: true, reason: 'Not in decision phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can start selling' };}
@@ -336,7 +339,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T060
   cancelSelling(seat) {
     if (this.phase !== 'selling-selection') {return { rejected: true, reason: 'Not in selling-selection phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can cancel selling' };}
@@ -344,7 +346,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T061
   commitSellSelection(seat, cardIds) {
     if (this.phase !== 'selling-selection') {return { rejected: true, reason: 'Not in selling-selection phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can select cards' };}
@@ -377,7 +378,6 @@ class Round {
     return { rejected: false };
   }
 
-  // T062
   submitSellBid(seat, amount) {
     if (this.phase !== 'selling-bidding') {return { rejected: true, reason: 'Not in selling-bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -386,6 +386,9 @@ class Round {
     if (!Number.isInteger(amount)) {return { rejected: true, reason: 'Bid must be an integer' };}
     if (amount % BID_STEP !== 0) {return { rejected: true, reason: `Bid must be a multiple of ${BID_STEP}` };}
     if (amount > MAX_BID) {return { rejected: true, reason: `Bid cannot exceed ${MAX_BID}` };}
+    if (this._game.session?.barrelState?.[seat]?.onBarrel && amount < BARREL_BID_FLOOR) {
+      return { rejected: true, reason: `Players on barrel must bid at least ${BARREL_BID_FLOOR}.` };
+    }
     const smallest = this.currentHighBid === null ? MIN_BID : this.currentHighBid + BID_STEP;
     if (amount < smallest) {return { rejected: true, reason: `Bid must be at least ${smallest}` };}
 
@@ -402,7 +405,6 @@ class Round {
     return this._resolveSellSold();
   }
 
-  // T063
   submitSellPass(seat) {
     if (this.phase !== 'selling-bidding') {return { rejected: true, reason: 'Not in selling-bidding phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
@@ -427,8 +429,6 @@ class Round {
     this.currentTurnSeat = remaining[0];
     return { rejected: false };
   }
-
-  // T062/T063 helpers — delegate to RoundPhases helpers
 
   _nextSellOpponent(fromSeat) {
     return nextSellOpponent(fromSeat, this.declarerSeat, this.passedSellOpponents);

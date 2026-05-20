@@ -162,6 +162,20 @@ describe('Round.cardexchange — second pass completes exchange and transitions 
   });
 });
 
+describe('Round.cardexchange — after both passes each player holds exactly 8 cards (FR-005)', () => {
+  it('all three players have 8 cards and phase is trick-play after both passes', () => {
+    const round = makeCardExchangeRound();
+    const cardId1 = round.hands[0][0];
+    const cardId2 = round.hands[0][1];
+    round.submitExchangePass(0, cardId1, 1);
+    round.submitExchangePass(0, cardId2, 2);
+    assert.equal(round.hands[0].length, 8, 'declarer must hold 8 cards');
+    assert.equal(round.hands[1].length, 8, 'opponent seat 1 must hold 8 cards');
+    assert.equal(round.hands[2].length, 8, 'opponent seat 2 must hold 8 cards');
+    assert.equal(round.phase, 'trick-play');
+  });
+});
+
 describe('Round.cardexchange — second pass is restricted to the remaining opponent (FR-003)', () => {
   it('after passing to seat 1, passing to seat 1 again is rejected; seat 2 succeeds', () => {
     const round = makeCardExchangeRound();

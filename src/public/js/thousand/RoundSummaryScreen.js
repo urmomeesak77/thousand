@@ -1,3 +1,10 @@
+import { SPECIAL_PENALTY } from './constants.js';
+
+const PENALTY_LABELS = {
+  barrel: `Barrel penalty: −${SPECIAL_PENALTY}`,
+  'three-zeros': `Zero-round penalty: −${SPECIAL_PENALTY}`,
+};
+
 class RoundSummaryScreen {
   constructor(el, { antlion, viewerSeat, onBackToLobby, onContinue }) {
     this._el = el;
@@ -17,7 +24,10 @@ class RoundSummaryScreen {
   render(summary) {
     this._el.innerHTML = '';
     this._summary = summary;
-    this._continuePressedSeats.clear();
+    // _continuePressedSeats is owned by _onContinueClick (local) and update()
+    // (server broadcast). render() is also called by _onContinueClick to disable
+    // the button — clearing the set here would wipe the seat we just added and
+    // re-render the button enabled, letting test/users double-fire the action.
 
     const { declarerMadeBid, perPlayer, victoryReached } = summary;
 
@@ -63,9 +73,13 @@ class RoundSummaryScreen {
     for (const data of Object.values(perPlayer)) {
       const row = this._makePlayerRow(data);
       tbody.appendChild(row);
+      for (const penaltyRow of this._makePenaltyRows(data)) {
+        tbody.appendChild(penaltyRow);
+      }
     }
     table.appendChild(tbody);
 
+    this._el.querySelector('.round-summary__table')?.remove();
     this._el.appendChild(table);
   }
 
@@ -92,6 +106,19 @@ class RoundSummaryScreen {
     }
 
     return row;
+  }
+
+  _makePenaltyRows(data) {
+    return (data.penalties ?? []).map((token) => {
+      const tr = document.createElement('tr');
+      tr.className = 'round-summary__penalty-row';
+      tr.setAttribute('data-seat', data.seat);
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.textContent = PENALTY_LABELS[token] ?? token;
+      tr.appendChild(td);
+      return tr;
+    });
   }
 
   _renderBackButton() {

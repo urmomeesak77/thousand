@@ -26,6 +26,7 @@ before(() => {
     'thousand/CardTable.js',
     'thousand/StatusBar.js',
     'thousand/HandView.js',
+    'thousand/roundStatsText.js',
     'thousand/OpponentView.js',
     'thousand/TalonView.js',
     'thousand/DealAnimation.js',
@@ -38,6 +39,7 @@ before(() => {
     'thousand/RoundReadyScreen.js',
     'thousand/CardExchangeView.js',
     'thousand/CollectedTricksStack.js',
+    'thousand/MarriageDeclarationPrompt.js',
     'thousand/TrickPlayView.js',
     'thousand/RoundSummaryScreen.js',
     'thousand/GameScreenControls.js',
@@ -229,5 +231,111 @@ describe('GameScreen.gating — controls swap correctly across phase transitions
     // but we verify the text updates to the new nickname)
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 1, declarerSeat: 2 }));
     assert.ok(gs._controlsEl.querySelector('.waiting').textContent.includes('Carol'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateStatus propagates gameStatus.opponentHandSizes to opponent views
+// ---------------------------------------------------------------------------
+
+function makeGameScreenForUpdate(opts = {}) {
+  const doc = dom.window.document;
+  const container = doc.createElement('div');
+  doc.body.appendChild(container);
+  const antlion = makeMockAntlion();
+  const dispatcher = makeMockDispatcher();
+  const gameScreen = new dom.window.GameScreen(antlion, container, dispatcher);
+  if (!opts.skipSeats) {
+    gameScreen._seats = {
+      self: 0, left: 1, right: 2,
+      players: [
+        { seat: 0, playerId: 'p0', nickname: 'Self' },
+        { seat: 1, playerId: 'p1', nickname: 'Left' },
+        { seat: 2, playerId: 'p2', nickname: 'Right' },
+      ],
+    };
+  }
+  const captureOpponentCounts = () => {
+    const left = []; const right = [];
+    gameScreen._leftOpponent.setCardCount  = (n) => left.push(n);
+    gameScreen._rightOpponent.setCardCount = (n) => right.push(n);
+    return { left, right };
+  };
+  return { gameScreen, captureOpponentCounts };
+}
+
+describe('GameScreen — updateStatus forwards to TrickPlayView only on transition out of Trick play', () => {
+  it('forwards on Trick play → Round complete transition (last-trick resolve)', () => {
+    const { gameScreen } = makeGameScreenForUpdate();
+    // Pretend Trick play was the previously-mounted phase.
+    gameScreen._lastMountedPhase = 'Trick play';
+    const forwardCalls = [];
+    gameScreen._controls.forwardStatusToTrickPlayView = (gs) => forwardCalls.push(gs.phase);
+
+    gameScreen.updateStatus({
+      phase: 'Round complete',
+      opponentHandSizes: { 1: 0, 2: 0 },
+      collectedTrickCounts: { 0: 8, 1: 1, 2: 1 },
+    });
+
+    assert.deepEqual(forwardCalls, ['Round complete'],
+      'forward must fire exactly once on Trick play → Round complete');
+  });
+
+  it('does NOT forward on same-phase Trick play updates (mid-trick)', () => {
+    const { gameScreen } = makeGameScreenForUpdate();
+    gameScreen._lastMountedPhase = 'Trick play';
+    const forwardCalls = [];
+    gameScreen._controls.forwardStatusToTrickPlayView = (gs) => forwardCalls.push(gs.phase);
+
+    gameScreen.updateStatus({
+      phase: 'Trick play',
+      opponentHandSizes: { 1: 5, 2: 5 },
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    });
+
+    assert.deepEqual(forwardCalls, [],
+      'forward must NOT fire when phase stays Trick play — mountForPhase already re-renders');
+  });
+
+  it('does NOT forward when not transitioning out of Trick play', () => {
+    const { gameScreen } = makeGameScreenForUpdate();
+    gameScreen._lastMountedPhase = 'Bidding';
+    const forwardCalls = [];
+    gameScreen._controls.forwardStatusToTrickPlayView = (gs) => forwardCalls.push(gs.phase);
+
+    gameScreen.updateStatus({
+      phase: 'Declarer deciding',
+      opponentHandSizes: { 1: 10, 2: 10 },
+      collectedTrickCounts: { 0: 0, 1: 0, 2: 0 },
+    });
+
+    assert.deepEqual(forwardCalls, [],
+      'forward must not fire outside trick-play context');
+  });
+});
+
+describe('GameScreen — updateStatus applies opponentHandSizes to opponent views', () => {
+  it('setCardCount is called for left and right opponents from gameStatus.opponentHandSizes', () => {
+    const { gameScreen, captureOpponentCounts } = makeGameScreenForUpdate();
+    const counts = captureOpponentCounts();
+    gameScreen.updateStatus({
+      phase: 'Trick play',
+      opponentHandSizes: { 1: 6, 2: 7 },
+      collectedTrickCounts: { 0: 0, 1: 0, 2: 0 },
+    });
+    assert.deepEqual(counts.left, [6], 'left opponent setCardCount must receive 6');
+    assert.deepEqual(counts.right, [7], 'right opponent setCardCount must receive 7');
+  });
+
+  it('no setCardCount calls when seats are not yet known', () => {
+    const { gameScreen, captureOpponentCounts } = makeGameScreenForUpdate({ skipSeats: true });
+    const counts = captureOpponentCounts();
+    gameScreen.updateStatus({
+      phase: 'Bidding',
+      opponentHandSizes: { 1: 6, 2: 7 },
+    });
+    assert.deepEqual(counts.left, [], 'no calls before seats are set');
+    assert.deepEqual(counts.right, []);
   });
 });

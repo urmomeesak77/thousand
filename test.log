@@ -1,0 +1,1288 @@
+
+> thousand@1.0.0 test
+> node --test tests/*.test.js
+
+▶ BidControls — smallestLegalBid and initial input value
+  ✔ with currentHighBid = null (no bid yet) the field initialises to 100 (49.3498ms)
+  ✔ with currentHighBid = 100 (a bid of 100 accepted) the field initialises to 105 (31.9297ms)
+  ✔ with currentHighBid = 295 the field initialises to 300 (+5 clamps to cap) (12.0541ms)
+✔ BidControls — smallestLegalBid and initial input value (98.254ms)
+▶ BidControls — cap reached (currentHighBid = 300)
+  ✔ numeric input, both steppers, and Bid are disabled; only Pass remains operable (5.9834ms)
+✔ BidControls — cap reached (currentHighBid = 300) (6.5713ms)
+▶ BidControls — stepper clamps
+  ✔ decrease clamps to smallestLegalBid (21.2561ms)
+  ✔ decrease steps down by 5 when above the floor (3.709ms)
+  ✔ increase clamps to 300 (2.3519ms)
+  ✔ increase steps up by 5 (6.4153ms)
+✔ BidControls — stepper clamps (35.1594ms)
+▶ BidControls — Bid button validity based on typed input
+  ✔ typing 107 (non-multiple of 5) disables the Bid button (6.0767ms)
+  ✔ typing 200 (valid) enables the Bid button (20.9724ms)
+  ✔ typing below smallestLegalBid disables Bid (7.2618ms)
+✔ BidControls — Bid button validity based on typed input (35.6834ms)
+▶ BidControls — Pass is always operable for the active bidder
+  ✔ Pass is clickable at initial state (2.9399ms)
+  ✔ Pass is clickable when cap is reached (currentHighBid = 300) (1.5762ms)
+  ✔ Pass is clickable when an invalid value is typed (6.1898ms)
+✔ BidControls — Pass is always operable for the active bidder (11.2957ms)
+▶ BidControls — visibility states (setActiveState)
+  ✔ hidden when isEligible is false (14.0739ms)
+  ✔ disabled when eligible-but-not-active-bidder (9.1434ms)
+  ✔ operable when isActiveBidder and isEligible are both true (1.9712ms)
+✔ BidControls — visibility states (setActiveState) (25.5818ms)
+▶ BidControls — submit actions
+  ✔ clicking Bid dispatches sendBid with the current valid input value (2.9552ms)
+  ✔ clicking Pass dispatches sendPass (1.8939ms)
+✔ BidControls — submit actions (5.1878ms)
+▶ CardExchangeView — declarer view shows 10 cards (FR-002)
+  ✔ renders 10 .card-exchange__card elements when isDeclarerView: true (59.6658ms)
+  ✔ no .card-exchange__waiting element when isDeclarerView: true (31.7591ms)
+✔ CardExchangeView — declarer view shows 10 cards (FR-002) (96.1869ms)
+▶ CardExchangeView — opponent view shows waiting message (FR-020)
+  ✔ renders .card-exchange__waiting element when isDeclarerView: false (23.3676ms)
+  ✔ does not render card elements when isDeclarerView: false (3.1618ms)
+✔ CardExchangeView — opponent view shows waiting message (FR-020) (27.4596ms)
+▶ CardExchangeView — after first pass, remaining dest btn is for other opponent (FR-002)
+  ✔ after exchangePassesCommitted: 1, tapping a card shows only 1 destination button (15.3203ms)
+  ✔ after exchangePassesCommitted: 0, tapping a card shows 2 destination buttons (7.335ms)
+✔ CardExchangeView — after first pass, remaining dest btn is for other opponent (FR-002) (23.3743ms)
+▶ CardExchangeView — tapping card then dest btn calls dispatcher.sendExchangePass (FR-002)
+  ✔ clicking a card then a destination button calls sendExchangePass with correct args (17.0797ms)
+  ✔ sendExchangePass is called with the selected card id (12.1394ms)
+✔ CardExchangeView — tapping card then dest btn calls dispatcher.sendExchangePass (FR-002) (30.332ms)
+▶ ConnectionManager hello flow
+  ✔ (a) no hello within 5 s → socket closed 1008 (4.7153ms)
+  ✔ (b) hello with no creds → connected { restored: false } (2.817ms)
+  ✔ (c) hello with valid creds → connected { restored: true, nickname } (1.1145ms)
+  ✔ (d) duplicate hello ignored (0.735ms)
+  ✔ (e) SC-001 — hello→connected latency < 2000 ms (server-side) (0.6755ms)
+✔ ConnectionManager hello flow (22.8513ms)
+▶ ConnectionManager hello — game restoration
+  ✔ restored player with gameId sends game_joined (2.2847ms)
+✔ ConnectionManager hello — game restoration (2.7926ms)
+▶ ConnectionManager IP rate limit
+  ✔ 11th connection from same IP is closed with 1008 (1.4852ms)
+✔ ConnectionManager IP rate limit (1.931ms)
+▶ ConnectionManager message rate limit
+  ✔ 31st message in same window triggers close 1008 (1.1635ms)
+✔ ConnectionManager message rate limit (2.2535ms)
+▶ ConnectionManager heartbeat
+  ✔ startHeartbeat registers an interval with given ms (4.2722ms)
+  ✔ startHeartbeat is idempotent — second call ignored (0.7917ms)
+  ✔ stopHeartbeat clears the interval and nulls the timer (0.9242ms)
+  ✔ heartbeat sweep terminates non-responsive ws (3.3536ms)
+  ✔ heartbeat sweep pings alive ws and marks isAlive false (3.8409ms)
+✔ ConnectionManager heartbeat (13.8676ms)
+▶ FinalResultsScreen — ranking display (FR-017)
+  ✖ renders a row for each player in finalRanking
+  ✖ renders Alice in the ranking display
+  ✖ renders Bob in the ranking display
+  ✖ renders Carol in the ranking display
+✖ FinalResultsScreen — ranking display (FR-017) (0.6265ms)
+▶ FinalResultsScreen — ranking order is descending by score (FR-017)
+  ✖ first ranking row is the highest scorer (1020 points)
+  ✖ second ranking row is the second-highest scorer (650 points)
+  ✖ third ranking row is the lowest scorer (330 points)
+  ✖ ranking rows show cumulativeScore values in descending order (no re-sorting needed)
+✖ FinalResultsScreen — ranking order is descending by score (FR-017) (0.1063ms)
+▶ FinalResultsScreen — ranking row shows nickname and score (FR-017)
+  ✖ ranking row contains both nickname and cumulativeScore
+✖ FinalResultsScreen — ranking row shows nickname and score (FR-017) (0.2895ms)
+▶ FinalResultsScreen — winner highlight (FR-017)
+  ✖ the row with isWinner: true has a .final-results__ranking-row--winner class
+  ✖ winner row contains the winner nickname
+  ✖ non-winner rows do NOT have .final-results__ranking-row--winner class
+  ✖ winner row matches winnerNickname from finalResults
+✖ FinalResultsScreen — winner highlight (FR-017) (0.2127ms)
+▶ FinalResultsScreen — history table rendering (FR-017)
+  ✖ renders a row for each round in history
+  ✖ history row shows roundNumber
+  ✖ history row shows declarerNickname
+  ✖ history row shows bid value
+  ✖ history row shows per-player delta and cumulativeAfter values
+  ✖ each history row contains data for all players in that round
+✖ FinalResultsScreen — history table rendering (FR-017) (0.2403ms)
+▶ FinalResultsScreen — back to lobby button (FR-017)
+  ✖ renders .final-results__back-btn
+  ✖ .final-results__back-btn text indicates Back or Lobby
+  ✖ clicking .final-results__back-btn calls onBackToLobby()
+  ✖ onBackToLobby is not called before the button is clicked
+✖ FinalResultsScreen — back to lobby button (FR-017) (0.1861ms)
+▶ FinalResultsScreen — unmount cleanup
+  ✖ after unmount(), the DOM contains no ranking rows
+  ✖ after unmount(), the DOM contains no history rows
+  ✖ after unmount(), the back button is removed
+  ✖ unmount() clears the container DOM
+✖ FinalResultsScreen — unmount cleanup (0.1102ms)
+▶ Game.constructor — initial state (T057)
+  ✔ creates a Game with correct gameId, seatOrder, dealerSeat (3.1439ms)
+  ✔ initializes currentRoundNumber to 1 (0.337ms)
+  ✔ initializes cumulativeScores with all seats at 0 (0.4132ms)
+  ✔ initializes barrelState with all seats having onBarrel=false, barrelRoundsUsed=0 (0.3615ms)
+  ✔ initializes consecutiveZeros with all seats at 0 (0.3081ms)
+  ✔ initializes continuePresses as an empty Set (0.3706ms)
+  ✔ initializes history as an empty array (0.2995ms)
+  ✔ initializes gameStatus to "in-progress" (0.3019ms)
+✔ Game.constructor — initial state (T057) (9.8691ms)
+▶ Game.applyRoundEnd — single round (T057)
+  ✔ mutates cumulativeScores by adding each delta to the corresponding seat (1.6691ms)
+  ✔ appends the summaryEntry to history (0.7465ms)
+  ✔ returns the updated cumulativeScores (0.4628ms)
+  ✔ allows negative deltas resulting in negative cumulative scores (0.332ms)
+✔ Game.applyRoundEnd — single round (T057) (3.8888ms)
+▶ Game.recordContinuePress (T057)
+  ✔ adds a seat to continuePresses (0.6386ms)
+  ✔ is idempotent: second call with same seat is a no-op (2.6128ms)
+  ✔ allows multiple different seats (0.2795ms)
+  ✔ short-circuits if gameStatus is not "in-progress" (0.1918ms)
+✔ Game.recordContinuePress (T057) (4.1775ms)
+▶ Game.startNextRound (T057)
+  ✔ increments currentRoundNumber (0.3351ms)
+  ✔ rotates dealerSeat clockwise: (old + 1) % 3 (0.3428ms)
+  ✔ wraps dealerSeat from 2 back to 0 (0.2037ms)
+  ✔ clears continuePresses to an empty Set (0.1901ms)
+  ✔ does NOT reset cumulativeScores (carry-over) (36.5971ms)
+✔ Game.startNextRound (T057) (38.059ms)
+▶ Game multiround simulation — FR-016, FR-029, R-002, R-007 (T057)
+  ✔ R-002: same Game instance across 3 rounds (not recreated) (2.0819ms)
+  ✔ R-007: no purge on play_phase_ready path — game record survives round boundaries (1.9001ms)
+  ✔ dealer rotates correctly across 3 rounds: 0 → 1 → 2 → 0 (0.5152ms)
+  ✔ cumulative carry-over with negative deltas: 100 → -50 → 30 (0.5867ms)
+  ✔ history accumulates across rounds with game object unchanged (0.6966ms)
+✔ Game multiround simulation — FR-016, FR-029, R-002, R-007 (T057) (7.7715ms)
+▶ GameScreen.gating — Declarer deciding: declarer sees full controls (FR-026)
+  ✔ declarer (viewerIsActive) gets DeclarerDecisionControls created (105.8222ms)
+  ✔ declarer controls are not hidden (mode = full) (21.0139ms)
+  ✔ Sell button is enabled and Start button is enabled in full mode (10.9689ms)
+✔ GameScreen.gating — Declarer deciding: declarer sees full controls (FR-026) (141.0028ms)
+▶ GameScreen.gating — Declarer deciding: opponents see .waiting div (FR-026)
+  ✔ non-declarer gets no DeclarerDecisionControls (32.7998ms)
+  ✔ non-declarer sees a .waiting div with the declarer's nickname (6.3804ms)
+  ✔ seat 2 opponent also renders .waiting and no controls (7.9003ms)
+✔ GameScreen.gating — Declarer deciding: opponents see .waiting div (FR-026) (47.9343ms)
+▶ GameScreen.gating — Declarer deciding: 3 failed attempts disables Sell (FR-018)
+  ✔ sellAttempt === 3 sets mode to sell-disabled (17.386ms)
+  ✔ Sell button is disabled and Start button is still operable when sellAttempt === 3 (38.9061ms)
+✔ GameScreen.gating — Declarer deciding: 3 failed attempts disables Sell (FR-018) (57.4135ms)
+▶ GameScreen.gating — controls swap correctly across phase transitions
+  ✔ switching from Bidding to Declarer deciding replaces BidControls with DeclarerDecisionControls (27.8954ms)
+  ✔ .waiting text updates when the declarer seat changes (12.4692ms)
+✔ GameScreen.gating — controls swap correctly across phase transitions (41.7426ms)
+▶ HandView — FR-005 sort order (♣→♠→♥→♦, 9→A within each suit)
+  ✔ setHand renders cards in left-to-right suit-then-rank order (52.26ms)
+  ✔ suits are ordered ♣ < ♠ < ♥ < ♦ (2.8918ms)
+  ✔ ranks within a suit are ordered 9 < 10 < J < Q < K < A (2.6982ms)
+  ✔ re-sorting on a second setHand call replaces old content (4.7064ms)
+  ✔ setHand with an empty array clears the container (1.3231ms)
+✔ HandView — FR-005 sort order (♣→♠→♥→♦, 9→A within each suit) (65.7744ms)
+▶ IdentityStore
+  ✔ save() writes correct JSON to localStorage (234.2644ms)
+  ✔ load() returns parsed object after save() (26.2994ms)
+  ✔ load() returns {} on missing key (27.8237ms)
+  ✔ load() returns {} on corrupted JSON (20.2978ms)
+  ✔ clear() removes the key (29.6243ms)
+  ✔ save() overwrites previous value (24.5606ms)
+  ✔ save() swallows QuotaExceededError and returns false (15.2725ms)
+  ✔ save() returns true on success (19.546ms)
+✔ IdentityStore (401.9712ms)
+▶ MarriageDeclarationPrompt.canOffer — trickNumber must be in [2, 6]
+  ✔ returns false for trickNumber 1 (3.2389ms)
+  ✔ returns false for trickNumber 7 (0.7396ms)
+  ✔ returns false for trickNumber 8 (0.4661ms)
+✔ MarriageDeclarationPrompt.canOffer — trickNumber must be in [2, 6] (6.6652ms)
+▶ MarriageDeclarationPrompt.canOffer — hand must have at least 3 cards
+  ✔ returns false when hand.length === 2 (K♥ and Q♥ only) (0.6168ms)
+✔ MarriageDeclarationPrompt.canOffer — hand must have at least 3 cards (1.1102ms)
+▶ MarriageDeclarationPrompt.canOffer — hand must contain K and Q of same suit
+  ✔ returns false when hand has K♥ but not Q♥ (0.7178ms)
+  ✔ returns false when hand has Q♥ but not K♥ (1.8485ms)
+  ✔ returns false when hand has K♥ and Q♣ (different suits) (0.5065ms)
+✔ MarriageDeclarationPrompt.canOffer — hand must contain K and Q of same suit (3.9317ms)
+▶ MarriageDeclarationPrompt.canOffer — true when all conditions met
+  ✔ returns true: K♥, Q♥, one other card, trickNumber 2 (0.3967ms)
+  ✔ returns true: K♣, Q♣, two other cards, trickNumber 6 (0.319ms)
+✔ MarriageDeclarationPrompt.canOffer — true when all conditions met (1.1041ms)
+▶ MarriageDeclarationPrompt — "Declare and play" calls sendPlayCard with declareMarriage:true
+  ✔ clicking "Declare and play" calls dispatcher.sendPlayCard(cardId, { declareMarriage: true }) (30.2477ms)
+✔ MarriageDeclarationPrompt — "Declare and play" calls sendPlayCard with declareMarriage:true (32.8955ms)
+▶ MarriageDeclarationPrompt — "Play without declaring" calls sendPlayCard with no extra opts
+  ✔ clicking "Play without declaring" calls dispatcher.sendPlayCard(cardId) with no opts (12.531ms)
+✔ MarriageDeclarationPrompt — "Play without declaring" calls sendPlayCard with no extra opts (12.8102ms)
+▶ MarriageDeclarationPrompt — "Cancel" makes no dispatcher call and hides the prompt
+  ✔ clicking "Cancel" does not call sendPlayCard (13.4583ms)
+  ✔ clicking "Cancel" hides the prompt (2.6801ms)
+✔ MarriageDeclarationPrompt — "Cancel" makes no dispatcher call and hides the prompt (16.5898ms)
+▶ MarriageDeclarationPrompt — show() and hide() API
+  ✔ show() renders buttons inside the element (13.2505ms)
+  ✔ hide() removes or conceals the prompt content (3.3842ms)
+  ✔ show() surfaces the suit in the rendered content (1.4831ms)
+  ✔ show() surfaces the bonus in the rendered content (1.4092ms)
+✔ MarriageDeclarationPrompt — show() and hide() API (20.0806ms)
+▶ RateLimiter
+  ✔ allows requests within the limit (8.7982ms)
+  ✔ returns false when limit exceeded (0.412ms)
+  ✔ cleanup removes expired entries (69.1667ms)
+✔ RateLimiter (81.3388ms)
+▶ Round.bidding — initial state
+  ✔ currentHighBid starts as null (data-model.md) (3.7878ms)
+  ✔ P1 (seat 1, clockwise-left of Dealer) is the first bidder per FR-004 (48.2931ms)
+✔ Round.bidding — initial state (55.5054ms)
+▶ Round.bidding — first bid validation
+  ✔ 100 is accepted as the first bid (floor when currentHighBid is null) (3.0783ms)
+  ✔ 105 is accepted as the first bid (1.3394ms)
+  ✔ 300 is accepted as the first bid (cap) (0.6719ms)
+  ✔ 99 is rejected (below 100 floor) (0.9876ms)
+  ✔ 107 is rejected (not a multiple of 5) (3.0424ms)
+  ✔ 305 is rejected (above the 300 cap) (0.8653ms)
+✔ Round.bidding — first bid validation (15.5085ms)
+▶ Round.bidding — subsequent bid validation
+  ✔ a repeat bid of 100 after a prior 100 is rejected (smallest legal is now 105) (0.6868ms)
+  ✔ 105 is accepted after a prior 100 (2.0626ms)
+  ✔ 300 is accepted after a prior 100 (0.8577ms)
+  ✔ once currentHighBid reaches 300, any further bid is rejected (0.4753ms)
+  ✔ Pass is accepted when currentHighBid is 300 (0.5788ms)
+✔ Round.bidding — subsequent bid validation (5.801ms)
+▶ Round.bidding — turn rotation with passes
+  ✔ passing adds the seat to passedBidders (0.3806ms)
+  ✔ passed bidders are skipped in clockwise rotation (0.4398ms)
+  ✔ bidHistory records passes as { seat, amount: null } (0.2692ms)
+✔ Round.bidding — turn rotation with passes (1.3987ms)
+▶ Round.bidding — all-pass resolution (FR-011)
+  ✔ dealer becomes declarer at 100 when P1 and P2 both pass (all-pass scenario) (0.3967ms)
+✔ Round.bidding — all-pass resolution (FR-011) (0.6227ms)
+▶ Round.bidding — last-bidder-remaining resolution (FR-010)
+  ✔ sole surviving non-passed bidder becomes declarer at the current high bid (0.615ms)
+  ✔ sole survivor via submitBid (3 players, 2 already passed) (0.6995ms)
+✔ Round.bidding — last-bidder-remaining resolution (FR-010) (1.6268ms)
+▶ Round.bidding — turn rotation skips passed players after a bid
+  ✔ bid rotates to the next non-passed seat, skipping any passed seat in between (0.3037ms)
+✔ Round.bidding — turn rotation skips passed players after a bid (0.4403ms)
+▶ Round.cardexchange — declarer can pass a card to each non-declarer seat (FR-002)
+  ✔ first pass to seat 1 is accepted (4.4166ms)
+  ✔ first pass to seat 2 is accepted (1.3387ms)
+✔ Round.cardexchange — declarer can pass a card to each non-declarer seat (FR-002) (11.7373ms)
+▶ Round.cardexchange — non-declarer cannot submit a pass (FR-003)
+  ✔ seat 1 (non-declarer) pass attempt is rejected (2.4793ms)
+  ✔ seat 2 (non-declarer) pass attempt is rejected (0.5908ms)
+✔ Round.cardexchange — non-declarer cannot submit a pass (FR-003) (3.6512ms)
+▶ Round.cardexchange — card must be in declarer's hand (FR-002)
+  ✔ card not in declarer hand is rejected (0.7282ms)
+✔ Round.cardexchange — card must be in declarer's hand (FR-002) (1.0505ms)
+▶ Round.cardexchange — destSeat must be a non-declarer seat (FR-002)
+  ✔ passing to own seat (declarerSeat) is rejected (0.9161ms)
+✔ Round.cardexchange — destSeat must be a non-declarer seat (FR-002) (1.403ms)
+▶ Round.cardexchange — same destSeat cannot be used twice (FR-003)
+  ✔ using the same destSeat twice in one round is rejected (0.5257ms)
+✔ Round.cardexchange — same destSeat cannot be used twice (FR-003) (0.7979ms)
+▶ Round.cardexchange — second pass completes exchange and transitions phase (FR-003)
+  ✔ after two passes exchangePassesCommitted === 2 (0.7656ms)
+  ✔ after two passes phase transitions to "trick-play" (0.4831ms)
+  ✔ after two passes trickNumber is 1 (0.7819ms)
+  ✔ after two passes currentTrickLeaderSeat is the declarerSeat (0.4338ms)
+  ✔ after two passes currentTurnSeat is the declarerSeat (0.3267ms)
+  ✔ first pass does not yet transition phase (still card-exchange) (0.2663ms)
+✔ Round.cardexchange — second pass completes exchange and transitions phase (FR-003) (3.647ms)
+▶ Round.cardexchange — second pass is restricted to the remaining opponent (FR-003)
+  ✔ after passing to seat 1, passing to seat 1 again is rejected; seat 2 succeeds (0.317ms)
+✔ Round.cardexchange — second pass is restricted to the remaining opponent (FR-003) (0.4565ms)
+▶ Round.cardexchange — card moves from declarer hand to recipient hand (FR-002)
+  ✔ passed card is removed from declarer hand and added to recipient hand (0.3776ms)
+✔ Round.cardexchange — card moves from declarer hand to recipient hand (FR-002) (0.5034ms)
+▶ Round.deal — deck contents
+  ✔ deck has exactly 24 cards covering all rank×suit combinations (4.8275ms)
+  ✔ each card has a unique numeric id equal to its deck index (0–23) (0.7042ms)
+✔ Round.deal — deck contents (7.713ms)
+▶ Round.deal — hand and talon sizes
+  ✔ each player gets exactly 7 cards and the talon gets exactly 3 (0.4635ms)
+  ✔ all 24 card ids appear exactly once across hands and talon (3.9742ms)
+✔ Round.deal — hand and talon sizes (4.8746ms)
+▶ Round.deal — FR-002 deal sequence (24-step interleaved pattern)
+  ✔ steps 0–11: seat1 → seat2 → seat0 → talon (4-step repeat) (1.0584ms)
+  ✔ steps 12–23: seat1 → seat2 → seat0 (3-step repeat, no talon) (1.6623ms)
+  ✔ talon receives exactly 3 cards at steps 3, 7, 11 (1.167ms)
+  ✔ talon card ids match the ids delivered at steps 3, 7, 11 (0.7804ms)
+✔ Round.deal — FR-002 deal sequence (24-step interleaved pattern) (5.7474ms)
+▶ Round.disconnect.play — (1a) active player disconnect pauses trick-play
+  ✔ markDisconnected(currentTurnSeat) sets isPausedByDisconnect = true during trick-play (117.7548ms)
+  ✔ playCard from the active seat is rejected while isPausedByDisconnect is true (1.1221ms)
+  ✔ playCard from a non-active seat is also rejected (not their turn) while paused (3.4167ms)
+  ✔ markReconnected(active seat) clears pause and allows playCard (1.3311ms)
+✔ Round.disconnect.play — (1a) active player disconnect pauses trick-play (127.8001ms)
+▶ Round.disconnect.play — (1b) non-active player disconnect does NOT pause trick-play
+  ✔ markDisconnected(non-active seat) leaves isPausedByDisconnect false (0.8728ms)
+  ✔ active player can still play after a non-active player disconnects (0.7131ms)
+  ✔ disconnectedSeats tracks the non-active disconnected seat (0.8321ms)
+✔ Round.disconnect.play — (1b) non-active player disconnect does NOT pause trick-play (3.3489ms)
+▶ Round.disconnect.play — (2) round-summary sticky Continue press (mock)
+  ✔ recordContinuePress persists across a simulated disconnect (0.6582ms)
+  ✔ press still counts toward "all 3" after reconnect (0.5166ms)
+✔ Round.disconnect.play — (2) round-summary sticky Continue press (mock) (1.6898ms)
+▶ Round.disconnect.play — (3) R-006 ordering A: third press while disconnected player is in grace
+  ✔ third Continue press lands while grace is still running → game stays in-progress (0.7614ms)
+  ✔ disconnectedSeats.has(0) + continuePresses.has(0) = sticky press while in grace (0.2469ms)
+✔ Round.disconnect.play — (3) R-006 ordering A: third press while disconnected player is in grace (1.3843ms)
+▶ Round.disconnect.play — (4) R-006 ordering B: grace expires before third press → aborted
+  ✔ grace expiry sets gameStatus to aborted before third press arrives (0.5566ms)
+  ✔ recorded Continue press from seat 0 is irrelevant once grace expires (0.3244ms)
+  ✔ ordering contrast: grace expires AFTER third press does not abort (0.5031ms)
+✔ Round.disconnect.play — (4) R-006 ordering B: grace expires before third press → aborted (1.7639ms)
+▶ Round.disconnect — (a) active-player disconnect pauses round
+  ✔ markDisconnected(currentTurnSeat) sets isPausedByDisconnect = true (3.4186ms)
+  ✔ submitBid from the active seat is rejected while isPausedByDisconnect is true (0.7757ms)
+  ✔ submitPass from the active seat is rejected while isPausedByDisconnect is true (0.5722ms)
+  ✔ markReconnected(activePlayer) clears the pause and allows actions again (0.5728ms)
+✔ Round.disconnect — (a) active-player disconnect pauses round (7.7679ms)
+▶ Round.disconnect — (b) non-active-player disconnect does not pause round
+  ✔ markDisconnected(non-active seat) leaves isPausedByDisconnect false (0.5068ms)
+  ✔ active player can still bid after a non-active player disconnects (0.3695ms)
+  ✔ disconnectedSeats tracks the non-active disconnected seat (0.4034ms)
+✔ Round.disconnect — (b) non-active-player disconnect does not pause round (1.8ms)
+▶ Round.disconnect — (c1) active-player grace expiry aborts round
+  ✔ grace expiry on active player broadcasts round_aborted with correct fields (75.2476ms)
+✔ Round.disconnect — (c1) active-player grace expiry aborts round (75.7844ms)
+▶ Round.disconnect — (c2) non-active-player grace expiry also aborts round
+  ✔ grace expiry on non-active player broadcasts round_aborted and cleans up (41.4908ms)
+✔ Round.disconnect — (c2) non-active-player grace expiry also aborts round (41.9895ms)
+▶ Round.disconnect — (d) hello after cleanup returns restored=true, gameId=null
+  ✔ a remaining player hello after grace expiry cleanup gets restored:true, gameId:null, no snapshot (41.9297ms)
+✔ Round.disconnect — (d) hello after cleanup returns restored=true, gameId=null (52.5383ms)
+▶ Round.disconnect — (e) paused round: action_rejected to sender only, no phase_changed
+  ✔ bid from non-active player while round is paused produces action_rejected to sender only (56.4252ms)
+  ✔ active player can bid again after reconnect clears the pause (3.704ms)
+✔ Round.disconnect — (e) paused round: action_rejected to sender only, no phase_changed (60.4634ms)
+▶ Round.gating — wrong-turn rejection
+  ✔ submitBid from a non-currentTurnSeat returns rejected with a reason (3.2006ms)
+  ✔ submitPass from a non-currentTurnSeat is rejected (0.7153ms)
+✔ Round.gating — wrong-turn rejection (7.2213ms)
+▶ Round.gating — dealing phase
+  ✔ submitBid during dealing phase is rejected (0.5404ms)
+  ✔ submitPass during dealing phase is rejected (2.2808ms)
+  ✔ submitBid succeeds after advanceFromDealingToBidding (1.0857ms)
+  ✔ advanceFromDealingToBidding is idempotent — calling twice does not reset turn (0.5844ms)
+✔ Round.gating — dealing phase (5.1916ms)
+▶ Round.gating — post-resolution
+  ✔ submitBid is rejected after the round resolves to a declarer (1.2878ms)
+  ✔ submitPass is rejected after the round resolves (0.5463ms)
+✔ Round.gating — post-resolution (2.4272ms)
+▶ Round.marriage — timing restrictions (FR-009)
+  ✔ rejects declareMarriage on trick 1 (12.6555ms)
+  ✔ rejects declareMarriage on trick 7 (2.2099ms)
+  ✔ rejects declareMarriage on trick 8 (0.5397ms)
+  ✔ rejects declareMarriage when caller is not the current trick leader (0.4949ms)
+  ✔ rejects declareMarriage when trick is already in progress (not leading) (0.8443ms)
+✔ Round.marriage — timing restrictions (FR-009) (23.8032ms)
+▶ Round.marriage — successful declaration (FR-010)
+  ✔ accepts declareMarriage when player holds K+Q of same suit on trick 2 (0.9164ms)
+  ✔ accepts declareMarriage on trick 6 (last valid trick) (0.4831ms)
+  ✔ successful declaration appends to declaredMarriages with correct fields (0.5935ms)
+  ✔ successful declaration sets currentTrumpSuit to the declared suit (0.8388ms)
+  ✔ return value includes rejected:false, suit, bonus, and newTrumpSuit (1.977ms)
+  ✔ rejects when player holds K but not Q of that suit (0.5412ms)
+  ✔ rejects when player holds Q but not K of that suit (0.5074ms)
+  ✔ rejects when the declared card is not K or Q (0.4087ms)
+✔ Round.marriage — successful declaration (FR-010) (7.6677ms)
+▶ Round.marriage — play-without-declaring (FR-011)
+  ✔ playing K without declaring marriage does not change currentTrumpSuit (0.8191ms)
+  ✔ playing K without declaring marriage leaves declaredMarriages empty (0.6602ms)
+  ✔ playing Q without declaring marriage leaves declaredMarriages empty (0.3629ms)
+✔ Round.marriage — play-without-declaring (FR-011) (2.2793ms)
+▶ Round.marriage — stacking and trump replacement (FR-012)
+  ✔ two marriages by the same player both appear in declaredMarriages (0.6037ms)
+  ✔ both marriage bonuses accumulate in declaredMarriages (0.4828ms)
+  ✔ second marriage declaration replaces currentTrumpSuit with the new suit (0.3746ms)
+  ✔ most-recent declaration wins for trump: second suit supersedes first (0.4597ms)
+✔ Round.marriage — stacking and trump replacement (FR-012) (2.3704ms)
+▶ RoundActionHandler rate limiting — FR-030 (250 ms / 1 req window)
+  ✔ second handleBid within 250 ms from the same player is silently dropped (no broadcast, no action_rejected) (4.8125ms)
+  ✔ second handlePass within 250 ms from the same player is silently dropped (1.1963ms)
+  ✔ a second message from a DIFFERENT player is not rate-limited (4.5982ms)
+  ✔ rate-limited drop does not emit action_rejected to the sender (0.7453ms)
+✔ RoundActionHandler rate limiting — FR-030 (250 ms / 1 req window) (15.5856ms)
+▶ Round.selling — commitSellSelection validation (FR-029)
+  ✔ rejects when fewer than 3 cards are provided (16.5472ms)
+  ✔ rejects when more than 3 cards are provided (1.7077ms)
+  ✔ rejects when the selection contains duplicate card ids (0.6592ms)
+  ✔ rejects when a card id is not in the declarer's hand (0.5601ms)
+  ✔ accepts exactly 3 distinct in-hand cards and transitions to selling-bidding (2.8624ms)
+✔ Round.selling — commitSellSelection validation (FR-029) (29.0989ms)
+▶ Round.selling — duplicate-attempt guard (FR-016)
+  ✔ rejects a selection set that was already exposed in a prior attempt (1.3258ms)
+  ✔ accepts a different selection set on a second attempt (0.5985ms)
+✔ Round.selling — duplicate-attempt guard (FR-016) (2.3909ms)
+▶ Round.selling — submitSellBid restrictions (FR-015)
+  ✔ rejects a sell bid from the declarer (1.4724ms)
+  ✔ opponent rotation starts clockwise-left of the declarer (FR-015) (0.5658ms)
+  ✔ accepts a valid bid from the first opponent (0.8225ms)
+  ✔ turn advances to the next opponent after a bid (0.4449ms)
+✔ Round.selling — submitSellBid restrictions (FR-015) (3.9086ms)
+▶ Round.selling — returned outcome (FR-016)
+  ✔ cards return to declarer and attemptCount increments when both opponents pass (0.716ms)
+  ✔ attemptHistory records the returned entry with the exposed card ids (0.501ms)
+  ✔ currentTurnSeat is restored to the declarerSeat after a return (0.4163ms)
+✔ Round.selling — returned outcome (FR-016) (1.9314ms)
+▶ Round.selling — sold outcome (FR-017)
+  ✔ buyer (seat 1) becomes new declarer with 10 cards; old declarer keeps 7 (0.8711ms)
+  ✔ exposedSellCards is cleared after a sale (0.4039ms)
+  ✔ attemptHistory records the sold entry (0.37ms)
+  ✔ sold outcome via first-passing second-bidding path: seat 1 passes then seat 2 bids (0.5718ms)
+✔ Round.selling — sold outcome (FR-017) (2.7572ms)
+▶ Round.selling — 3-attempt exhaustion (FR-018)
+  ✔ startSelling is rejected after 3 failed (returned) attempts (0.7652ms)
+  ✔ startSelling on the new declarer is rejected after a successful sale (6.07ms)
+✔ Round.selling — 3-attempt exhaustion (FR-018) (7.3663ms)
+▶ Round.selling — cancelSelling (T060)
+  ✔ cancelSelling returns to post-bid-decision without incrementing attemptCount (13.8567ms)
+  ✔ cancelSelling from a non-declarer is rejected (0.8386ms)
+  ✔ cancelSelling outside selling-selection phase is rejected (0.9372ms)
+✔ Round.selling — cancelSelling (T060) (16.8339ms)
+▶ Round.trickplay — leading player may play any card (FR-006)
+  ✔ declarer (leader) can play any card from hand to start a trick (6.8607ms)
+  ✔ playing a card removes it from the leader's hand (11.5785ms)
+✔ Round.trickplay — leading player may play any card (FR-006) (22.722ms)
+▶ Round.trickplay — follow-suit enforcement (FR-007)
+  ✔ following player who holds led suit MUST follow suit — off-suit card is rejected (1.2583ms)
+  ✔ following player who holds led suit CAN play any card of that suit (0.6471ms)
+  ✔ following player who holds NO card of led suit may play any card (0.6557ms)
+✔ Round.trickplay — follow-suit enforcement (FR-007) (3.3318ms)
+▶ Round.trickplay — trick winner determination (FR-008 / R-003)
+  ✔ Ten beats King of same suit (no trump) (1.186ms)
+  ✔ Ten beats Queen of same suit (no trump) (9.1835ms)
+  ✔ Ace beats Ten of same suit (no trump) (0.7017ms)
+  ✔ highest card of led suit wins when no trump played (8.0527ms)
+  ✔ off-suit non-trump cards do not beat led suit (1.6483ms)
+✔ Round.trickplay — trick winner determination (FR-008 / R-003) (28.3813ms)
+▶ Round.trickplay — trick resolution (FR-008)
+  ✔ after all 3 cards played, currentTrick is cleared (2.5565ms)
+  ✔ winner receives all 3 card ids in collectedTricks (0.49ms)
+  ✔ trickNumber increments after each resolved trick (0.5762ms)
+  ✔ winner of a trick becomes the next leader (currentTrickLeaderSeat) (2.6098ms)
+✔ Round.trickplay — trick resolution (FR-008) (7.248ms)
+▶ Round.trickplay — phase transition after trick 8 (FR-008)
+  ✔ after trick 8 resolves phase becomes "round-summary" (17.1274ms)
+✔ Round.trickplay — phase transition after trick 8 (FR-008) (20.4079ms)
+▶ Round.trickplay — out-of-turn play is rejected
+  ✔ a card played by the wrong seat is rejected (0.4971ms)
+✔ Round.trickplay — out-of-turn play is rejected (0.7639ms)
+▶ RoundSummaryScreen — made bid indicator (FR-015)
+  ✔ renders .round-summary__made-indicator when declarerMadeBid is true (51.2066ms)
+  ✔ .round-summary__made-indicator contains "Made" text when declarerMadeBid is true (13.5525ms)
+  ✔ no .round-summary__missed-indicator when declarerMadeBid is true (10.5372ms)
+✔ RoundSummaryScreen — made bid indicator (FR-015) (77.175ms)
+▶ RoundSummaryScreen — missed bid indicator (FR-015)
+  ✔ renders .round-summary__missed-indicator when declarerMadeBid is false (9.5682ms)
+  ✔ .round-summary__missed-indicator contains "Missed" text when declarerMadeBid is false (17.2215ms)
+  ✔ no .round-summary__made-indicator when declarerMadeBid is false (14.1551ms)
+✔ RoundSummaryScreen — missed bid indicator (FR-015) (41.7195ms)
+▶ RoundSummaryScreen — player nicknames shown (FR-015)
+  ✔ Alice's nickname appears in the rendered output (9.7802ms)
+  ✔ Bob's nickname appears in the rendered output (23.6342ms)
+  ✔ Carol's nickname appears in the rendered output (25.0857ms)
+  ✔ all three player nicknames appear in the rendered output (5.4069ms)
+✔ RoundSummaryScreen — player nicknames shown (FR-015) (64.8009ms)
+▶ RoundSummaryScreen — back to lobby button shown (FR-015)
+  ✔ renders .round-summary__back-btn when victoryReached is false (4.1198ms)
+  ✔ .round-summary__back-btn text indicates Back to Lobby (8.4175ms)
+  ✔ no .round-summary__next-btn when victoryReached is false (US1 scope: no next round) (12.7224ms)
+✔ RoundSummaryScreen — back to lobby button shown (FR-015) (25.7603ms)
+▶ RoundSummaryScreen — clicking back btn calls onBackToLobby (FR-015)
+  ✔ clicking .round-summary__back-btn calls onBackToLobby() (6.6072ms)
+  ✔ onBackToLobby is not called before the button is clicked (11.2142ms)
+  ✔ onBackToLobby is called exactly once per click (10.4016ms)
+✔ RoundSummaryScreen — clicking back btn calls onBackToLobby (FR-015) (28.6461ms)
+▶ Scoring — CARD_POINT_VALUE constants (FR-013)
+  ✔ A is worth 11 (4.1384ms)
+  ✔ 10 is worth 10 (0.4895ms)
+  ✔ K is worth 4 (0.3053ms)
+  ✔ Q is worth 3 (0.4006ms)
+  ✔ J is worth 2 (0.5319ms)
+  ✔ 9 is worth 0 (0.3531ms)
+✔ Scoring — CARD_POINT_VALUE constants (FR-013) (17.4632ms)
+▶ Scoring.cardPoints — FR-013
+  ✔ empty array returns 0 (9.3144ms)
+  ✔ single Ace returns 11 (2.3647ms)
+  ✔ single Ten returns 10 (0.9938ms)
+  ✔ single 9 returns 0 (0.4925ms)
+  ✔ A + K + Q + J + 10 + 9 sums to 30 (0.2561ms)
+  ✔ all 24 cards sum to 120 (4 suits × 30) (1.2869ms)
+✔ Scoring.cardPoints — FR-013 (15.8728ms)
+▶ Scoring.roundScores — FR-013
+  ✔ returns 0 for all seats when collectedTricks are empty and no marriages (2.5964ms)
+  ✔ seat with an Ace (id 5) scores 11 (0.4184ms)
+  ✔ seat with a Ten (id 1) scores 10 (0.2191ms)
+  ✔ all 24 card ids summed across all seats equals 120 (0.2509ms)
+  ✔ declaredMarriage in ♣ adds 100 bonus to the declaring seat (0.2603ms)
+  ✔ declaredMarriage in ♥ adds 60 bonus to the declaring seat (0.2794ms)
+  ✔ declaredMarriage in ♠ adds 80 bonus to the declaring seat (0.2419ms)
+  ✔ multiple marriages on different seats accumulate independently (0.243ms)
+✔ Scoring.roundScores — FR-013 (5.1557ms)
+▶ Scoring.roundDeltas — FR-014
+  ✔ declarer receives +bid when roundScore meets the bid (0.4575ms)
+  ✔ declarer receives +bid when roundScore exceeds the bid (0.2421ms)
+  ✔ declarer receives -bid when roundScore is below the bid (0.2034ms)
+  ✔ each opponent receives their own roundScore as delta (0.1997ms)
+  ✔ opponent delta equals their card-point total (not bid amount) (0.2476ms)
+  ✔ empty penalties array does not change the result (2.0574ms)
+  ✔ declarerSeat=2 correctly identifies seat 2 as declarer and seats 0,1 as opponents (0.3959ms)
+✔ Scoring.roundDeltas — FR-014 (4.4897ms)
+▶ Scoring.determineWinner — FR-017
+  ✔ single winner: seat 0 with 1100 beats 500 and 300 (0.7806ms)
+  ✔ single winner: seat 2 with 1050 beats 300 and 450 (0.2638ms)
+  ✔ tie at top: declarer (seat 1) among tied (0:1000, 1:1000, 2:300) wins (0.287ms)
+  ✔ tie at top: declarer NOT among tied, seat-order fallback (dealerSeat=0, P1=1 beats P2=2) (0.2922ms)
+  ✔ three-way tie (all 1000): declarer (seat 2) among tied wins (0.2171ms)
+  ✔ tie at top: declarer NOT among tied, seat-order fallback (dealerSeat=2, P1=0 loses, P2=1 wins over Dealer=2) (0.1931ms)
+  ✔ tie at top: declarer (dealer=seat 0) NOT among tied, Dealer loses to P2 (dealerSeat=0, P1=1, P2=2, declarer=0) (0.2395ms)
+✔ Scoring.determineWinner — FR-017 (2.7849ms)
+▶ Scoring.buildFinalResults — FR-017
+  ✔ builds finalRanking with all 3 seats sorted descending by score (0.5497ms)
+  ✔ marks the winner with isWinner: true (0.2386ms)
+  ✔ returns winnerSeat and winnerNickname from determineWinner (0.2149ms)
+  ✔ includes history pass-through from game (0.2453ms)
+✔ Scoring.buildFinalResults — FR-017 (1.5315ms)
+▶ SellSelectionControls — Sell button state by selection count
+  ✔ Sell is disabled when 0 cards are selected (32.4629ms)
+  ✔ Sell is disabled when 1 card is selected (8.3099ms)
+  ✔ Sell is disabled when 2 cards are selected (2.1483ms)
+  ✔ Sell is enabled when exactly 3 cards are selected (5.5465ms)
+  ✔ Sell is disabled when 4 cards are selected (1.7873ms)
+  ✔ Sell is disabled when 5 cards are selected (6.1347ms)
+  ✔ counter text reflects the current selection count (3.3629ms)
+  ✔ counter text shows 3 / 3 when 3 are selected (1.8303ms)
+✔ SellSelectionControls — Sell button state by selection count (64.7466ms)
+▶ SellSelectionControls — Cancel is always clickable
+  ✔ Cancel is not disabled after show() (1.6793ms)
+  ✔ Cancel is not disabled even when 0 cards are selected (1.9969ms)
+  ✔ Cancel is not disabled when Sell is disabled (e.g. 2 selected) (3.7711ms)
+  ✔ clicking Cancel dispatches sendSellCancel (2.0098ms)
+✔ SellSelectionControls — Cancel is always clickable (10.1856ms)
+▶ SellSelectionControls — Sell dispatches selected ids
+  ✔ clicking Sell dispatches sendSellSelect with current 3 selected ids (4.4009ms)
+  ✔ clicking Sell when fewer than 3 selected does nothing (1.9841ms)
+✔ SellSelectionControls — Sell dispatches selected ids (8.7142ms)
+▶ HandView — selection mode: taps toggle selected CSS class in DOM
+  ✔ tapping a card adds hand-view__card--selected class (19.9145ms)
+  ✔ tapping the same card again removes the selected CSS class (toggle) (13.8702ms)
+  ✔ tapping cards in selection mode emits selectionchanged with the current selected ids (8.0712ms)
+  ✔ HandView taps reach SellSelectionControls when they share an antlion (integration) (7.1081ms)
+  ✔ disabling selection mode clears the selected class on all cards (8.3816ms)
+  ✔ tapping a card when selection mode is off has no effect (1.4483ms)
+✔ HandView — selection mode: taps toggle selected CSS class in DOM (59.7583ms)
+▶ StatusBar — trickNumber field (FR-018)
+  ✔ renders "Trick 5 of 8" in .status-bar__trick-number when trickNumber is 5 (49.641ms)
+  ✔ renders "Trick 1 of 8" when trickNumber is 1 (9.637ms)
+  ✔ renders "Trick 8 of 8" when trickNumber is 8 (2.3658ms)
+  ✔ does not render .status-bar__trick-number when trickNumber is null (3.5432ms)
+  ✔ trick number element is absent when phase is Bidding (trickNumber is null) (5.0871ms)
+  ✔ re-render clears trick number when trickNumber goes from 5 to null (11.3995ms)
+✔ StatusBar — trickNumber field (FR-018) (83.6184ms)
+▶ StatusBar — exchangePassesCommitted field (FR-018)
+  ✔ renders "0/2 cards passed" in .status-bar__exchange-passes when exchangePassesCommitted is 0 (8.6724ms)
+  ✔ renders "1/2 cards passed" when exchangePassesCommitted is 1 (3.691ms)
+  ✔ renders "2/2 cards passed" when exchangePassesCommitted is 2 (2.6156ms)
+  ✔ does not render .status-bar__exchange-passes when exchangePassesCommitted is null (1.8703ms)
+  ✔ re-render clears exchange passes element when it goes from 1 to null (8.9251ms)
+✔ StatusBar — exchangePassesCommitted field (FR-018) (27.4901ms)
+▶ StatusBar — cumulativeScores field (FR-018)
+  ✔ renders cumulative scores for all 3 seats when cumulativeScores is {0:0, 1:0, 2:0} (4.6514ms)
+  ✔ renders correct values for cumulativeScores: {0: 150, 1: -50, 2: 200} (4.4874ms)
+  ✔ score for seat 0 is visible and shows the correct value (2.4879ms)
+  ✔ re-render updates cumulative scores correctly (2.4444ms)
+  ✔ cumulativeScores zero values are shown for all seats (1.5142ms)
+✔ StatusBar — cumulativeScores field (FR-018) (16.6269ms)
+▶ StatusBar — phase label (FR-025)
+  ✔ renders the phase string in the .status-bar__phase span (35.1988ms)
+  ✔ renders Bidding phase (6.0416ms)
+  ✔ renders Declarer deciding phase (2.2114ms)
+  ✔ renders Round ready to play phase (2.9868ms)
+  ✔ renders Round aborted phase (12.2442ms)
+✔ StatusBar — phase label (FR-025) (60.7894ms)
+▶ StatusBar — active player framing (FR-025)
+  ✔ renders "Your turn" when viewerIsActive is true (5.1674ms)
+  ✔ renders "Waiting for {nickname}…" when viewerIsActive is false (1.8474ms)
+  ✔ omits the turn span when activePlayer is null (1.1296ms)
+  ✔ renders "Your turn" for Declarer deciding phase when viewer is declarer (1.6873ms)
+✔ StatusBar — active player framing (FR-025) (10.7647ms)
+▶ StatusBar — current high bid display (FR-025)
+  ✔ shows "Bid: 100" when currentHighBid is null (opening minimum) (2.0085ms)
+  ✔ shows the accepted bid value when currentHighBid is set (1.086ms)
+  ✔ shows 300 at the cap (0.9778ms)
+✔ StatusBar — current high bid display (FR-025) (4.6256ms)
+▶ StatusBar — declarer label (FR-025)
+  ✔ renders "Bid won: {nickname} ({amount})" in Declarer deciding phase (2.9921ms)
+  ✔ omits bid-winner and shows bid when not in Declarer deciding phase (1.5178ms)
+  ✔ omits the declarer span when declarer is null (2.7224ms)
+✔ StatusBar — declarer label (FR-025) (10.678ms)
+▶ StatusBar — disconnected players list (FR-025)
+  ✔ renders a "Connection lost…" indicator for each disconnected player (2.5279ms)
+  ✔ renders indicators for multiple disconnected players (2.0141ms)
+  ✔ omits disconnected indicators when the list is empty (1.2009ms)
+  ✔ re-render clears previous disconnected indicators (5.2894ms)
+✔ StatusBar — disconnected players list (FR-025) (11.4236ms)
+▶ StatusBar — passed players chips (FR-025)
+  ✔ renders a chip for each passed player (3.105ms)
+  ✔ renders a "Passed:" label when there are passed players (1.317ms)
+  ✔ omits the passed row when passedPlayers is empty (1.1727ms)
+✔ StatusBar — passed players chips (FR-025) (6.0628ms)
+▶ StatusBar — sellAttempt counter (FR-025)
+  ✔ renders "Attempt 1 of 3" when sellAttempt is 1 (1.1324ms)
+  ✔ renders "Attempt 2 of 3" when sellAttempt is 2 (1.1724ms)
+  ✔ renders "Attempt 3 of 3" when sellAttempt is 3 (1.2863ms)
+  ✔ omits the attempt counter when sellAttempt is null (1.7474ms)
+  ✔ shows attempt counter in Declarer deciding after a failed attempt (1.9623ms)
+  ✔ omits attempt counter in Round ready to play when sellAttempt is null (0.8888ms)
+  ✔ re-render clears the attempt counter when sellAttempt transitions to null (8.3367ms)
+✔ StatusBar — sellAttempt counter (FR-025) (17.5546ms)
+▶ StatusBar — passed opponents during Selling phase (FR-025)
+  ✔ renders a chip for a sell opponent who passed (1.2812ms)
+  ✔ renders chips for both sell opponents when both have passed (1.548ms)
+  ✔ omits the passed row when no sell opponents have passed (0.9033ms)
+  ✔ passed row cleared on re-render when passedPlayers resets to empty (3.5849ms)
+✔ StatusBar — passed opponents during Selling phase (FR-025) (7.8726ms)
+▶ ThousandSocket reconnect backoff
+  ✔ first reconnect schedules ~1000 ms (within ±20% jitter) (204.8786ms)
+  ✔ subsequent reconnects double base delay up to 30000 cap (31.2026ms)
+  ✔ successful onopen resets the attempt counter (29.4539ms)
+  ✔ disconnect() prevents further reconnect scheduling (31.6865ms)
+  ✔ disconnect() cancels any pending reconnect timer (20.7588ms)
+  ✔ onConnect callback fires on ws.onopen (26.1304ms)
+  ✔ stale onclose from a previous ws does not schedule reconnect (29.5244ms)
+  ✔ connect() closes any previous open ws (23.5805ms)
+  ✔ connect timeout fires close if onopen never arrives (16.7504ms)
+  ✔ successful onopen cancels the connect timeout (31.8569ms)
+✔ ThousandSocket reconnect backoff (454.143ms)
+▶ ThousandStore.broadcastLobbyUpdate — send isolation
+  ✔ one ws.send() throwing must not skip later recipients (4.7766ms)
+✔ ThousandStore.broadcastLobbyUpdate — send isolation (7.2155ms)
+▶ ThousandStore.sendToPlayer — error isolation
+  ✔ throwing ws.send() does not propagate to caller (0.5943ms)
+✔ ThousandStore.sendToPlayer — error isolation (1.1126ms)
+▶ ThousandStore.handlePlayerDisconnect grace period
+  ✔ (a) does not delete player immediately — starts grace timer (7.7718ms)
+  ✔ (b) reconnectPlayer within grace period restores ws, cancels timer (1.3265ms)
+  ✔ (c) grace timer expiry deletes player record (27.117ms)
+  ✔ (d) grace timer expiry removes player from game (33.3649ms)
+  ✔ (e) reconnectPlayer before timer fires prevents purge (35.3431ms)
+✔ ThousandStore.handlePlayerDisconnect grace period (113.2877ms)
+▶ ThousandStore.reconnectPlayer last-connect-wins
+  ✔ sends session_replaced to live ws and closes it when player already connected (5.196ms)
+✔ ThousandStore.reconnectPlayer last-connect-wins (6.4255ms)
+▶ ThousandStore.createOrRestorePlayer
+  ✔ (a) unknown playerId → restored: false, new identity issued (4.3261ms)
+  ✔ (b) known playerId + matching token → restored: true, nickname preserved (18.1145ms)
+  ✔ (c) known playerId + wrong token → restored: false, original record unchanged (7.032ms)
+✔ ThousandStore.createOrRestorePlayer (32.8098ms)
+▶ ThousandStore.createOrRestorePlayer security edge cases
+  ✔ (a) valid playerId + wrong token → new identity, original record untouched (4.8803ms)
+  ✔ (b) valid playerId + valid token while player in grace period → reconnect succeeds (4.8745ms)
+  ✔ (c) sessionToken absent (undefined) → new identity issued (14.0122ms)
+✔ ThousandStore.createOrRestorePlayer security edge cases (27.6231ms)
+▶ TrickPlayView — legal cards do not have .card--disabled (FR-007)
+  ✔ cards in legalCardIds do not have .card--disabled class (36.3089ms)
+  ✔ a specific legal card does not have .card--disabled (8.6509ms)
+✔ TrickPlayView — legal cards do not have .card--disabled (FR-007) (46.5207ms)
+▶ TrickPlayView — illegal cards have .card--disabled (FR-007)
+  ✔ cards not in legalCardIds have .card--disabled class (17.5049ms)
+✔ TrickPlayView — illegal cards have .card--disabled (FR-007) (17.8915ms)
+▶ TrickPlayView — all cards disabled when not my turn (FR-007)
+  ✔ all cards have .card--disabled when isMyTurn is false (8.7482ms)
+  ✔ even legal cards are disabled when isMyTurn: false (3.872ms)
+✔ TrickPlayView — all cards disabled when not my turn (FR-007) (13.0981ms)
+▶ TrickPlayView — collected tricks badge shows count (FR-008)
+  ✔ .collected-tricks__badge shows "× N" for seat with N tricks (4.5651ms)
+  ✔ badge text contains the trick count (6.2877ms)
+✔ TrickPlayView — collected tricks badge shows count (FR-008) (11.5836ms)
+▶ TrickPlayView — seat 0 badge shows × 3 after render (FR-008)
+  ✔ after render with collectedTrickCounts: {0: 3, 1: 0, 2: 0}, seat 0 badge shows × 3 (6.6183ms)
+  ✔ seat 0 badge text matches "× 3" format (6.4021ms)
+✔ TrickPlayView — seat 0 badge shows × 3 after render (FR-008) (13.4047ms)
+Error: Uncaught [ReferenceError: requestAnimationFrame is not defined]
+    at reportException (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:240:7)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+    at HTMLScriptElementImpl._eval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+    at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+    at JSDOMParse5Adapter.onItemPop (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+    at Parser.onItemPop (C:\projects\thousand\node_modules\parse5\dist\cjs\parser\index.js:176:90) ReferenceError: requestAnimationFrame is not defined
+    at Antlion._tick (http://localhost:3000/:142:5)
+    at Antlion.start (http://localhost:3000/:116:12)
+    at http://localhost:3000/:3758:9
+    at http://localhost:3000/:3761:3
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+Error: Uncaught [ReferenceError: requestAnimationFrame is not defined]
+    at reportException (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:240:7)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+    at HTMLScriptElementImpl._eval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+    at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+    at JSDOMParse5Adapter.onItemPop (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+    at Parser.onItemPop (C:\projects\thousand\node_modules\parse5\dist\cjs\parser\index.js:176:90) ReferenceError: requestAnimationFrame is not defined
+    at Antlion._tick (http://localhost:3000/:142:5)
+    at Antlion.start (http://localhost:3000/:116:12)
+    at http://localhost:3000/:3758:9
+    at http://localhost:3000/:3761:3
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+▶ Lobby game-list rendering
+  ✔ renders game rows when lobby_update arrives with games (534.0855ms)
+Error: Uncaught [ReferenceError: requestAnimationFrame is not defined]
+    at reportException (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:240:7)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+    at HTMLScriptElementImpl._eval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+    at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+    at JSDOMParse5Adapter.onItemPop (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+    at Parser.onItemPop (C:\projects\thousand\node_modules\parse5\dist\cjs\parser\index.js:176:90) ReferenceError: requestAnimationFrame is not defined
+    at Antlion._tick (http://localhost:3000/:142:5)
+    at Antlion.start (http://localhost:3000/:116:12)
+    at http://localhost:3000/:3758:9
+    at http://localhost:3000/:3761:3
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+  ✔ shows empty state when lobby_update arrives with empty array (160.5048ms)
+Error: Uncaught [ReferenceError: requestAnimationFrame is not defined]
+    at reportException (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:240:7)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+    at HTMLScriptElementImpl._eval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+    at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+    at JSDOMParse5Adapter.onItemPop (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+    at Parser.onItemPop (C:\projects\thousand\node_modules\parse5\dist\cjs\parser\index.js:176:90) ReferenceError: requestAnimationFrame is not defined
+    at Antlion._tick (http://localhost:3000/:142:5)
+    at Antlion.start (http://localhost:3000/:116:12)
+    at http://localhost:3000/:3758:9
+    at http://localhost:3000/:3761:3
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+  ✔ clears old rows and re-renders on second lobby_update (198.1895ms)
+✔ Lobby game-list rendering (894.4726ms)
+Error: Uncaught [ReferenceError: requestAnimationFrame is not defined]
+    at reportException (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:240:7)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+    at HTMLScriptElementImpl._eval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+    at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+    at JSDOMParse5Adapter.onItemPop (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+    at Parser.onItemPop (C:\projects\thousand\node_modules\parse5\dist\cjs\parser\index.js:176:90) ReferenceError: requestAnimationFrame is not defined
+    at Antlion._tick (http://localhost:3000/:142:5)
+    at Antlion.start (http://localhost:3000/:116:12)
+    at http://localhost:3000/:3758:9
+    at http://localhost:3000/:3761:3
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+▶ Create game modal
+  ✔ "New Game" button exists in the DOM (102.1752ms)
+Error: Uncaught [ReferenceError: requestAnimationFrame is not defined]
+    at reportException (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:240:7)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+    at HTMLScriptElementImpl._eval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+    at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+    at JSDOMParse5Adapter.onItemPop (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+    at Parser.onItemPop (C:\projects\thousand\node_modules\parse5\dist\cjs\parser\index.js:176:90) ReferenceError: requestAnimationFrame is not defined
+    at Antlion._tick (http://localhost:3000/:142:5)
+    at Antlion.start (http://localhost:3000/:116:12)
+    at http://localhost:3000/:3758:9
+    at http://localhost:3000/:3761:3
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+  ✔ modal appears when New Game button is clicked (140.1685ms)
+Error: Uncaught [ReferenceError: requestAnimationFrame is not defined]
+    at reportException (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\helpers\runtime-script-errors.js:66:24)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:240:7)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+    at HTMLScriptElementImpl._fetchInternalScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+    at HTMLScriptElementImpl._eval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+    at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+    at JSDOMParse5Adapter.onItemPop (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+    at Parser.onItemPop (C:\projects\thousand\node_modules\parse5\dist\cjs\parser\index.js:176:90) ReferenceError: requestAnimationFrame is not defined
+    at Antlion._tick (http://localhost:3000/:142:5)
+    at Antlion.start (http://localhost:3000/:116:12)
+    at http://localhost:3000/:3758:9
+    at http://localhost:3000/:3761:3
+    at Script.runInContext (node:vm:149:12)
+    at Object.runInContext (node:vm:301:6)
+    at processJavaScript (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+    at HTMLScriptElementImpl._innerEval (C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+    at C:\projects\thousand\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+    at ResourceQueue.push (C:\projects\thousand\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+  ✔ modal has Public/Private radio buttons (130.0803ms)
+✔ Create game modal (373.0023ms)
+▶ Empty state
+  ✔ displays empty-state message when game list is empty (141.3035ms)
+✔ Empty state (141.6268ms)
+▶ round-messages.005 — exchange_pass broadcasts card_passed
+  ✔ after start_game, sending exchange_pass broadcasts card_passed to all 3 players (10.9869ms)
+  ✔ after 2 exchange_passes, trick_play_started is broadcast to all 3 (2.3394ms)
+✔ round-messages.005 — exchange_pass broadcasts card_passed (16.0492ms)
+▶ round-messages.005 — play_card broadcasts card_played
+  ✔ after trick-play starts, play_card from the leading player broadcasts card_played to all 3 (3.2222ms)
+  ✔ play_card from the wrong seat (not currentTurnSeat) produces action_rejected to sender only (2.782ms)
+✔ round-messages.005 — play_card broadcasts card_played (6.8548ms)
+▶ round-messages.005 — round_summary broadcast after trick 8
+  ✔ after the 8th trick resolves, round_summary is broadcast to all 3 players (14.7511ms)
+  ✔ round_summary contains perPlayer scoring data for all 3 seats (4.075ms)
+✔ round-messages.005 — round_summary broadcast after trick 8 (23.0259ms)
+▶ round-messages — round_started on startRound
+  ✔ all three players receive round_started (14.6689ms)
+  ✔ each round_started carries the correct self-seat for the recipient (2.3958ms)
+  ✔ per-viewer filtering: only own-seat steps carry rank+suit; talon and opponent steps do not (13.545ms)
+  ✔ gameStatus in round_started has phase Bidding and null currentHighBid (1.6644ms)
+✔ round-messages — round_started on startRound (35.7323ms)
+▶ round-messages — bid message broadcasts
+  ✔ valid bid from P1 produces bid_accepted and phase_changed to all 3 players (3.1799ms)
+  ✔ valid pass from P1 produces pass_accepted and phase_changed to all 3 players (6.8123ms)
+✔ round-messages — bid message broadcasts (10.8304ms)
+▶ round-messages — invalid bid sends action_rejected to sender only
+  ✔ bid from wrong seat (not currentTurnSeat) is rejected to sender only (2.4345ms)
+  ✔ bid with non-multiple-of-5 amount is rejected to sender only (1.7273ms)
+✔ round-messages — invalid bid sends action_rejected to sender only (11.8464ms)
+▶ round-messages — joining an in-progress game is rejected (FR-020)
+  ✔ _admitPlayerToGame sends game_join_failed when game.status is in-progress (1.1447ms)
+✔ round-messages — joining an in-progress game is rejected (FR-020) (1.4244ms)
+▶ round-messages — synchrony assertions
+  ✔ SC-001: startRound is invoked synchronously inside _admitPlayerToGame (2.0559ms)
+  ✔ SC-008: phase_changed broadcast lands in the same synchronous tick as handleBid (12.1548ms)
+  ✔ SC-008: phase_changed broadcast lands in the same synchronous tick as handlePass (6.6828ms)
+✔ round-messages — synchrony assertions (21.5295ms)
+▶ round-messages — talon_absorbed on bidding resolution (US2)
+  ✔ talon_absorbed is broadcast to all 3 players when bidding resolves (6.1216ms)
+  ✔ talon_absorbed includes identities only for the declarer recipient (FR-022) (1.8268ms)
+  ✔ phase_changed after bidding resolution carries Declarer deciding phase (1.7076ms)
+✔ round-messages — talon_absorbed on bidding resolution (US2) (10.0639ms)
+▶ round-messages — start_game from declarer (US2)
+  ✔ start_game from the declarer sends card_exchange_started to all 3 players (1.849ms)
+  ✔ start_game keeps the game record alive for card-exchange phase (1.2168ms)
+  ✔ start_game keeps all player gameIds set during card-exchange phase (1.3731ms)
+✔ round-messages — start_game from declarer (US2) (4.8633ms)
+▶ round-messages — start_game from non-declarer is rejected (US2)
+  ✔ start_game from a non-declarer sends action_rejected to sender only (1.1218ms)
+✔ round-messages — start_game from non-declarer is rejected (US2) (1.2963ms)
+▶ round-messages — sell_start from declarer (US3)
+  ✔ sell_start broadcasts sell_started and phase_changed to all 3 players (1.8285ms)
+  ✔ sell_start from non-declarer sends action_rejected to sender only (1.2687ms)
+✔ round-messages — sell_start from declarer (US3) (3.4299ms)
+▶ round-messages — sell_select produces sell_exposed (US3)
+  ✔ sell_select broadcasts sell_exposed with identities to ALL 3 recipients (FR-022) (2.8157ms)
+  ✔ sell_exposed carries identities for ALL recipients, unlike talon_absorbed (FR-022) (1.9236ms)
+  ✔ sell_select also broadcasts phase_changed to all 3 (1.5203ms)
+✔ round-messages — sell_select produces sell_exposed (US3) (6.8598ms)
+▶ round-messages — sell_bid broadcast (US3)
+  ✔ sell_bid from a valid opponent broadcasts bid_accepted and phase_changed to all 3 (3.1161ms)
+✔ round-messages — sell_bid broadcast (US3) (3.4627ms)
+▶ round-messages — sell_pass both pass → outcome returned (US3)
+  ✔ sell_resolved with outcome:returned is broadcast when both opponents pass (15.0427ms)
+  ✔ sell_resolved:returned has no newDeclarerId (3.0461ms)
+  ✔ phase_changed after returned carries Declarer deciding (1.6293ms)
+✔ round-messages — sell_pass both pass → outcome returned (US3) (20.0875ms)
+▶ round-messages — sell_bid then sell_pass → outcome sold (US3)
+  ✔ sell_resolved with outcome:sold is broadcast when one opponent buys (1.6827ms)
+  ✔ sell_resolved:sold carries oldDeclarerId (1.2217ms)
+  ✔ sell_resolved does not carry full card identities (client manages visibility drops per FR-023) (1.7149ms)
+✔ round-messages — sell_bid then sell_pass → outcome sold (US3) (5.0184ms)
+▶ round-messages — sell_bid causes immediate sold resolution (US3)
+  ✔ sell_bid from the last active opponent broadcasts sell_resolved:sold immediately (2.191ms)
+✔ round-messages — sell_bid causes immediate sold resolution (US3) (2.4315ms)
+▶ round-messages — sell_cancel from declarer (US3)
+  ✔ sell_cancel broadcasts phase_changed to Declarer deciding for all 3 (1.4748ms)
+  ✔ sell_cancel from non-declarer is rejected (1.0941ms)
+✔ round-messages — sell_cancel from declarer (US3) (2.9285ms)
+▶ round-messages — reconnect to in-progress game (T009)
+  ✔ hello with a valid sessionToken for an in-progress game sends round_state_snapshot (3.2494ms)
+  ✔ round_state_snapshot for dealing/bidding phase includes talonIds but not talon identities (1.6632ms)
+  ✔ round_state_snapshot for bidding phase with no bids includes dealSequence for animation replay (1.5616ms)
+  ✔ round_state_snapshot for bidding phase after a bid has been placed omits dealSequence (1.5652ms)
+  ✔ round_state_snapshot for selling-bidding phase includes exposed card identities (1.7236ms)
+✔ round-messages — reconnect to in-progress game (T009) (10.3435ms)
+▶ Static files
+  ✔ serves index.html at / (118.6505ms)
+  ✔ returns 404 for unknown path (14.9471ms)
+✔ Static files (135.9706ms)
+▶ GET /api/games
+  ✔ returns 200 with empty games array when no games exist (21.7884ms)
+  ✔ returns only public waiting games (7.3667ms)
+  ✔ does not expose inviteCode field in response (5.8702ms)
+  ✔ includes playerCount and requiredPlayers fields (4.2775ms)
+✔ GET /api/games (40.7416ms)
+▶ POST /api/games/:id/join
+  ✔ returns 200 and gameId on success (126.4999ms)
+  ✔ returns 404 when game does not exist (83.8068ms)
+  ✔ returns 404 for private game (72.0081ms)
+  ✔ returns 409 when game is full (68.7635ms)
+  ✔ returns 409 when game is not waiting (77.8466ms)
+  ✔ returns 400 for invalid nickname (102.7635ms)
+✔ POST /api/games/:id/join (546.2482ms)
+▶ POST /api/games
+  ✔ creates a public game — no inviteCode in response (89.8494ms)
+  ✔ creates a private game — inviteCode is 6-char uppercase alphanum (86.2134ms)
+  ✔ returns 400 when nickname is missing (86.0547ms)
+  ✔ returns 400 when type is invalid (81.2668ms)
+  ✔ returns 400 when nickname is too short (71.8396ms)
+  ✔ returns 400 when nickname is too long (65.3527ms)
+✔ POST /api/games (481.4186ms)
+▶ POST /api/games/join-invite
+  ✔ returns 200 and gameId on valid code (72.1412ms)
+  ✔ returns 404 for unknown invite code (80.4192ms)
+  ✔ returns 409 when game is full (65.4685ms)
+  ✔ returns 400 for invalid nickname (67.3857ms)
+✔ POST /api/games/join-invite (286.461ms)
+▶ Private game not visible in lobby
+  ✔ GET /api/games returns empty array after private game created (66.7919ms)
+✔ Private game not visible in lobby (67.0202ms)
+▶ Nickname validation
+  ✔ rejects blank nickname on join (67.9378ms)
+  ✔ rejects blank nickname on create (63.4538ms)
+✔ Nickname validation (131.6214ms)
+▶ WebSocket lobby_update broadcast
+  ✔ sends lobby_update to lobby clients when a public game is created (71.0191ms)
+  ✔ sends initial lobby_update immediately on connect (5.1617ms)
+✔ WebSocket lobby_update broadcast (76.4347ms)
+▶ WebSocket player disconnect cleanup
+  ✔ deletes game when host WS disconnects with no other players (111.371ms)
+  ✔ sends player_left to remaining players when a non-host WS client disconnects (116.757ms)
+✔ WebSocket player disconnect cleanup (228.5213ms)
+▶ Invalid JSON body handling
+  ✔ returns 400 for invalid JSON body on POST /api/games (68.2278ms)
+  ✔ returns 400 for invalid JSON body on POST /api/games/:id/join (60.8655ms)
+  ✔ returns 400 for invalid JSON body on POST /api/games/join-invite (67.6571ms)
+✔ Invalid JSON body handling (197.3848ms)
+▶ Join-invite game status guard
+  ✔ returns 404 when invite code maps to a non-waiting game (66.9415ms)
+✔ Join-invite game status guard (67.1787ms)
+▶ Existing sessionToken re-use on join
+  ✔ preserves the claimed nickname when join body sends a different one (60.8777ms)
+✔ Existing sessionToken re-use on join (61.0173ms)
+▶ WebSocket message handling
+  ✔ handles ping message without responding (63.2078ms)
+  ✔ responds with error for unrecognized message type (25.6714ms)
+  ✔ responds with error for invalid JSON WS message (32.0406ms)
+  ✔ sends game_joined WS message to player after HTTP join (72.4288ms)
+✔ WebSocket message handling (193.7296ms)
+▶ POST /api/nickname
+  ✔ returns 200 and stores nickname for a connected player (3.7475ms)
+  ✔ returns 409 when another connected player holds the same nickname (5.4051ms)
+  ✔ rejects duplicate nicknames case-insensitively (8.0839ms)
+  ✔ allows a player to re-claim their own nickname (3.9238ms)
+  ✔ returns 400 for nickname that is too short (2.8263ms)
+  ✔ returns 400 for nickname that is too long (3.1355ms)
+  ✔ returns 401 when sessionToken is invalid (1.7763ms)
+  ✔ returns 401 when sessionToken is absent (1.5946ms)
+  ✔ returns 400 for invalid JSON body (63.1091ms)
+✔ POST /api/nickname (94.1481ms)
+Unhandled error: Error: forced test error
+    at store.getLobbyGames (C:\projects\thousand\tests\server.test.js:876:41)
+    at GameController.handleGetGames (C:\projects\thousand\src\controllers\GameController.js:97:53)
+    at RequestHandler.handleRequest (C:\projects\thousand\src\controllers\RequestHandler.js:53:26)
+    at Server.<anonymous> (C:\projects\thousand\src\server.js:18:11)
+    at Server.emit (node:events:508:28)
+    at parserOnIncoming (node:_http_server:1210:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+▶ HTTP server error handling
+  ✔ returns 500 when handleRequest throws (2.9248ms)
+✔ HTTP server error handling (3.1564ms)
+▶ WebSocket upgrade handling
+  ✔ destroys socket for WebSocket upgrade to a non-/ws path (2.3091ms)
+✔ WebSocket upgrade handling (2.4889ms)
+▶ WebSocket disconnect edge cases
+  ✔ disbands game and notifies guest when host disconnects with remaining players (114.7018ms)
+  ✔ cleans up inviteCode when private game host disconnects alone (112.9095ms)
+✔ WebSocket disconnect edge cases (228.3333ms)
+▶ Static file path traversal protection
+  ✔ returns 404 for path traversal attempts (3.1319ms)
+✔ Static file path traversal protection (3.4019ms)
+ℹ tests 536
+ℹ suites 171
+ℹ pass 509
+ℹ fail 0
+ℹ cancelled 27
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8368.7219
+
+✖ failing tests:
+
+test at tests\FinalResultsScreen.test.js:81:3
+✖ renders a row for each player in finalRanking
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:88:3
+✖ renders Alice in the ranking display
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:94:3
+✖ renders Bob in the ranking display
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:100:3
+✖ renders Carol in the ranking display
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:80:1
+✖ FinalResultsScreen — ranking display (FR-017) (0.6265ms)
+  Error: ENOENT: no such file or directory, open 'C:\projects\thousand\src\public\js\thousand\FinalResultsScreen.js'
+      at Object.readFileSync (node:fs:440:20)
+      at loadModule (C:\projects\thousand\tests\helpers\loadModule.js:52:18)
+      at TestContext.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:22:3)
+      at TestHook.runInAsyncScope (node:async_hooks:228:14)
+      at TestHook.run (node:internal/test_runner/test:1118:25)
+      at TestHook.run (node:internal/test_runner/test:1442:18)
+      at TestHook.run (node:internal/util:602:20)
+      at Test.createHook (node:internal/test_runner/test:929:33)
+      at node:internal/test_runner/harness:397:12
+      at Object.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:14:1) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\projects\\thousand\\src\\public\\js\\thousand\\FinalResultsScreen.js'
+  }
+
+test at tests\FinalResultsScreen.test.js:109:3
+✖ first ranking row is the highest scorer (1020 points)
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:118:3
+✖ second ranking row is the second-highest scorer (650 points)
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:127:3
+✖ third ranking row is the lowest scorer (330 points)
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:136:3
+✖ ranking rows show cumulativeScore values in descending order (no re-sorting needed)
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:108:1
+✖ FinalResultsScreen — ranking order is descending by score (FR-017) (0.1063ms)
+  Error: ENOENT: no such file or directory, open 'C:\projects\thousand\src\public\js\thousand\FinalResultsScreen.js'
+      at Object.readFileSync (node:fs:440:20)
+      at loadModule (C:\projects\thousand\tests\helpers\loadModule.js:52:18)
+      at TestContext.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:22:3)
+      at TestHook.runInAsyncScope (node:async_hooks:228:14)
+      at TestHook.run (node:internal/test_runner/test:1118:25)
+      at TestHook.run (node:internal/test_runner/test:1442:18)
+      at TestHook.run (node:internal/util:602:20)
+      at Test.createHook (node:internal/test_runner/test:929:33)
+      at node:internal/test_runner/harness:397:12
+      at Object.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:14:1) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\projects\\thousand\\src\\public\\js\\thousand\\FinalResultsScreen.js'
+  }
+
+test at tests\FinalResultsScreen.test.js:165:3
+✖ ranking row contains both nickname and cumulativeScore
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:164:1
+✖ FinalResultsScreen — ranking row shows nickname and score (FR-017) (0.2895ms)
+  Error: ENOENT: no such file or directory, open 'C:\projects\thousand\src\public\js\thousand\FinalResultsScreen.js'
+      at Object.readFileSync (node:fs:440:20)
+      at loadModule (C:\projects\thousand\tests\helpers\loadModule.js:52:18)
+      at TestContext.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:22:3)
+      at TestHook.runInAsyncScope (node:async_hooks:228:14)
+      at TestHook.run (node:internal/test_runner/test:1118:25)
+      at TestHook.run (node:internal/test_runner/test:1442:18)
+      at TestHook.run (node:internal/util:602:20)
+      at Test.createHook (node:internal/test_runner/test:929:33)
+      at node:internal/test_runner/harness:397:12
+      at Object.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:14:1) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\projects\\thousand\\src\\public\\js\\thousand\\FinalResultsScreen.js'
+  }
+
+test at tests\FinalResultsScreen.test.js:183:3
+✖ the row with isWinner: true has a .final-results__ranking-row--winner class
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:190:3
+✖ winner row contains the winner nickname
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:199:3
+✖ non-winner rows do NOT have .final-results__ranking-row--winner class
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:212:3
+✖ winner row matches winnerNickname from finalResults
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:182:1
+✖ FinalResultsScreen — winner highlight (FR-017) (0.2127ms)
+  Error: ENOENT: no such file or directory, open 'C:\projects\thousand\src\public\js\thousand\FinalResultsScreen.js'
+      at Object.readFileSync (node:fs:440:20)
+      at loadModule (C:\projects\thousand\tests\helpers\loadModule.js:52:18)
+      at TestContext.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:22:3)
+      at TestHook.runInAsyncScope (node:async_hooks:228:14)
+      at TestHook.run (node:internal/test_runner/test:1118:25)
+      at TestHook.run (node:internal/test_runner/test:1442:18)
+      at TestHook.run (node:internal/util:602:20)
+      at Test.createHook (node:internal/test_runner/test:929:33)
+      at node:internal/test_runner/harness:397:12
+      at Object.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:14:1) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\projects\\thousand\\src\\public\\js\\thousand\\FinalResultsScreen.js'
+  }
+
+test at tests\FinalResultsScreen.test.js:230:3
+✖ renders a row for each round in history
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:237:3
+✖ history row shows roundNumber
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:244:3
+✖ history row shows declarerNickname
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:251:3
+✖ history row shows bid value
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:258:3
+✖ history row shows per-player delta and cumulativeAfter values
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:269:3
+✖ each history row contains data for all players in that round
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:229:1
+✖ FinalResultsScreen — history table rendering (FR-017) (0.2403ms)
+  Error: ENOENT: no such file or directory, open 'C:\projects\thousand\src\public\js\thousand\FinalResultsScreen.js'
+      at Object.readFileSync (node:fs:440:20)
+      at loadModule (C:\projects\thousand\tests\helpers\loadModule.js:52:18)
+      at TestContext.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:22:3)
+      at TestHook.runInAsyncScope (node:async_hooks:228:14)
+      at TestHook.run (node:internal/test_runner/test:1118:25)
+      at TestHook.run (node:internal/test_runner/test:1442:18)
+      at TestHook.run (node:internal/util:602:20)
+      at Test.createHook (node:internal/test_runner/test:929:33)
+      at node:internal/test_runner/harness:397:12
+      at Object.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:14:1) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\projects\\thousand\\src\\public\\js\\thousand\\FinalResultsScreen.js'
+  }
+
+test at tests\FinalResultsScreen.test.js:284:3
+✖ renders .final-results__back-btn
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:291:3
+✖ .final-results__back-btn text indicates Back or Lobby
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:302:3
+✖ clicking .final-results__back-btn calls onBackToLobby()
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:314:3
+✖ onBackToLobby is not called before the button is clicked
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:283:1
+✖ FinalResultsScreen — back to lobby button (FR-017) (0.1861ms)
+  Error: ENOENT: no such file or directory, open 'C:\projects\thousand\src\public\js\thousand\FinalResultsScreen.js'
+      at Object.readFileSync (node:fs:440:20)
+      at loadModule (C:\projects\thousand\tests\helpers\loadModule.js:52:18)
+      at TestContext.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:22:3)
+      at TestHook.runInAsyncScope (node:async_hooks:228:14)
+      at TestHook.run (node:internal/test_runner/test:1118:25)
+      at TestHook.run (node:internal/test_runner/test:1442:18)
+      at TestHook.run (node:internal/util:602:20)
+      at Test.createHook (node:internal/test_runner/test:929:33)
+      at node:internal/test_runner/harness:397:12
+      at Object.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:14:1) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\projects\\thousand\\src\\public\\js\\thousand\\FinalResultsScreen.js'
+  }
+
+test at tests\FinalResultsScreen.test.js:325:3
+✖ after unmount(), the DOM contains no ranking rows
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:337:3
+✖ after unmount(), the DOM contains no history rows
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:349:3
+✖ after unmount(), the back button is removed
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:361:3
+✖ unmount() clears the container DOM
+  'test did not finish before its parent and was cancelled'
+
+test at tests\FinalResultsScreen.test.js:324:1
+✖ FinalResultsScreen — unmount cleanup (0.1102ms)
+  Error: ENOENT: no such file or directory, open 'C:\projects\thousand\src\public\js\thousand\FinalResultsScreen.js'
+      at Object.readFileSync (node:fs:440:20)
+      at loadModule (C:\projects\thousand\tests\helpers\loadModule.js:52:18)
+      at TestContext.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:22:3)
+      at TestHook.runInAsyncScope (node:async_hooks:228:14)
+      at TestHook.run (node:internal/test_runner/test:1118:25)
+      at TestHook.run (node:internal/test_runner/test:1442:18)
+      at TestHook.run (node:internal/util:602:20)
+      at Test.createHook (node:internal/test_runner/test:929:33)
+      at node:internal/test_runner/harness:397:12
+      at Object.<anonymous> (C:\projects\thousand\tests\FinalResultsScreen.test.js:14:1) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'C:\\projects\\thousand\\src\\public\\js\\thousand\\FinalResultsScreen.js'
+  }
