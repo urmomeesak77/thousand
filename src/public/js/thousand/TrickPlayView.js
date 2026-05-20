@@ -290,12 +290,19 @@ class TrickPlayView {
     this._resolveFinalized = true;
     this._clearCenter();
     this._pendingWinnerSeat = null;
-    this._setControlsLocked(false);
     // Cards played during the resolve window were deferred (see _reconcileCenter)
     // and the hand was frozen (see render). Now that the centre is clear, a full
     // re-render commits any deferred next-trick cards AND restores the hand's
     // normal legal-card disabled state from the latest snapshot.
+    //
+    // This render MUST happen before releasing the lock: render() does
+    // `_el.textContent = ''` on the shared controlsEl, and releasing the lock
+    // synchronously mounts the RoundSummaryScreen into that SAME element when the
+    // last trick resolved. Rendering after the unlock would wipe the freshly
+    // mounted summary (Continue button included), stranding every player on
+    // "Round complete". Render first, then unlock.
     if (this._gameStatus) { this.render(this._gameStatus); }
+    this._setControlsLocked(false);
   }
 
   // Returns a card-sized source rect for an opponent's play-to-centre flight.
