@@ -158,59 +158,30 @@ describe('StatusBar — exchangePassesCommitted field (FR-018)', () => {
   });
 });
 
-// cumulativeScores field
-describe('StatusBar — cumulativeScores field (FR-018)', () => {
-  it('renders cumulative scores for all 3 seats when cumulativeScores is {0:0, 1:0, 2:0}', () => {
-    const sb = makeStatusBar();
-    sb.render(status({ cumulativeScores: { 0: 0, 1: 0, 2: 0 } }));
-    const scoreEls = all(sb, '.status-bar__cumulative-score');
-    assert.equal(scoreEls.length, 3, 'must render 3 cumulative score elements');
-  });
-
-  it('renders correct values for cumulativeScores: {0: 150, 1: -50, 2: 200}', () => {
+// cumulativeScores removed from status bar (per 2026-05-20 design); barrel markers stay
+describe('StatusBar — cumulative scores removed, barrel markers kept', () => {
+  it('does not render any .status-bar__cumulative-score spans', () => {
     const sb = makeStatusBar();
     sb.render(status({ cumulativeScores: { 0: 150, 1: -50, 2: 200 } }));
-    const scoreEls = all(sb, '.status-bar__cumulative-score');
-    assert.equal(scoreEls.length, 3, 'must render 3 cumulative score elements');
-
-    const texts = scoreEls.map(el => el.textContent);
-    const hasPositive150 = texts.some(t => t.includes('150'));
-    const hasNegative50 = texts.some(t => t.includes('-50') || t.includes('−50'));
-    const hasPositive200 = texts.some(t => t.includes('200'));
-
-    assert.ok(hasPositive150, 'seat 0 score of 150 must be shown');
-    assert.ok(hasNegative50, 'seat 1 score of -50 (negative) must be shown');
-    assert.ok(hasPositive200, 'seat 2 score of 200 must be shown');
+    assert.equal(all(sb, '.status-bar__cumulative-score').length, 0,
+      'cumulative score spans must no longer be rendered');
   });
 
-  it('score for seat 0 is visible and shows the correct value', () => {
+  it('does not show the score numbers in the bar text', () => {
     const sb = makeStatusBar();
-    sb.render(status({ cumulativeScores: { 0: 75, 1: 30, 2: 45 } }));
-    const scores = all(sb, '.status-bar__cumulative-score');
-    assert.ok(scores.length > 0, 'precondition: score elements exist');
-    const allText = sb._el.textContent;
-    assert.ok(allText.includes('75'), 'seat 0 score of 75 must appear in rendered output');
-    assert.ok(allText.includes('30'), 'seat 1 score of 30 must appear in rendered output');
-    assert.ok(allText.includes('45'), 'seat 2 score of 45 must appear in rendered output');
+    sb.render(status({ cumulativeScores: { 0: 150, 1: 0, 2: 0 } }));
+    assert.ok(!sb._el.textContent.includes('150 pts'),
+      'cumulative "150 pts" must not appear');
   });
 
-  it('re-render updates cumulative scores correctly', () => {
+  it('still renders a barrel marker when a seat is on barrel', () => {
     const sb = makeStatusBar();
-    sb.render(status({ cumulativeScores: { 0: 0, 1: 0, 2: 0 } }));
-    sb.render(status({ cumulativeScores: { 0: 100, 1: 50, 2: 75 } }));
-
-    const allText = sb._el.textContent;
-    assert.ok(allText.includes('100'), 'updated seat 0 score of 100 must appear');
-    assert.ok(allText.includes('50'), 'updated seat 1 score of 50 must appear');
-    assert.ok(allText.includes('75'), 'updated seat 2 score of 75 must appear');
-  });
-
-  it('cumulativeScores zero values are shown for all seats', () => {
-    const sb = makeStatusBar();
-    sb.render(status({ cumulativeScores: { 0: 0, 1: 0, 2: 0 } }));
-    const scoreEls = all(sb, '.status-bar__cumulative-score');
-    // All three seats must show 0
-    const allShowZero = scoreEls.every(el => el.textContent.includes('0'));
-    assert.ok(allShowZero, 'all seats must show 0 when all cumulative scores are 0');
+    sb.render(status({
+      cumulativeScores: { 0: 900, 1: 0, 2: 0 },
+      barrelMarkers: { 0: { onBarrel: true, barrelRoundsUsed: 0 }, 1: null, 2: null },
+    }));
+    const marker = sb._el.querySelector('.status-bar__barrel-marker');
+    assert.ok(marker, 'barrel marker must still render');
+    assert.ok(marker.textContent.includes('barrel'), 'marker text mentions barrel');
   });
 });
