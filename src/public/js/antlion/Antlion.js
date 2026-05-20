@@ -36,11 +36,19 @@ class Antlion {
     this._bus.emit(type, data);
   }
 
-  // Wire a DOM element's native event to a named engine input event
+  // Wire a DOM element's native event to a named engine input event.
+  // Returns a disposer that removes the listener and its bookkeeping entry, so
+  // controls bound to transient (per-render) elements can clean up on destroy()
+  // instead of leaking detached nodes in `_domListeners` until stop().
   bindInput(element, domEvent, type) {
     const handler = (e) => this._bus.emit(type, e);
     element.addEventListener(domEvent, handler);
-    this._domListeners.push({ element, domEvent, handler });
+    const entry = { element, domEvent, handler };
+    this._domListeners.push(entry);
+    return () => {
+      element.removeEventListener(domEvent, handler);
+      this._domListeners = this._domListeners.filter((l) => l !== entry);
+    };
   }
 
   // Schedule a delayed callback (replaces direct setTimeout in feature modules)
@@ -100,6 +108,7 @@ class Antlion {
       element.removeEventListener(domEvent, handler);
     });
     this._domListeners = [];
+    this._tickHandlers = [];
     this._bus.clear();
   }
 

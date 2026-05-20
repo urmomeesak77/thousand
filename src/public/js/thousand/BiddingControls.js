@@ -15,6 +15,10 @@ class BiddingControls {
     this._barrelFloor = 0;
     this._state = 'hidden';
 
+    // Disposers for every onInput handler + bindInput listener registered below,
+    // so destroy() returns the (session-scoped) Antlion registries to baseline.
+    this._teardowns = [];
+
     this._el = document.createElement('div');
     this._el.className = `${config.containerClass} hidden`;
     container.appendChild(this._el);
@@ -109,39 +113,58 @@ class BiddingControls {
     );
   }
 
+  // Registers a named input handler and records its disposer for destroy().
+  _on(type, handler) {
+    this._antlion.onInput(type, handler);
+    this._teardowns.push(() => this._antlion.offInput(type, handler));
+  }
+
+  // Wires a DOM event to a named input and records the unbind disposer.
+  _bind(element, domEvent, type) {
+    this._teardowns.push(this._antlion.bindInput(element, domEvent, type));
+  }
+
   _bindEvents() {
     const prefix = this._config.eventPrefix;
 
-    this._antlion.bindInput(this._decreaseBtn, 'click', `${prefix}-decrease-click`);
-    this._antlion.onInput(`${prefix}-decrease-click`, () => this._stepInput(-BID_STEP));
+    this._bind(this._decreaseBtn, 'click', `${prefix}-decrease-click`);
+    this._on(`${prefix}-decrease-click`, () => this._stepInput(-BID_STEP));
 
-    this._antlion.bindInput(this._increaseBtn, 'click', `${prefix}-increase-click`);
-    this._antlion.onInput(`${prefix}-increase-click`, () => this._stepInput(BID_STEP));
+    this._bind(this._increaseBtn, 'click', `${prefix}-increase-click`);
+    this._on(`${prefix}-increase-click`, () => this._stepInput(BID_STEP));
 
-    this._antlion.bindInput(this._input, 'input', `${prefix}-input-change`);
-    this._antlion.onInput(`${prefix}-input-change`, () => {
+    this._bind(this._input, 'input', `${prefix}-input-change`);
+    this._on(`${prefix}-input-change`, () => {
       if (this._state !== 'operable') {
         return;
       }
       this._applyState();
     });
 
-    this._antlion.bindInput(this._bidBtn, 'click', `${prefix}-submit-click`);
-    this._antlion.onInput(`${prefix}-submit-click`, () => {
+    this._bind(this._bidBtn, 'click', `${prefix}-submit-click`);
+    this._on(`${prefix}-submit-click`, () => {
       if (this._state !== 'operable' || !this._isBidValid()) {
         return;
       }
       this._config.onBid(parseInt(this._input.value, 10));
     });
 
-    this._antlion.bindInput(this._passBtn, 'click', `${prefix}-pass-click`);
-    this._antlion.onInput(`${prefix}-pass-click`, () => {
+    this._bind(this._passBtn, 'click', `${prefix}-pass-click`);
+    this._on(`${prefix}-pass-click`, () => {
       // Pass is operable for the active seat; disabled state prevents the click.
       if (this._state === 'hidden') {
         return;
       }
       this._config.onPass();
     });
+  }
+
+  destroy() {
+    for (const dispose of this._teardowns) { dispose(); }
+    this._teardowns = [];
+    if (this._el.parentNode) {
+      this._el.parentNode.removeChild(this._el);
+    }
   }
 
   _stepInput(delta) {

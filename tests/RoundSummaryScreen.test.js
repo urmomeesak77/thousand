@@ -30,9 +30,12 @@ function makeMockAntlion() {
   const handlers = {};
   return {
     bindInput(el, event, type) {
-      el.addEventListener(event, (e) => { if (handlers[type]) handlers[type](e); });
+      const fn = (e) => { if (handlers[type]) handlers[type](e); };
+      el.addEventListener(event, fn);
+      return () => el.removeEventListener(event, fn);
     },
     onInput(type, handler) { handlers[type] = handler; },
+    offInput(type, handler) { if (handlers[type] === handler) { delete handlers[type]; } },
     onTick() {},
     schedule() { return 0; },
     cancelScheduled() {},

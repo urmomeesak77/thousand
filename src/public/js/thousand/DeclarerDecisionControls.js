@@ -9,6 +9,7 @@ class DeclarerDecisionControls {
     this._antlion = antlion;
     this._dispatcher = dispatcher;
     this._mode = 'hidden'; // 'full' | 'sell-disabled' | 'sell-hidden' | 'hidden'
+    this._teardowns = [];
 
     this._el = document.createElement('div');
     this._el.className = 'declarer-controls hidden';
@@ -49,17 +50,29 @@ class DeclarerDecisionControls {
   }
 
   _bindEvents() {
-    this._antlion.bindInput(this._sellBtn, 'click', 'declarer-sell-click');
-    this._antlion.onInput('declarer-sell-click', () => {
+    const sellHandler = () => {
       if (this._mode !== 'full') {return;}
       this._dispatcher.sendSellStart();
-    });
+    };
+    this._teardowns.push(this._antlion.bindInput(this._sellBtn, 'click', 'declarer-sell-click'));
+    this._antlion.onInput('declarer-sell-click', sellHandler);
+    this._teardowns.push(() => this._antlion.offInput('declarer-sell-click', sellHandler));
 
-    this._antlion.bindInput(this._startBtn, 'click', 'declarer-start-click');
-    this._antlion.onInput('declarer-start-click', () => {
+    const startHandler = () => {
       if (this._mode === 'hidden') {return;}
       this._dispatcher.sendStartGame();
-    });
+    };
+    this._teardowns.push(this._antlion.bindInput(this._startBtn, 'click', 'declarer-start-click'));
+    this._antlion.onInput('declarer-start-click', startHandler);
+    this._teardowns.push(() => this._antlion.offInput('declarer-start-click', startHandler));
+  }
+
+  destroy() {
+    for (const dispose of this._teardowns) { dispose(); }
+    this._teardowns = [];
+    if (this._el.parentNode) {
+      this._el.parentNode.removeChild(this._el);
+    }
   }
 }
 

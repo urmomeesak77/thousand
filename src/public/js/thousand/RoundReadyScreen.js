@@ -5,6 +5,7 @@
 class RoundReadyScreen {
   constructor(container, antlion, { mode, context }, onBackToLobby) {
     this._antlion = antlion;
+    this._teardowns = [];
 
     this._el = document.createElement('div');
     this._el.className = 'round-ready-screen';
@@ -31,13 +32,15 @@ class RoundReadyScreen {
 
     this._el.append(heading, body, btn);
 
-    this._antlion.bindInput(btn, 'click', 'round-ready-back-click');
-    this._antlion.onInput('round-ready-back-click', () => {
-      onBackToLobby();
-    });
+    this._teardowns.push(this._antlion.bindInput(btn, 'click', 'round-ready-back-click'));
+    const backHandler = () => onBackToLobby();
+    this._antlion.onInput('round-ready-back-click', backHandler);
+    this._teardowns.push(() => this._antlion.offInput('round-ready-back-click', backHandler));
   }
 
   destroy() {
+    for (const dispose of this._teardowns) { dispose(); }
+    this._teardowns = [];
     if (this._el.parentNode) {
       this._el.parentNode.removeChild(this._el);
     }

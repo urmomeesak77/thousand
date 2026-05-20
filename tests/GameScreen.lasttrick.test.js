@@ -60,7 +60,11 @@ function makeFiringAntlion() {
   const scheduled = [];
   let id = 1;
   return {
-    bindInput(el, ev, type) { el.addEventListener(ev, (e) => inputs[type]?.(e)); },
+    bindInput(el, ev, type) {
+      const fn = (e) => inputs[type]?.(e);
+      el.addEventListener(ev, fn);
+      return () => el.removeEventListener(ev, fn);
+    },
     onInput(type, h) { inputs[type] = h; },
     offInput(type) { delete inputs[type]; },
     onTick() { return () => {}; },

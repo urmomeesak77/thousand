@@ -11,6 +11,7 @@ class SellSelectionControls {
     this._dispatcher = dispatcher;
     this._selectedIds = [];
     this._isVisible = false;
+    this._teardowns = [];
 
     this._el = document.createElement('div');
     this._el.className = 'sell-selection-controls hidden';
@@ -45,27 +46,40 @@ class SellSelectionControls {
     this._sellBtn.disabled = n !== SELL_SELECTION_SIZE;
   }
 
+  _on(type, handler) {
+    this._antlion.onInput(type, handler);
+    this._teardowns.push(() => this._antlion.offInput(type, handler));
+  }
+
   _bindEvents() {
     // Receives selection state emitted by HandView.setSelectionMode (T068)
-    this._antlion.onInput('selectionchanged', (selectedIds) => {
+    this._on('selectionchanged', (selectedIds) => {
       if (!this._isVisible) {return;}
       this._selectedIds = selectedIds ?? [];
       this._updateCounter();
     });
 
-    this._antlion.bindInput(this._sellBtn, 'click', 'sell-confirm-click');
-    this._antlion.onInput('sell-confirm-click', () => {
+    this._teardowns.push(this._antlion.bindInput(this._sellBtn, 'click', 'sell-confirm-click'));
+    this._on('sell-confirm-click', () => {
       if (!this._isVisible || this._selectedIds.length !== SELL_SELECTION_SIZE) {
         return;
       }
       this._dispatcher.sendSellSelect([...this._selectedIds]);
     });
 
-    this._antlion.bindInput(this._cancelBtn, 'click', 'sell-cancel-click');
-    this._antlion.onInput('sell-cancel-click', () => {
+    this._teardowns.push(this._antlion.bindInput(this._cancelBtn, 'click', 'sell-cancel-click'));
+    this._on('sell-cancel-click', () => {
       if (!this._isVisible) {return;}
       this._dispatcher.sendSellCancel();
     });
+  }
+
+  destroy() {
+    for (const dispose of this._teardowns) { dispose(); }
+    this._teardowns = [];
+    if (this._el.parentNode) {
+      this._el.parentNode.removeChild(this._el);
+    }
   }
 }
 
