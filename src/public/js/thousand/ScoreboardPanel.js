@@ -66,6 +66,102 @@ class ScoreboardPanel {
     this._toggleBtn.textContent = this._open ? '–' : '+';
     this._toggleBtn.setAttribute('aria-expanded', String(this._open));
   }
+
+  // seats.players may be in any order; the scoreboard always renders columns by
+  // ascending seat (0,1,2) so the layout is stable across renders and viewers.
+  _orderedPlayers(seats) {
+    return [...seats.players].sort((a, b) => a.seat - b.seat);
+  }
+
+  _formatDelta(value) {
+    return value >= 0 ? `+${value}` : String(value);
+  }
+
+  _valCell(text) {
+    const td = document.createElement('td');
+    td.className = 'scoreboard__val';
+    td.textContent = text;
+    return td;
+  }
+
+  _labelCell(text, className) {
+    const td = document.createElement('td');
+    td.className = `scoreboard__label ${className}`;
+    td.textContent = text;
+    return td;
+  }
+
+  render(scoreHistory, cumulativeScores, seats) {
+    if (!seats || !seats.players) {
+      return;
+    }
+    const players = this._orderedPlayers(seats);
+    this._bodyEl.textContent = '';
+
+    const scroll = document.createElement('div');
+    scroll.className = 'scoreboard__scroll';
+
+    const table = document.createElement('table');
+    table.className = 'scoreboard__table';
+
+    table.appendChild(this._buildHead(players));
+    table.appendChild(this._buildRoundsBody(scoreHistory ?? [], players));
+    table.appendChild(this._buildTotalFoot(cumulativeScores ?? { 0: 0, 1: 0, 2: 0 }, players));
+
+    scroll.appendChild(table);
+    this._bodyEl.appendChild(scroll);
+
+    // Keep the latest round in view; earlier rounds scroll off the top.
+    scroll.scrollTop = scroll.scrollHeight;
+  }
+
+  _buildHead(players) {
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    tr.appendChild(document.createElement('th')); // empty corner over the round-label column
+    for (const p of players) {
+      const th = document.createElement('th');
+      th.className = 'scoreboard__col-head';
+      th.textContent = p.nickname ?? '';
+      tr.appendChild(th);
+    }
+    thead.appendChild(tr);
+    return thead;
+  }
+
+  _buildRoundsBody(scoreHistory, players) {
+    const tbody = document.createElement('tbody');
+    for (const entry of scoreHistory) {
+      const cumRow = document.createElement('tr');
+      cumRow.className = 'scoreboard__cum';
+      cumRow.appendChild(this._labelCell(`R${entry.roundNumber}`, 'scoreboard__round-num'));
+      for (const p of players) {
+        cumRow.appendChild(this._valCell(String(entry.perPlayer[p.seat].cumulativeAfter)));
+      }
+      tbody.appendChild(cumRow);
+
+      const rndRow = document.createElement('tr');
+      rndRow.className = 'scoreboard__rnd';
+      rndRow.appendChild(this._labelCell('rnd', 'scoreboard__round-sub'));
+      for (const p of players) {
+        rndRow.appendChild(this._valCell(this._formatDelta(entry.perPlayer[p.seat].delta)));
+      }
+      tbody.appendChild(rndRow);
+    }
+    return tbody;
+  }
+
+  _buildTotalFoot(cumulativeScores, players) {
+    const tfoot = document.createElement('tfoot');
+    const tr = document.createElement('tr');
+    tr.className = 'scoreboard__total';
+    tr.appendChild(this._labelCell('TOTAL', 'scoreboard__total-label'));
+    for (const p of players) {
+      tr.appendChild(this._valCell(String(cumulativeScores[p.seat] ?? 0)));
+    }
+    tfoot.appendChild(tr);
+    return tfoot;
+  }
 }
 
 export default ScoreboardPanel;
