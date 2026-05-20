@@ -125,6 +125,16 @@ describe('GameScreen — self round-stats row', () => {
     assert.ok(selfLine && !selfLine.classList.contains('hidden'), 'self stat row visible');
     assert.ok(selfLine.textContent.includes('3'), 'shows own trick count');
     assert.ok(selfLine.textContent.includes('45'), 'shows own points');
+
+    // Opponents are fed from the same gameStatus: left=seat 1 (Tricks 1, Points 12),
+    // right=seat 2 (Tricks 0, Points 0).
+    const oppLines = [...gs._container.querySelectorAll('.opponent-view__round-stats')];
+    assert.equal(oppLines.length, 2, 'both opponents render a stat line');
+    const oppText = oppLines.map((el) => el.textContent);
+    assert.ok(oppText.some((t) => t.includes('Tricks 1') && t.includes('Points 12')),
+      'left opponent (seat 1) shows its tricks/points');
+    assert.ok(oppText.some((t) => t.includes('Tricks 0') && t.includes('Points 0')),
+      'right opponent (seat 2) shows its tricks/points');
   });
 
   it('hides the self row when roundPoints is null (pre-trick-play)', () => {

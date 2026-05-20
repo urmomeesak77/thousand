@@ -471,8 +471,10 @@ describe('Round view-model — roundPoints (per-seat running points)', () => {
   it('adds declared-marriage bonus to the owning seat', () => {
     const round = makeTrickPlayRound();
     round.collectedTricks = { 0: [], 1: [], 2: [] };
-    round.declaredMarriages = [{ playerSeat: 1, suit: '♣', bonus: 100, trickNumber: 2 }];
+    // Use ♠ (80) so the assertion exercises the MARRIAGE_BONUS lookup rather than
+    // coinciding with a value carried on the fixture.
+    round.declaredMarriages = [{ playerSeat: 1, suit: '♠', trickNumber: 2 }];
     const vm = round.getViewModelFor(1);
-    assert.equal(vm.roundPoints[1], 100, 'seat 1 gets the ♣ marriage bonus of 100');
+    assert.equal(vm.roundPoints[1], 80, 'seat 1 gets the ♠ marriage bonus of 80');
   });
 });
