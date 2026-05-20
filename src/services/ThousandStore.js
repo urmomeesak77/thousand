@@ -348,6 +348,9 @@ class ThousandStore {
       if (!g || g.status !== 'waiting') {return;}
       this._disbandGame(gameId, g, 'waiting_room_timeout');
     }, WAITING_ROOM_TIMEOUT_MS);
+    // Match every other timer in the codebase (grace, heartbeat, rate-limiter cron):
+    // don't let a pending 10-minute timeout keep the event loop alive on shutdown.
+    if (typeof game.waitingRoomTimer.unref === 'function') {game.waitingRoomTimer.unref();}
   }
 }
 

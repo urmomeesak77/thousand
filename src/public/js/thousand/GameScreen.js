@@ -34,6 +34,7 @@ class GameScreen {
     this._sellSubPhase = null;
     this._exposedCardIds = [];
     this._roundReadyScreen = null;
+    this._dealAnimation = null;
     this._talonCardIds = [];
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
@@ -366,6 +367,9 @@ class GameScreen {
     this._sellSubPhase = null;
     this._handView.setSelectionMode(false);
 
+    // Destroy any prior screen first; back-to-back round-end events would
+    // otherwise orphan its DOM nodes and Antlion listeners until antlion.stop().
+    this._roundReadyScreen?.destroy();
     this._roundReadyScreen = new RoundReadyScreen(
       this._container,
       this._antlion,
@@ -392,11 +396,19 @@ class GameScreen {
   }
 
   _startDealAnimation(sequence, opponentHandSizes = {}) {
+    // A rapid round restart or snapshot resync can land here while a previous
+    // deal is mid-flight; cancel it so its completion callback doesn't fire
+    // against the freshly-reset cardsById/hand state.
+    if (this._dealAnimation) {
+      this._dealAnimation.cancel();
+      this._dealAnimation = null;
+    }
     this._talonCardIds = sequence.filter(s => s.to === 'talon').map(s => s.id);
     this._isControlsLocked = true;
     const animation = new DealAnimation(
       this._antlion, sequence, this._cardsById, this._seats.self, this._cardTable,
       () => {
+        this._dealAnimation = null;
         this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());
         // Why: when bidding resolves before this completion fires (slow tabs, accumulated
         // jank), talon_absorbed already added the talon identities to cardsById and called
@@ -416,6 +428,7 @@ class GameScreen {
         }
       },
     );
+    this._dealAnimation = animation;
     animation.start(this._tableEl);
   }
 

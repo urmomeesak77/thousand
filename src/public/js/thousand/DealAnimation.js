@@ -38,6 +38,21 @@ class DealAnimation {
     this._cancelTick = this._antlion.onTick(() => this._tick());
   }
 
+  // Abort an in-flight deal: stop the tick handler and drop our sprites. Used
+  // when a fresh round (or snapshot resync) starts a new animation before this
+  // one has completed — otherwise the stale tick keeps mutating now-reset state.
+  cancel() {
+    this._isRunning = false;
+    if (this._cancelTick) {
+      this._cancelTick();
+      this._cancelTick = null;
+    }
+    for (const sprite of this._sprites) {
+      sprite.element.remove();
+    }
+    this._sprites = [];
+  }
+
   _tick() {
     if (!this._isRunning) {return;}
 
