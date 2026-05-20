@@ -120,6 +120,9 @@ describe('ScoreboardPanel render', () => {
 
     const rnd2 = [...rndRows[1].querySelectorAll('.scoreboard__val')].map((td) => td.textContent);
     assert.deepEqual(rnd2, ['+60', '-60', '+60']);
+
+    const rnd1 = [...rndRows[0].querySelectorAll('.scoreboard__val')].map((td) => td.textContent);
+    assert.deepEqual(rnd1, ['+120', '0', '+60']);
   });
 
   it('renders a pinned TOTAL row from cumulativeScores in seat order', () => {

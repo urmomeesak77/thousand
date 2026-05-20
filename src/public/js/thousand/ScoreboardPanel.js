@@ -74,7 +74,7 @@ class ScoreboardPanel {
   }
 
   _formatDelta(value) {
-    return value >= 0 ? `+${value}` : String(value);
+    return value > 0 ? `+${value}` : String(value);
   }
 
   _valCell(text) {
@@ -136,7 +136,7 @@ class ScoreboardPanel {
       cumRow.className = 'scoreboard__cum';
       cumRow.appendChild(this._labelCell(`R${entry.roundNumber}`, 'scoreboard__round-num'));
       for (const p of players) {
-        cumRow.appendChild(this._valCell(String(entry.perPlayer[p.seat].cumulativeAfter)));
+        cumRow.appendChild(this._valCell(String(entry.perPlayer[p.seat]?.cumulativeAfter ?? 0)));
       }
       tbody.appendChild(cumRow);
 
@@ -144,7 +144,7 @@ class ScoreboardPanel {
       rndRow.className = 'scoreboard__rnd';
       rndRow.appendChild(this._labelCell('rnd', 'scoreboard__round-sub'));
       for (const p of players) {
-        rndRow.appendChild(this._valCell(this._formatDelta(entry.perPlayer[p.seat].delta)));
+        rndRow.appendChild(this._valCell(this._formatDelta(entry.perPlayer[p.seat]?.delta ?? 0)));
       }
       tbody.appendChild(rndRow);
     }
