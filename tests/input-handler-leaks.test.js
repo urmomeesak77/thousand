@@ -63,39 +63,35 @@ function summaryPayload() {
 }
 
 // Each entry builds a control and exercises any per-render binding, so destroy()
-// must clean up everything it ever registered.
+// must clean up everything it ever registered. `dom` is read lazily inside each
+// factory (all of which run at test time, after before() populates it) so this
+// function is safe to invoke during suite collection — Node 18's test runner
+// builds describe bodies before running top-level before() hooks.
 function controlFactories() {
-  const { window } = dom;
-  const doc = window.document;
+  const newContainer = () => {
+    const doc = dom.window.document;
+    const c = doc.createElement('div');
+    doc.body.appendChild(c);
+    return c;
+  };
   return {
-    BidControls: (antlion) => {
-      const c = doc.createElement('div'); doc.body.appendChild(c);
-      return new window.BidControls(c, antlion, makeDispatcher());
-    },
-    SellBidControls: (antlion) => {
-      const c = doc.createElement('div'); doc.body.appendChild(c);
-      return new window.SellBidControls(c, antlion, makeDispatcher());
-    },
-    DeclarerDecisionControls: (antlion) => {
-      const c = doc.createElement('div'); doc.body.appendChild(c);
-      return new window.DeclarerDecisionControls(c, antlion, makeDispatcher());
-    },
-    SellSelectionControls: (antlion) => {
-      const c = doc.createElement('div'); doc.body.appendChild(c);
-      return new window.SellSelectionControls(c, antlion, makeDispatcher());
-    },
+    BidControls: (antlion) =>
+      new dom.window.BidControls(newContainer(), antlion, makeDispatcher()),
+    SellBidControls: (antlion) =>
+      new dom.window.SellBidControls(newContainer(), antlion, makeDispatcher()),
+    DeclarerDecisionControls: (antlion) =>
+      new dom.window.DeclarerDecisionControls(newContainer(), antlion, makeDispatcher()),
+    SellSelectionControls: (antlion) =>
+      new dom.window.SellSelectionControls(newContainer(), antlion, makeDispatcher()),
     RoundSummaryScreen: (antlion) => {
-      const c = doc.createElement('div'); doc.body.appendChild(c);
-      const s = new window.RoundSummaryScreen(c, {
+      const s = new dom.window.RoundSummaryScreen(newContainer(), {
         antlion, viewerSeat: 0, onBackToLobby() {}, onContinue() {},
       });
       s.render(summaryPayload()); // exercises per-render button bindInput
       return s;
     },
-    RoundReadyScreen: (antlion) => {
-      const c = doc.createElement('div'); doc.body.appendChild(c);
-      return new window.RoundReadyScreen(c, antlion, { mode: 'ready', context: {} }, () => {});
-    },
+    RoundReadyScreen: (antlion) =>
+      new dom.window.RoundReadyScreen(newContainer(), antlion, { mode: 'ready', context: {} }, () => {}),
   };
 }
 
