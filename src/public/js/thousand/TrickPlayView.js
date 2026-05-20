@@ -173,6 +173,19 @@ class TrickPlayView {
       return;
     }
 
+    // A trick-resolve sequence is still animating. Don't commit the next trick's
+    // cards into the centre yet: the collect-flight and _clearCenter operate on
+    // _centerCards wholesale, so any card added now would be swept up and removed
+    // when the resolve finalizes. This bites only the last trick, where every
+    // player holds a single forced card and plays instantly — inside the 3.5s
+    // resolve window. The plays live in gameStatus.currentTrick;
+    // _finalizeTrickResolve re-reconciles against the latest status once the
+    // centre is clear, so the deferred cards render then.
+    if (!this._resolveFinalized) {
+      this._pendingPlayed = null;
+      return;
+    }
+
     // Detect a new card mid-trick. _pendingPlayed identifies whose card just landed;
     // its identity is in cardsById (own card) or in gameStatus.currentTrick (opponent).
     if (this._pendingPlayed) {
@@ -287,6 +300,9 @@ class TrickPlayView {
     this._clearCenter();
     this._pendingWinnerSeat = null;
     this._setControlsLocked(false);
+    // Cards played during the resolve window were deferred (see _reconcileCenter).
+    // Now that the centre is clear, render whatever the next trick already holds.
+    if (this._gameStatus) { this._reconcileCenter(this._gameStatus); }
   }
 
   // Returns a card-sized source rect for an opponent's play-to-centre flight.

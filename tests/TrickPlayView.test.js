@@ -384,6 +384,56 @@ describe('TrickPlayView — trick resolve schedules collect-flight after hold', 
   });
 });
 
+describe('TrickPlayView — next trick\'s lead card played during a resolve survives finalize', () => {
+  it('a card_played that lands inside the resolve window is shown after the collect-flight clears the centre', () => {
+    const doc = dom.window.document;
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+      4: { id: 4, rank: '10', suit: '♠' }, // pafka's forced lead of the last trick
+    };
+    const { view, trickCenterEl, antlion } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    // First two cards of the trick being resolved.
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+
+    // 3rd card resolves the trick: server clears currentTrick, bumps winner seat 0.
+    view.notifyCardPlayed(2, 3);
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    // Resolve is now animating (3s hold not yet fired). Seat 1 instantly leads the
+    // next trick with its single forced card — this lands inside the resolve window.
+    view.notifyCardPlayed(1, 4);
+    view.render(makeGameStatus({
+      currentTrick: [{ seat: 1, cardId: 4, rank: '10', suit: '♠' }],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    // Drain the hold (collect-flight) and the safety-net (finalize → clear).
+    antlion._fireScheduled();
+
+    const leadCard = trickCenterEl.querySelector('[data-card-id="4"]');
+    assert.ok(leadCard, 'next trick\'s lead card must remain in the centre after the resolve finalizes');
+    // The three resolved cards must be gone (collected to the winner).
+    for (const id of [1, 2, 3]) {
+      assert.equal(trickCenterEl.querySelector(`[data-card-id="${id}"]`), null,
+        `resolved card ${id} must be cleared from the centre`);
+    }
+
+    view.destroy();
+    void doc;
+  });
+});
+
 describe('TrickPlayView — trick resolve holds 3 seconds before collect-flight', () => {
   it('pause-schedule delay is 3000ms (TRICK_WINNER_HOLD_MS), not 350ms', () => {
     const cardsById = {
