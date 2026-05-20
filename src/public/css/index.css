@@ -910,6 +910,12 @@ fieldset legend {
   text-align: center;
 }
 
+.opponent-view__round-stats {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 /* ============================================================
    Hand view — viewer's own sorted face-up hand
    ============================================================ */
@@ -917,6 +923,17 @@ fieldset legend {
 /* Span all 3 grid columns so the hand centres across the full table width */
 .game-table > .hand-view {
   grid-column: 1 / -1;
+}
+
+.game-table > .self-round-stats {
+  grid-column: 1 / -1;
+}
+
+.self-round-stats {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  padding: 0.25rem 0;
 }
 
 .hand-view {
@@ -1215,37 +1232,6 @@ fieldset legend {
   pointer-events: none;
 }
 
-/* Area that shows collected tricks summary */
-.trick-play__collected {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.4rem 0.75rem;
-  flex-wrap: wrap;
-}
-
-/* Per-player collected trick entry */
-.collected-tricks__item {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-}
-
-/* "× N" tricks count badge */
-.collected-tricks__badge {
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 0.1rem 0.4rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-text);
-  font-family: monospace;
-}
-
 /* ============================================================
    Round summary (.round-summary__*)
    ============================================================ */
@@ -1341,17 +1327,6 @@ fieldset legend {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-/* Per-seat cumulative score chip */
-.status-bar__cumulative-score {
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 0.1rem 0.5rem;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
 }
 
 /* Trump suit indicator chip */
