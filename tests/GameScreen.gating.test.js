@@ -61,8 +61,9 @@ function makeMockAntlion() {
   const inputs = {};
   const ticks = [];
   return {
-    bindInput() {},
+    bindInput() { return () => {}; },
     onInput(type, handler) { inputs[type] = handler; },
+    offInput(type, handler) { if (inputs[type] === handler) { delete inputs[type]; } },
     onTick(handler) { ticks.push(handler); },
     schedule() { return 0; },
     cancelScheduled() {},

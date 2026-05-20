@@ -14,14 +14,29 @@ class RoundSummaryScreen {
     this._onContinue = onContinue;
     // Store continue-pressed seats for the update() method
     this._continuePressedSeats = new Set();
+    // Disposers: constructor-scoped onInput handlers vs per-render button binds.
+    // The screen is rebuilt every round and its buttons are re-bound on each
+    // render(), so both must be released on destroy() (and the button binds at
+    // the top of each render) to avoid leaking handlers into the session-scoped
+    // Antlion / firing stale instances on a single live click.
+    this._teardowns = [];
+    this._buttonTeardowns = [];
     // Register handlers once — buttons are created later in render()
-    antlion.onInput('round-summary-back-click', () => this._onBackToLobby());
+    const backHandler = () => this._onBackToLobby();
+    antlion.onInput('round-summary-back-click', backHandler);
+    this._teardowns.push(() => antlion.offInput('round-summary-back-click', backHandler));
     if (this._onContinue) {
-      antlion.onInput('round-summary-continue-click', () => this._onContinueClick());
+      const continueHandler = () => this._onContinueClick();
+      antlion.onInput('round-summary-continue-click', continueHandler);
+      this._teardowns.push(() => antlion.offInput('round-summary-continue-click', continueHandler));
     }
   }
 
   render(summary) {
+    // Release the previous render's button binds before innerHTML drops the
+    // nodes, otherwise their listeners + _domListeners entries leak.
+    for (const dispose of this._buttonTeardowns) { dispose(); }
+    this._buttonTeardowns = [];
     this._el.innerHTML = '';
     this._summary = summary;
     // _continuePressedSeats is owned by _onContinueClick (local) and update()
@@ -125,7 +140,7 @@ class RoundSummaryScreen {
     const btn = document.createElement('button');
     btn.className = 'round-summary__back-btn';
     btn.textContent = 'Back to Lobby';
-    this._antlion.bindInput(btn, 'click', 'round-summary-back-click');
+    this._buttonTeardowns.push(this._antlion.bindInput(btn, 'click', 'round-summary-back-click'));
     this._el.appendChild(btn);
   }
 
@@ -137,7 +152,7 @@ class RoundSummaryScreen {
     if (this._continuePressedSeats.has(this._viewerSeat)) {
       btn.disabled = true;
     }
-    this._antlion.bindInput(btn, 'click', 'round-summary-continue-click');
+    this._buttonTeardowns.push(this._antlion.bindInput(btn, 'click', 'round-summary-continue-click'));
     this._el.appendChild(btn);
   }
 
@@ -161,7 +176,12 @@ class RoundSummaryScreen {
     }
   }
 
-  destroy() {}
+  destroy() {
+    for (const dispose of this._buttonTeardowns) { dispose(); }
+    this._buttonTeardowns = [];
+    for (const dispose of this._teardowns) { dispose(); }
+    this._teardowns = [];
+  }
 }
 
 export default RoundSummaryScreen;
