@@ -1803,7 +1803,9 @@ fieldset legend {
 }
 
 .scoreboard__scroll {
-  max-height: 13rem; /* ~5 rounds (2 rows each) + header/footer before scrolling */
+  /* Show the 3 most recent rounds (2 rows each) plus the pinned header and
+     TOTAL row; older rounds stay reachable by scrolling up. */
+  max-height: 10rem;
   overflow-y: auto;
 }
 
