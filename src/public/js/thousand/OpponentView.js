@@ -71,6 +71,8 @@ class OpponentView {
     }
     this._container.appendChild(stackEl);
 
+    // points presence is the authoritative signal that round stats exist (server
+    // sends roundPoints only during trick-play/round-summary); tricks tag along.
     if (this._roundPoints != null) {
       const stats = document.createElement('div');
       stats.className = 'opponent-view__round-stats';
