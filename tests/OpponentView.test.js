@@ -9,6 +9,7 @@ let dom;
 
 before(() => {
   dom = new JSDOM('<html><body></body></html>', { runScripts: 'dangerously', url: 'http://localhost' });
+  loadModule(dom, 'thousand/roundStatsText.js');
   loadModule(dom, 'thousand/OpponentView.js');
 });
 

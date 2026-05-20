@@ -13,6 +13,7 @@ import RoundReadyScreen from './RoundReadyScreen.js';
 import GameScreenControls from './GameScreenControls.js';
 import SellPhaseView from './SellPhaseView.js';
 import { computeStatusText } from './statusText.js';
+import { formatRoundStats } from './roundStatsText.js';
 
 const FLASH_DURATION_MS = 600;
 const OPPONENT_DEFAULT_HAND = 7;
@@ -428,7 +429,7 @@ class GameScreen {
     }
     const counts = gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 };
     const { self, left, right } = this._seats;
-    this._selfStatsEl.textContent = `Tricks ${counts[self] ?? 0}, Points ${points[self] ?? 0}`;
+    this._selfStatsEl.textContent = formatRoundStats(counts[self], points[self]);
     this._selfStatsEl.classList.remove('hidden');
     this._leftOpponent.setRoundStats(counts[left] ?? 0, points[left] ?? 0);
     this._rightOpponent.setRoundStats(counts[right] ?? 0, points[right] ?? 0);

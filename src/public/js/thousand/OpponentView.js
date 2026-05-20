@@ -2,6 +2,8 @@
 // OpponentView — one opponent's face-down hand
 // ============================================================
 
+import { formatRoundStats } from './roundStatsText.js';
+
 class OpponentView {
   constructor(container) {
     this._container = container;
@@ -76,7 +78,7 @@ class OpponentView {
     if (this._roundPoints != null) {
       const stats = document.createElement('div');
       stats.className = 'opponent-view__round-stats';
-      stats.textContent = `Tricks ${this._roundTricks ?? 0}, Points ${this._roundPoints}`;
+      stats.textContent = formatRoundStats(this._roundTricks, this._roundPoints);
       this._container.appendChild(stats);
     }
 

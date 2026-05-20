@@ -26,6 +26,7 @@ before(() => {
     'thousand/CardTable.js',
     'thousand/StatusBar.js',
     'thousand/HandView.js',
+    'thousand/roundStatsText.js',
     'thousand/OpponentView.js',
     'thousand/TalonView.js',
     'thousand/DealAnimation.js',
