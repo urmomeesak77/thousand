@@ -34,7 +34,7 @@ class ScoreboardPanel {
   }
 
   _buildChrome() {
-    this._container.className = 'scoreboard';
+    this._container.classList.add('scoreboard');
     this._container.classList.toggle('scoreboard--collapsed', !this._open);
 
     const header = document.createElement('div');
@@ -48,6 +48,7 @@ class ScoreboardPanel {
     this._toggleBtn.type = 'button';
     this._toggleBtn.className = 'scoreboard__toggle';
     this._toggleBtn.textContent = this._open ? '–' : '+';
+    this._toggleBtn.setAttribute('aria-expanded', String(this._open));
     this._antlion.bindInput(this._toggleBtn, 'click', 'scoreboard-toggle');
 
     header.append(title, this._toggleBtn);
@@ -63,6 +64,7 @@ class ScoreboardPanel {
     this._saveOpenState();
     this._container.classList.toggle('scoreboard--collapsed', !this._open);
     this._toggleBtn.textContent = this._open ? '–' : '+';
+    this._toggleBtn.setAttribute('aria-expanded', String(this._open));
   }
 }
 

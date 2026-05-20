@@ -52,8 +52,12 @@ describe('ScoreboardPanel chrome + collapse', () => {
     const btn = el.querySelector('.scoreboard__toggle');
     btn.dispatchEvent(new dom.window.Event('click'));
     assert.equal(el.classList.contains('scoreboard--collapsed'), true);
+    assert.equal(btn.textContent, '+');
+    assert.equal(btn.getAttribute('aria-expanded'), 'false');
     btn.dispatchEvent(new dom.window.Event('click'));
     assert.equal(el.classList.contains('scoreboard--collapsed'), false);
+    assert.equal(btn.textContent, '–');
+    assert.equal(btn.getAttribute('aria-expanded'), 'true');
   });
 
   it('persists the collapsed choice to localStorage', () => {
