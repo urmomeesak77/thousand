@@ -3,7 +3,7 @@ import { MARRIAGE_BONUS } from './constants.js';
 import { SUIT_LETTER } from './cardSymbols.js';
 
 const FLIGHT_MS = 500;
-const TRICK_WINNER_HOLD_MS = 3000;
+const TRICK_WINNER_HOLD_MS = 2000;
 
 class TrickPlayView {
   constructor(el, opts) {
@@ -41,6 +41,10 @@ class TrickPlayView {
     });
 
     this._handClickHandler = (e) => {
+      // Hard guard: while a trick-resolve is animating, the previous trick's cards
+      // are still held in the centre. Reject plays until the centre clears so the
+      // winner can't lead the next trick on top of uncollected cards.
+      if (!this._resolveFinalized) { return; }
       const cardEl = e.target.closest('[data-card-id]');
       if (!cardEl || cardEl.classList.contains('card--disabled')) { return; }
       const cardId = parseInt(cardEl.dataset.cardId, 10);
@@ -92,6 +96,16 @@ class TrickPlayView {
 
     this._el.textContent = '';
     this._el.appendChild(this._promptEl);
+
+    // While the trick-resolve animation runs, the previous trick's three cards
+    // are still in the centre. Freeze the whole hand (visually disabled) so the
+    // winner can't play the next card on top of them. _finalizeTrickResolve
+    // re-renders once the centre is clear, restoring normal legal-card state.
+    if (!this._resolveFinalized) {
+      this._handView.setDisabledIds(this._handView.getCardIds());
+      this._handView.setInteractive(true);
+      return;
+    }
 
     const { legalCardIds, viewerIsActive } = gameStatus;
     const legalSet = new Set(legalCardIds ?? []);
@@ -154,8 +168,8 @@ class TrickPlayView {
     // cards into the centre yet: the collect-flight and _clearCenter operate on
     // _centerCards wholesale, so any card added now would be swept up and removed
     // when the resolve finalizes. This bites only the last trick, where every
-    // player holds a single forced card and plays instantly — inside the 3.5s
-    // resolve window. The plays live in gameStatus.currentTrick;
+    // player holds a single forced card and plays instantly — inside the resolve
+    // window (hold + collect-flight). The plays live in gameStatus.currentTrick;
     // _finalizeTrickResolve re-reconciles against the latest status once the
     // centre is clear, so the deferred cards render then.
     if (!this._resolveFinalized) {
@@ -222,7 +236,7 @@ class TrickPlayView {
   _handleTrickResolve(winnerSeat) {
     // The 3rd card needs to appear before the collect-flight kicks off. For the
     // opponent case we run a normal flight (not a snap) so the play is visible —
-    // and add FLIGHT_MS to the hold so the flight lands before the 3s hold begins
+    // and add FLIGHT_MS to the hold so the flight lands before the hold begins
     // ticking down.
     let extraPauseMs = 0;
     if (this._pendingPlayed) {
@@ -244,15 +258,15 @@ class TrickPlayView {
 
     // Set the winner banner up front so it is visible during the hold AND the
     // collect-flight. Duration spans the opponent-landing pause (if any), the
-    // 3s hold, and the collect-flight.
+    // hold, and the collect-flight.
     const nickname = this._getPlayerNickname(winnerSeat);
     const totalSequenceMs = extraPauseMs + TRICK_WINNER_HOLD_MS + FLIGHT_MS;
     if (nickname) {
       this._setStatusOverride(`${nickname} won the trick`, totalSequenceMs);
     }
 
-    // Hold the three cards in the centre for 3 seconds (plus any opponent-landing
-    // pause), then run the collect-flight to the winner's stack.
+    // Hold the three cards in the centre for the hold duration (plus any
+    // opponent-landing pause), then run the collect-flight to the winner's stack.
     const holdMs = extraPauseMs + TRICK_WINNER_HOLD_MS;
     const pauseId = this._antlion.schedule(holdMs, () => {
       this._scheduledIds.delete(pauseId);
@@ -277,9 +291,11 @@ class TrickPlayView {
     this._clearCenter();
     this._pendingWinnerSeat = null;
     this._setControlsLocked(false);
-    // Cards played during the resolve window were deferred (see _reconcileCenter).
-    // Now that the centre is clear, render whatever the next trick already holds.
-    if (this._gameStatus) { this._reconcileCenter(this._gameStatus); }
+    // Cards played during the resolve window were deferred (see _reconcileCenter)
+    // and the hand was frozen (see render). Now that the centre is clear, a full
+    // re-render commits any deferred next-trick cards AND restores the hand's
+    // normal legal-card disabled state from the latest snapshot.
+    if (this._gameStatus) { this.render(this._gameStatus); }
   }
 
   // Returns a card-sized source rect for an opponent's play-to-centre flight.

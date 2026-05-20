@@ -303,7 +303,7 @@ describe('TrickPlayView — opponent card_played spawns a flight clone', () => {
 });
 
 describe('TrickPlayView — trick resolve schedules collect-flight after hold', () => {
-  it('counts diff triggers controls-lock, 3s hold keeps 3 cards in centre, then spawns collect-flight', () => {
+  it('counts diff triggers controls-lock, hold keeps 3 cards in centre, then spawns collect-flight', () => {
     const doc = dom.window.document;
     const cardsById = {
       1: { id: 1, rank: 'A', suit: '♣' },
@@ -410,8 +410,8 @@ describe('TrickPlayView — next trick\'s lead card played during a resolve surv
   });
 });
 
-describe('TrickPlayView — trick resolve holds 3 seconds before collect-flight', () => {
-  it('pause-schedule delay is 3000ms (TRICK_WINNER_HOLD_MS), not 350ms', () => {
+describe('TrickPlayView — trick resolve holds 2 seconds before collect-flight', () => {
+  it('pause-schedule delay is 2000ms (TRICK_WINNER_HOLD_MS), not 350ms', () => {
     const cardsById = {
       1: { id: 1, rank: 'A', suit: '♣' },
       2: { id: 2, rank: 'K', suit: '♣' },
@@ -437,8 +437,8 @@ describe('TrickPlayView — trick resolve holds 3 seconds before collect-flight'
     // Two schedules: the pause (collect-flight trigger) and the safety-net.
     // The lower of the two delays is the pause; assert it is the 3s hold.
     const delays = antlion._scheduled.map((s) => s.delay).sort((a, b) => a - b);
-    assert.equal(delays[0], 3000,
-      'pause schedule must be 3000ms (TRICK_WINNER_HOLD_MS), not the old 350ms');
+    assert.equal(delays[0], 2000,
+      'pause schedule must be 2000ms (TRICK_WINNER_HOLD_MS), not the old 350ms');
   });
 
   it('opponent-3rd-card adds FLIGHT_MS to the pause delay', () => {
@@ -457,7 +457,7 @@ describe('TrickPlayView — trick resolve holds 3 seconds before collect-flight'
     }));
 
     // Opponent (seat 2) plays the 3rd card. extraPauseMs is FLIGHT_MS (500),
-    // so the pause schedule delay is 3500.
+    // so the pause schedule delay is 2500.
     view.notifyCardPlayed(2, 3);
     view.render(makeGameStatus({
       currentTrick: [],
@@ -465,7 +465,7 @@ describe('TrickPlayView — trick resolve holds 3 seconds before collect-flight'
     }));
 
     const delays = antlion._scheduled.map((s) => s.delay).sort((a, b) => a - b);
-    assert.equal(delays[0], 3500,
+    assert.equal(delays[0], 2500,
       'opponent-3rd-card: pause delay must be TRICK_WINNER_HOLD_MS + FLIGHT_MS');
   });
 
@@ -517,9 +517,81 @@ describe('TrickPlayView — trick resolve holds 3 seconds before collect-flight'
     assert.equal(overrideCalls.length, 1,
       'setStatusOverride must be called exactly once during trick resolve');
     assert.equal(overrideCalls[0].text, 'kashka won the trick');
-    // Duration spans the 3s hold + 500ms collect-flight = 3500ms (own 3rd card).
-    assert.equal(overrideCalls[0].ms, 3500,
+    // Duration spans the 2s hold + 500ms collect-flight = 2500ms (own 3rd card).
+    assert.equal(overrideCalls[0].ms, 2500,
       'override duration must cover hold + flight');
+  });
+});
+
+describe('TrickPlayView — hand is frozen while a trick-resolve is animating', () => {
+  it('disables the whole hand on a snapshot that lands during the resolve window', () => {
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+    };
+    const { view, handView } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    // Two cards down; the winner (seat 0 / self) holds cards 5 and 6.
+    handView._setCardIds([5, 6]);
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+
+    // Self plays the 3rd card and wins. Resolve sequence begins (cards held in centre).
+    view.notifyCardPlayed(0, 3);
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    // The server's next snapshot already shows the winner as the active leader
+    // with a full legal set — but the previous trick's cards are still in the centre.
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+      viewerIsActive: true,
+      legalCardIds: [5, 6],
+    }));
+
+    assert.deepEqual([...handView._state.disabledIds].sort(), [5, 6],
+      'hand must stay fully disabled until the resolve animation clears the centre');
+  });
+
+  it('ignores a hand click that happens during the resolve window', () => {
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+      5: { id: 5, rank: '9', suit: '♠' },
+    };
+    const { view, handView, dispatcher } = makeTrickPlayView(DEFAULT_SEATS, { cardsById });
+
+    handView._setCardIds([5]);
+    view.render(makeGameStatus({
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+      ],
+    }));
+    view.notifyCardPlayed(0, 3);
+    view.render(makeGameStatus({
+      currentTrick: [],
+      collectedTrickCounts: { 0: 1, 1: 0, 2: 0 },
+    }));
+
+    const doc = dom.window.document;
+    const cardEl = doc.createElement('div');
+    cardEl.className = 'hand-view__card card-sprite';
+    cardEl.dataset.cardId = '5';
+    doc.body.appendChild(cardEl);
+
+    view._handClickHandler({ target: cardEl });
+    assert.equal(dispatcher._calls.length, 0,
+      'a click during the resolve window must not dispatch a play');
   });
 });
 

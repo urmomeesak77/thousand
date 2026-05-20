@@ -98,7 +98,7 @@ class GameScreenControls {
   // Why: the last trick's card_played arrives with phase='Round complete'.
   // Without this, GameScreen.updateStatus calls mountForPhase → _mountRoundSummary
   // destroys TrickPlayView before _reconcileCenter can detect the count diff,
-  // so the 3s hold + collect-flight for the last trick never runs. Forwarding
+  // so the hold + collect-flight for the last trick never runs. Forwarding
   // first lets TrickPlayView engage the controls-lock, which then defers the
   // RoundSummaryScreen mount until _finalizeTrickResolve unlocks.
   forwardStatusToTrickPlayView(gameStatus) {
