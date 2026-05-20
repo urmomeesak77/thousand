@@ -303,14 +303,23 @@ class ThousandStore {
       game.session.startNextRound();
     }
 
-    game.round = new Round({ game, store: this });
-    game.round.start();
-    game.round.advanceFromDealingToBidding();
+    this.buildRound(game);
     for (const pid of game.players) {
       const payload = game.round.getRoundStartedPayloadFor(pid);
       if (payload) {this.sendToPlayer(pid, payload);}
     }
     this.broadcastLobbyUpdate();
+  }
+
+  // Constructs and primes the per-round state machine for a game. Shared by the
+  // initial round start (above) and the between-rounds advance in
+  // RoundActionHandler so the "new Round → start → advance to bidding" sequence
+  // lives in one place. Callers own the session lifecycle and the broadcast.
+  buildRound(game) {
+    game.round = new Round({ game, store: this });
+    game.round.start();
+    game.round.advanceFromDealingToBidding();
+    return game.round;
   }
 
   _cleanupRound(gameId) {
