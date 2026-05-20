@@ -192,30 +192,6 @@ describe('TrickPlayView — all cards disabled when not my turn (FR-007)', () =>
   });
 });
 
-describe('TrickPlayView — collected tricks badge shows count (FR-008)', () => {
-  it('.collected-tricks__badge shows "× N" for seat with N tricks', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeGameStatus({
-      collectedTrickCounts: { 0: 2, 1: 0, 2: 1 },
-    }));
-
-    const badges = el.querySelectorAll('.collected-tricks__badge');
-    assert.ok(badges.length > 0, 'collected-tricks__badge elements must be rendered');
-  });
-
-  it('badge text contains the trick count', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeGameStatus({
-      collectedTrickCounts: { 0: 3, 1: 0, 2: 0 },
-    }));
-
-    const allBadges = [...el.querySelectorAll('.collected-tricks__badge')];
-    assert.ok(allBadges.length > 0, 'precondition: badges exist');
-    const hasBadgeWithThree = allBadges.some(b => b.textContent.includes('3'));
-    assert.ok(hasBadgeWithThree, 'a badge must display the trick count 3');
-  });
-});
-
 // ---------------------------------------------------------------------------
 // Trick centre — visible animated card play (this work)
 // ---------------------------------------------------------------------------
@@ -742,34 +718,5 @@ describe('TrickPlayView — collect-flight destination is card-sized (no zoom)',
       `self destination width must match the last hand card width (got ${dest.width})`);
 
     view.destroy();
-  });
-});
-
-describe('TrickPlayView — seat 0 badge shows × 3 after render (FR-008)', () => {
-  it('after render with collectedTrickCounts: {0: 3, 1: 0, 2: 0}, seat 0 badge shows × 3', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeGameStatus({
-      collectedTrickCounts: { 0: 3, 1: 0, 2: 0 },
-    }));
-
-    const selfStack = el.querySelector('[data-seat="0"] .collected-tricks__badge') ||
-                      el.querySelector('.collected-tricks--self .collected-tricks__badge') ||
-                      el.querySelector('.collected-tricks__badge');
-
-    assert.ok(selfStack, 'seat 0 collected-tricks stack badge must exist');
-    assert.ok(selfStack.textContent.includes('3'),
-      'seat 0 badge must contain "3"');
-  });
-
-  it('seat 0 badge text matches "× 3" format', () => {
-    const { view, el } = makeTrickPlayView();
-    view.render(makeGameStatus({
-      collectedTrickCounts: { 0: 3, 1: 0, 2: 0 },
-    }));
-
-    const badges = [...el.querySelectorAll('.collected-tricks__badge')];
-    const seat0Badge = badges.find(b => b.textContent.includes('3'));
-    assert.ok(seat0Badge, 'a badge with value 3 must exist for seat 0');
-    assert.match(seat0Badge.textContent, /[×x]\s*3/, 'badge must show "× 3" or "x 3"');
   });
 });

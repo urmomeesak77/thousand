@@ -93,14 +93,12 @@ class TrickPlayView {
     this._el.textContent = '';
     this._el.appendChild(this._promptEl);
 
-    const { legalCardIds, viewerIsActive, collectedTrickCounts } = gameStatus;
+    const { legalCardIds, viewerIsActive } = gameStatus;
     const legalSet = new Set(legalCardIds ?? []);
     const handIds = this._handView.getCardIds();
     const disabledIds = handIds.filter((id) => !viewerIsActive || !legalSet.has(id));
     this._handView.setDisabledIds(disabledIds);
     this._handView.setInteractive(true);
-
-    this._renderCollectedBadges(collectedTrickCounts);
 
     // Self-healing watchdog: if it's our turn but we have cards yet none are
     // legal, our HandView has drifted from server hands[] (the server's
@@ -109,27 +107,6 @@ class TrickPlayView {
     if (viewerIsActive && handIds.length > 0 && legalSet.size === 0) {
       this._dispatcher.sendRequestSnapshot();
     }
-  }
-
-  _renderCollectedBadges(collectedTrickCounts) {
-    const stackEl = document.createElement('div');
-    stackEl.className = 'trick-play__collected';
-
-    for (const [seatStr, count] of Object.entries(collectedTrickCounts)) {
-      const seat = Number(seatStr);
-      const item = document.createElement('div');
-      item.className = 'collected-tricks__item';
-      item.dataset.seat = seat;
-
-      const badge = document.createElement('span');
-      badge.className = 'collected-tricks__badge';
-      badge.textContent = `× ${count}`;
-
-      item.appendChild(badge);
-      stackEl.appendChild(item);
-    }
-
-    this._el.appendChild(stackEl);
   }
 
   // -------- centre rendering & reconciliation --------
