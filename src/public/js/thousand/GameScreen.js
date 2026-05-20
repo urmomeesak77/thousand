@@ -58,6 +58,8 @@ class GameScreen {
     centerColEl.append(statusBoxEl, talonEl);
     const rightEl = document.createElement('div');
     const handEl = document.createElement('div');
+    const selfStatsEl = document.createElement('div');
+    selfStatsEl.className = 'self-round-stats hidden';
     this._controlsEl = document.createElement('div');
     this._controlsEl.className = 'game-controls';
 
@@ -65,13 +67,14 @@ class GameScreen {
     lastActionEl.className = 'last-action-box hidden';
     this._lastActionEl = lastActionEl;
 
-    tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, handEl);
+    tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, selfStatsEl, handEl);
     container.append(statusBarEl, tableEl, this._controlsEl);
 
     this._tableEl = tableEl;
     this._leftEl = leftEl;
     this._rightEl = rightEl;
     this._handEl = handEl;
+    this._selfStatsEl = selfStatsEl;
     this._talonEl = talonEl;
 
     this._statusBar = new StatusBar(statusBarEl);
@@ -412,8 +415,28 @@ class GameScreen {
     animation.start(this._tableEl);
   }
 
+  // Why: round stats only exist during trick-play/round-summary (roundPoints is
+  // null otherwise). Driving self + both opponents from the same view-model keeps
+  // the three seat displays consistent on every render.
+  _renderRoundStats(gameStatus) {
+    const points = gameStatus.roundPoints;
+    if (points == null || !this._seats) {
+      this._selfStatsEl.classList.add('hidden');
+      this._leftOpponent.setRoundStats(null, null);
+      this._rightOpponent.setRoundStats(null, null);
+      return;
+    }
+    const counts = gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 };
+    const { self, left, right } = this._seats;
+    this._selfStatsEl.textContent = `Tricks ${counts[self] ?? 0}, Points ${points[self] ?? 0}`;
+    this._selfStatsEl.classList.remove('hidden');
+    this._leftOpponent.setRoundStats(counts[left] ?? 0, points[left] ?? 0);
+    this._rightOpponent.setRoundStats(counts[right] ?? 0, points[right] ?? 0);
+  }
+
   _renderStatus(gameStatus) {
     this._statusBar.render(gameStatus, this._sellWinnerNickname);
+    this._renderRoundStats(gameStatus);
     if (this._statusOverride) { return; }
     const { text, isActive } = computeStatusText(gameStatus, {
       viewerIsNewDeclarer: this._viewerIsNewDeclarer,

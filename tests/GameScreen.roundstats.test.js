@@ -1,0 +1,136 @@
+'use strict';
+
+const { describe, it, before } = require('node:test');
+const assert = require('node:assert/strict');
+const { JSDOM } = require('jsdom');
+const { loadModule } = require('./helpers/loadModule');
+
+// ---------------------------------------------------------------------------
+// jsdom setup — load all GameScreen dependencies in dependency order
+// (mirrors tests/GameScreen.gating.test.js)
+// ---------------------------------------------------------------------------
+
+let dom;
+
+before(() => {
+  dom = new JSDOM('<html><body></body></html>', {
+    runScripts: 'dangerously',
+    url: 'http://localhost',
+  });
+
+  const modules = [
+    'thousand/constants.js',
+    'thousand/cardSymbols.js',
+    'utils/HtmlUtil.js',
+    'thousand/CardSprite.js',
+    'thousand/CardTable.js',
+    'thousand/StatusBar.js',
+    'thousand/HandView.js',
+    'thousand/OpponentView.js',
+    'thousand/TalonView.js',
+    'thousand/DealAnimation.js',
+    'thousand/BiddingControls.js',
+    'thousand/BidControls.js',
+    'thousand/SellBidControls.js',
+    'thousand/DeclarerDecisionControls.js',
+    'thousand/SellSelectionControls.js',
+    'thousand/GameStatusBox.js',
+    'thousand/RoundReadyScreen.js',
+    'thousand/CardExchangeView.js',
+    'thousand/CollectedTricksStack.js',
+    'thousand/MarriageDeclarationPrompt.js',
+    'thousand/TrickPlayView.js',
+    'thousand/RoundSummaryScreen.js',
+    'thousand/GameScreenControls.js',
+    'thousand/SellPhaseView.js',
+    'thousand/statusText.js',
+    'thousand/GameScreen.js',
+  ];
+  for (const mod of modules) {
+    loadModule(dom, mod);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Mock Antlion and dispatcher (mirrors gating test)
+// ---------------------------------------------------------------------------
+
+function makeMockAntlion() {
+  const inputs = {};
+  const ticks = [];
+  return {
+    bindInput() {},
+    onInput(type, handler) { inputs[type] = handler; },
+    onTick(handler) { ticks.push(handler); },
+    schedule() { return 0; },
+    cancelScheduled() {},
+    scheduleInterval() { return 0; },
+    cancelInterval() {},
+    emit() {},
+    _fire(type) { if (inputs[type]) inputs[type](); },
+    _inputs: inputs,
+  };
+}
+
+function makeMockDispatcher() {
+  return {
+    sendBid() {},
+    sendPass() {},
+    sendSellStart() {},
+    sendStartGame() {},
+  };
+}
+
+function makeGameScreen() {
+  const doc = dom.window.document;
+  const container = doc.createElement('div');
+  doc.body.appendChild(container);
+
+  const antlion = makeMockAntlion();
+  const dispatcher = makeMockDispatcher();
+  return new dom.window.GameScreen(antlion, container, dispatcher);
+}
+
+// Status factory — default includes roundPoints: null (pre-trick-play).
+function makeStatus(overrides = {}) {
+  return {
+    phase: 'Bidding',
+    activePlayer: { seat: 0, nickname: 'Me' },
+    viewerIsActive: false,
+    currentHighBid: null,
+    declarer: null,
+    passedPlayers: [],
+    sellAttempt: null,
+    disconnectedPlayers: [],
+    roundPoints: null,
+    ...overrides,
+  };
+}
+
+describe('GameScreen — self round-stats row', () => {
+  it('shows "Tricks N, Points MMM" above the hand during trick-play', () => {
+    const gs = makeGameScreen();
+    gs._seats = { self: 0, left: 1, right: 2, players: [
+      { seat: 0, playerId: 'p0', nickname: 'Me' },
+      { seat: 1, playerId: 'p1', nickname: 'L' },
+      { seat: 2, playerId: 'p2', nickname: 'R' },
+    ] };
+    gs.updateStatus(makeStatus({
+      phase: 'Trick play',
+      collectedTrickCounts: { 0: 3, 1: 1, 2: 0 },
+      roundPoints: { 0: 45, 1: 12, 2: 0 },
+    }));
+    const selfLine = gs._container.querySelector('.self-round-stats');
+    assert.ok(selfLine && !selfLine.classList.contains('hidden'), 'self stat row visible');
+    assert.ok(selfLine.textContent.includes('3'), 'shows own trick count');
+    assert.ok(selfLine.textContent.includes('45'), 'shows own points');
+  });
+
+  it('hides the self row when roundPoints is null (pre-trick-play)', () => {
+    const gs = makeGameScreen();
+    gs._seats = { self: 0, left: 1, right: 2, players: [] };
+    gs.updateStatus(makeStatus({ phase: 'Bidding', roundPoints: null }));
+    const selfLine = gs._container.querySelector('.self-round-stats');
+    assert.ok(!selfLine || selfLine.classList.contains('hidden'), 'self stat row hidden');
+  });
+});
