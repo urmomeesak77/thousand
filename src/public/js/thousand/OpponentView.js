@@ -10,6 +10,8 @@ class OpponentView {
     this._cardCount = 0;
     this._isDisconnected = false;
     this._lastAction = '';
+    this._roundTricks = null;
+    this._roundPoints = null;
     this._render();
   }
 
@@ -30,6 +32,12 @@ class OpponentView {
 
   setLastAction(text) {
     this._lastAction = text;
+    this._render();
+  }
+
+  setRoundStats(tricks, points) {
+    this._roundTricks = tricks;
+    this._roundPoints = points;
     this._render();
   }
 
@@ -62,6 +70,13 @@ class OpponentView {
       stackEl.appendChild(card);
     }
     this._container.appendChild(stackEl);
+
+    if (this._roundPoints != null) {
+      const stats = document.createElement('div');
+      stats.className = 'opponent-view__round-stats';
+      stats.textContent = `Tricks ${this._roundTricks ?? 0}, Points ${this._roundPoints}`;
+      this._container.appendChild(stats);
+    }
 
     if (this._lastAction) {
       const actionEl = document.createElement('div');
