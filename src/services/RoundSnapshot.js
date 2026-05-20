@@ -73,6 +73,9 @@ function buildViewModel(round, seat) {
     currentTrumpSuit: round.currentTrumpSuit ?? null,
     cumulativeScores: session ? session.cumulativeScores : { 0: 0, 1: 0, 2: 0 },
     collectedTrickCounts: round.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 },
+    roundPoints: (round.phase === 'trick-play' || round.phase === 'round-summary')
+      ? Scoring.roundScores(round)
+      : null,
     legalCardIds: round.phase === 'trick-play' ? _computeLegalCardIds(round, seat) : null,
     viewerIsLeading: round.phase === 'trick-play'
       && round.currentTurnSeat === seat

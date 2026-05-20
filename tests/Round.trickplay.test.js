@@ -446,3 +446,33 @@ describe('RoundSnapshot — gameStatus.opponentHandSizes (trick-play live counts
     assert.equal(after, before - 1, 'opponent count must decrement with the hand');
   });
 });
+
+describe('Round view-model — roundPoints (per-seat running points)', () => {
+  it('is null before trick-play (bidding phase)', () => {
+    const round = makeRound();
+    round.advanceFromDealingToBidding();
+    const vm = round.getViewModelFor(0);
+    assert.equal(vm.roundPoints, null, 'roundPoints must be null outside trick-play/round-summary');
+  });
+
+  it('reports collected-card points per seat during trick-play', () => {
+    const round = makeTrickPlayRound();
+    round.collectedTricks = {
+      0: [findCardId(round.deck, 'A', '♣'), findCardId(round.deck, '10', '♣')],
+      1: [],
+      2: [findCardId(round.deck, 'K', '♠')],
+    };
+    const vm = round.getViewModelFor(0);
+    assert.equal(vm.roundPoints[0], 21, 'seat 0 = 11 + 10');
+    assert.equal(vm.roundPoints[1], 0, 'seat 1 = 0');
+    assert.equal(vm.roundPoints[2], 4, 'seat 2 = King(4)');
+  });
+
+  it('adds declared-marriage bonus to the owning seat', () => {
+    const round = makeTrickPlayRound();
+    round.collectedTricks = { 0: [], 1: [], 2: [] };
+    round.declaredMarriages = [{ playerSeat: 1, suit: '♣', bonus: 100, trickNumber: 2 }];
+    const vm = round.getViewModelFor(1);
+    assert.equal(vm.roundPoints[1], 100, 'seat 1 gets the ♣ marriage bonus of 100');
+  });
+});
