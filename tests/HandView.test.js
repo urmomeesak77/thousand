@@ -27,7 +27,7 @@ function cardIds(hv) {
   );
 }
 
-describe('HandView — FR-005 sort order (♣→♠→♥→♦, 9→A within each suit)', () => {
+describe('HandView — FR-005 sort order (♣→♠→♥→♦, 9<J<Q<K<10<A within each suit)', () => {
   it('setHand renders cards in left-to-right suit-then-rank order', () => {
     const hv = makeHandView();
     // Deliberately provided in reverse order to test sorting
@@ -55,7 +55,7 @@ describe('HandView — FR-005 sort order (♣→♠→♥→♦, 9→A within ea
     assert.deepEqual(cardIds(hv), [4, 3, 2, 1]);
   });
 
-  it('ranks within a suit are ordered 9 < 10 < J < Q < K < A', () => {
+  it('ranks within a suit are ordered 9 < J < Q < K < 10 < A', () => {
     const hv = makeHandView();
     hv.setHand([
       { id: 1, rank: 'A', suit: '♣' },
@@ -65,7 +65,8 @@ describe('HandView — FR-005 sort order (♣→♠→♥→♦, 9→A within ea
       { id: 5, rank: '10', suit: '♣' },
       { id: 6, rank: '9', suit: '♣' },
     ]);
-    assert.deepEqual(cardIds(hv), [6, 5, 4, 3, 2, 1]);
+    // Ten outranks K/Q, sitting just below the Ace: 9, J, Q, K, 10, A
+    assert.deepEqual(cardIds(hv), [6, 4, 3, 2, 5, 1]);
   });
 
   it('re-sorting on a second setHand call replaces old content', () => {
