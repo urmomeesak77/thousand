@@ -215,21 +215,26 @@ class Round {
     return { rejected: false, cardId, destSeat };
   }
 
+  // Lazily create the TrickPlay instance if the round was forced into trick-play
+  // phase without going through submitExchangePass, syncing any pre-set Round
+  // fields into it. Idempotent: a no-op once _trickPlay exists.
+  _ensureTrickPlay() {
+    if (this._trickPlay) {return;}
+    this._trickPlay = new TrickPlay(this.currentTrickLeaderSeat ?? this.declarerSeat, this.deck);
+    this._trickPlay.trickNumber = this.trickNumber;
+    this._trickPlay.currentTrickLeaderSeat = this.currentTrickLeaderSeat;
+    this._trickPlay.currentTurnSeat = this.currentTurnSeat;
+    this._trickPlay.currentTrick = this.currentTrick;
+    this._trickPlay.collectedTricks = this.collectedTricks;
+    this._trickPlay.currentTrumpSuit = this.currentTrumpSuit;
+    this._trickPlay.declaredMarriages = this.declaredMarriages;
+  }
+
   // T044 — delegate to TrickPlay.declareMarriage
   declareMarriage(seat, cardId) {
     if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
 
-    // Lazily init TrickPlay if forced into trick-play phase (mirrors playCard lazy-init)
-    if (!this._trickPlay) {
-      this._trickPlay = new TrickPlay(this.currentTrickLeaderSeat ?? this.declarerSeat, this.deck);
-      this._trickPlay.trickNumber = this.trickNumber;
-      this._trickPlay.currentTrickLeaderSeat = this.currentTrickLeaderSeat;
-      this._trickPlay.currentTurnSeat = this.currentTurnSeat;
-      this._trickPlay.currentTrick = this.currentTrick;
-      this._trickPlay.collectedTricks = this.collectedTricks;
-      this._trickPlay.currentTrumpSuit = this.currentTrumpSuit;
-      this._trickPlay.declaredMarriages = this.declaredMarriages;
-    }
+    this._ensureTrickPlay();
 
     const result = this._trickPlay.declareMarriage(this.hands, seat, cardId);
     if (result.rejected) {return result;}
@@ -246,18 +251,7 @@ class Round {
     if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
 
-    // Lazily init TrickPlay if forced into trick-play phase without going through submitExchangePass
-    if (!this._trickPlay) {
-      this._trickPlay = new TrickPlay(this.currentTrickLeaderSeat ?? this.declarerSeat, this.deck);
-      // Sync any pre-set state into the new TrickPlay instance
-      this._trickPlay.trickNumber = this.trickNumber;
-      this._trickPlay.currentTrickLeaderSeat = this.currentTrickLeaderSeat;
-      this._trickPlay.currentTurnSeat = this.currentTurnSeat;
-      this._trickPlay.currentTrick = this.currentTrick;
-      this._trickPlay.collectedTricks = this.collectedTricks;
-      this._trickPlay.currentTrumpSuit = this.currentTrumpSuit;
-      this._trickPlay.declaredMarriages = this.declaredMarriages;
-    }
+    this._ensureTrickPlay();
 
     const result = this._trickPlay.playCard(this.hands, seat, cardId, opts);
     if (result.rejected) {return result;}

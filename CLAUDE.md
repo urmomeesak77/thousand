@@ -36,7 +36,8 @@ src/utils/
   RateLimiter.js                       # per-IP rate limiting
   StaticServer.js                      # static file serving
 src/public/
-  index.html / css/index.css           # lobby entry point + styles
+  index.html / css/index.css           # lobby entry point + lobby/waiting-room styles
+  css/game.css                         # in-round game-screen styles (split out of index.css)
   js/
     index.js                           # bootstrap — creates ThousandApp, starts Antlion
     core/

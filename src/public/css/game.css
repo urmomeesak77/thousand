@@ -1,0 +1,1220 @@
+/* ============================================================
+   game.css — in-round game-screen styles
+   Split out of index.css (which kept lobby/waiting-room styles).
+   CSS custom properties (--color-*, --card-width, etc.) are defined in
+   index.css :root and apply here since both sheets load on the same page.
+   ============================================================ */
+
+/* ============================================================
+   Game screen (in-round layout)
+   ============================================================ */
+
+/* Full-viewport grid: fixed status bar on top, table fills the rest */
+.round-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--color-bg);
+  overflow-y: auto;
+}
+
+.status-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  min-height: 2.75rem;
+}
+
+.status-bar__phase {
+  font-weight: 700;
+  color: var(--color-primary-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-bar__turn {
+  color: var(--color-text);
+}
+
+.status-bar__bid {
+  color: var(--color-text-muted);
+}
+
+.status-bar__declarer {
+  color: var(--color-success);
+}
+
+.status-bar__attempt {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.status-bar__sell-winner {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.status-bar__bid-winner {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.status-bar__passed-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.status-bar__passed-label {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.status-bar__passed-chip {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.status-bar__disconnected {
+  color: var(--color-accent);
+  font-size: 0.8rem;
+}
+
+/* Card table area: center + opponent zones */
+.game-table {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr auto auto;
+  gap: 0.5rem;
+  padding: 1rem;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+/* Prevent grid items from forcing column expansion beyond 1fr */
+.game-table > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Controls bar at the bottom of the round screen */
+.game-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  min-height: var(--touch-min);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-wrap: wrap;
+}
+
+/* Bid controls: stepper row inside .game-controls */
+.bid-controls,
+.sell-bid-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Sell selection controls: counter + action buttons inside .game-controls */
+.sell-selection-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sell-selection-controls__counter {
+  padding-right: 1rem;
+  margin-right: 0.5rem;
+  border-right: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  min-width: 7rem;
+  text-align: center;
+}
+
+.bid-controls__input {
+  width: 5rem;
+  text-align: center;
+  font-size: 1rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+}
+
+.bid-controls__input::-webkit-outer-spin-button,
+.bid-controls__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.bid-controls__input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.bid-controls__step {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.95rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.bid-controls__step:disabled,
+.bid-controls__input:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Flash ring on a seat element when that player bids or passes */
+.bid-flash {
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/* ============================================================
+   Card sprite base styles
+   ============================================================ */
+
+/* CSS custom properties for card colours */
+:root {
+  --card-width: clamp(3.5rem, 5vw, 5.5rem);
+  --card-height: clamp(4.9rem, 7vw, 7.7rem);
+  --card-radius: 0.375rem;
+  --card-color-red: #e94560;
+  --card-color-black: #1a1a1a;
+}
+
+.card-sprite {
+  position: absolute;
+  width: var(--card-width);
+  height: var(--card-height);
+  border-radius: var(--card-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* Face-up: light surface; card image classes in cards.css override background-image */
+.card-sprite--up {
+  background-color: var(--color-card-face-bg);
+  background-image: none;
+  border: 1px solid var(--color-card-face-border);
+}
+
+/* Face-down: dark gradient echoing the table palette */
+.card-sprite--back {
+  background: var(--gradient-card-back);
+  border: 1px solid var(--color-border);
+}
+
+
+/* ============================================================
+   Opponent view — face-down opponent hand zone
+   ============================================================ */
+
+.opponent-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+}
+
+.opponent-view__nickname {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 8rem;
+}
+
+.opponent-view__stack {
+  position: relative;
+  height: var(--card-height);
+}
+
+.opponent-view__stack-card {
+  position: absolute;
+  width: var(--card-width);
+  height: var(--card-height);
+  border-radius: var(--card-radius);
+  background: var(--gradient-card-back);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.opponent-view__count {
+  display: none;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.opponent-view__disconnected {
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  text-align: center;
+}
+
+.opponent-view__last-action {
+  font-size: 0.775rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.opponent-view__round-stats {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ============================================================
+   Hand view — viewer's own sorted face-up hand
+   ============================================================ */
+
+/* Span all 3 grid columns so the hand centres across the full table width */
+.game-table > .hand-view {
+  grid-column: 1 / -1;
+}
+
+.game-table > .self-round-stats {
+  grid-column: 1 / -1;
+}
+
+.self-round-stats {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  padding: 0.25rem 0;
+}
+
+.hand-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  min-height: calc(var(--card-height) + 1rem);
+}
+
+/* Overrides card-sprite's position:absolute so cards flow in the flex row */
+.hand-view__card {
+  position: relative;
+  cursor: default;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.hand-view__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+.hand-view__card--selected {
+  transform: translateY(-18px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--color-primary);
+  z-index: 1;
+}
+
+.hand-view__card--selected:hover {
+  transform: translateY(-20px);
+}
+
+.hand-view--selectable .hand-view__card {
+  cursor: pointer;
+}
+
+/* ============================================================
+   Talon column — center grid cell wrapping status box + talon
+   ============================================================ */
+
+.talon-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* center the group vertically so talon cards align with opponent stacks */
+.talon-col::before {
+  content: '';
+  flex: 1;
+}
+
+.talon-col::after {
+  content: '';
+  flex: 1;
+}
+
+/* ============================================================
+   Game status box — prominent label above talon cards
+   ============================================================ */
+
+.game-status-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.9rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-status-box--active {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary);
+}
+
+/* ============================================================
+   Last action box — spans all columns between opponents and hand
+   ============================================================ */
+
+.last-action-box {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.775rem;
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   Talon view — central face-up card area
+   ============================================================ */
+
+.talon-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--card-height);
+  overflow: hidden;
+}
+
+.talon-view .card-sprite {
+  position: relative;
+}
+
+/* ============================================================
+   Declarer controls and waiting message
+   ============================================================ */
+
+.declarer-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.waiting {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ============================================================
+   Round-ready / round-aborted full-screen take-over (FR-019, FR-021)
+   The status bar (z-index: 50) stays visible above this overlay.
+   ============================================================ */
+
+.round-ready-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: var(--color-surface);
+}
+
+.round-ready-screen__heading {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-primary-hover);
+}
+
+.round-ready-screen__body {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  max-width: 32rem;
+}
+
+/* ============================================================
+   Card exchange phase (.card-exchange__*)
+   ============================================================ */
+
+/* Row of destination seat buttons rendered below the hand */
+.card-exchange__dest-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  flex-wrap: wrap;
+}
+
+/* Individual destination seat button */
+.card-exchange__dest-btn {
+  min-height: var(--touch-min);
+  padding: 0 1.25rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.card-exchange__dest-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+.card-exchange__dest-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Centred waiting message shown to non-declarer players */
+.card-exchange__waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ============================================================
+   Trick play (.trick-play__*)
+   ============================================================ */
+
+/* Greyed-out / unplayable card state */
+.card--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Suppress hover lift on disabled cards in hand */
+.hand-view__card.card--disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Pointer cursor on interactive hand cards (trick play / card exchange) */
+.hand-view--interactive .hand-view__card {
+  cursor: pointer;
+}
+
+.hand-view--interactive .hand-view__card.card--disabled {
+  cursor: not-allowed;
+}
+
+/* Card animates off to its recipient during card exchange. Direction modifier
+   classes (--leaving-left / --leaving-right) override the X translation. */
+.hand-view__card--leaving {
+  animation: card-leave-right 250ms ease-out forwards;
+}
+
+.hand-view__card--leaving-left {
+  animation: card-leave-left 250ms ease-out forwards;
+}
+
+.hand-view__card--leaving-right {
+  animation: card-leave-right 250ms ease-out forwards;
+}
+
+/* Card briefly highlights when received via exchange pass (recipient view). */
+.hand-view__card--arriving {
+  animation: card-arrive 400ms ease-out;
+  box-shadow: 0 0 12px 4px rgba(110, 180, 255, 0.65);
+}
+
+/* Trick centre — 3 absolutely-positioned slots inside the talon container
+   during trick-play. Each slot holds one face-up card sprite mapped to the
+   seat that played it (self at the bottom, left/right toward their players). */
+.trick-center {
+  position: relative;
+  width: calc(var(--card-width) * 2.4);
+  height: calc(var(--card-height) * 1.6);
+  min-height: var(--card-height);
+  overflow: visible;
+}
+
+.trick-center__slot {
+  position: absolute;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+.trick-center__slot--self {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.trick-center__slot--left {
+  top: 0;
+  left: 0;
+}
+
+.trick-center__slot--right {
+  top: 0;
+  right: 0;
+}
+
+.trick-center__slot .card-sprite {
+  position: absolute;
+  inset: 0;
+}
+
+/* Card-shaped clone flown across the page during the hand→centre and
+   centre→winner-seat animations. position: fixed so we can drive it via
+   client coordinates regardless of the source/destination layout context. */
+.card-flight-clone {
+  pointer-events: none;
+}
+
+/* ============================================================
+   Round summary (.round-summary__*)
+   ============================================================ */
+
+.round-summary__made-indicator {
+  color: var(--color-success);
+  font-weight: 700;
+}
+
+.round-summary__missed-indicator {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+/* Scoring results table */
+.round-summary__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 0.75rem 0;
+}
+
+.round-summary__table th,
+.round-summary__table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.round-summary__table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.round-summary__table td {
+  color: var(--color-text);
+}
+
+/* Per-player data row */
+.round-summary__player-row {
+  transition: background var(--transition);
+}
+
+.round-summary__player-row:hover {
+  background: var(--color-surface-alt);
+}
+
+/* Back-to-lobby button — reuses .btn base sizing */
+.round-summary__back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 0 1.5rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+  margin-top: 1rem;
+}
+
+.round-summary__back-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+/* ============================================================
+   Status bar — new Phase 3 fields (.status-bar__*)
+   ============================================================ */
+
+/* "Trick N of 8" indicator */
+.status-bar__trick-number {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+/* "N/2 cards passed" during exchange phase */
+.status-bar__exchange-passes {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* Wrapper row for per-seat score chips */
+.status-bar__scores {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Trump suit indicator chip */
+.status-bar__trump {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* ============================================================
+   Marriage prompt modal
+   ============================================================ */
+
+/* Container for marriage declaration prompt — hidden by default */
+.trick-play__marriage-prompt {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  min-width: 20rem;
+}
+
+/* Inner info text in marriage prompt */
+.trick-play__marriage-prompt > div:first-child {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Buttons in marriage prompt */
+.trick-play__marriage-prompt button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  min-height: 2.5rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  margin-bottom: 0.5rem;
+}
+
+.trick-play__marriage-prompt button:last-child {
+  margin-bottom: 0;
+}
+
+/* Declare and play button — prominent success color */
+.trick-play__marriage-prompt button[data-action="declare"] {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.trick-play__marriage-prompt button[data-action="declare"]:hover {
+  filter: brightness(1.1);
+}
+
+/* Play without declaring button — neutral secondary */
+.trick-play__marriage-prompt button[data-action="play"] {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.trick-play__marriage-prompt button[data-action="play"]:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+/* Cancel button — muted red/error */
+.trick-play__marriage-prompt button[data-action="cancel"] {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+.trick-play__marriage-prompt button[data-action="cancel"]:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ============================================================
+   Round summary marriage bonus column
+   ============================================================ */
+
+/* Marriage bonus cell in round summary table */
+.round-summary__marriage-bonus {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+/* ============================================================
+   Continue to Next Round button (.round-summary__continue-btn)
+   ============================================================ */
+
+.round-summary__continue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 0 1.5rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+  margin-top: 1rem;
+}
+
+.round-summary__continue-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.round-summary__continue-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Continued indicator (.round-summary__continued-indicator)
+   ============================================================ */
+
+.round-summary__continued-indicator {
+  display: inline-block;
+  color: var(--color-success);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+/* ============================================================
+   Barrel penalty row (.round-summary__penalty-row)
+   ============================================================ */
+
+.round-summary__penalty-row td {
+  color: var(--color-error);
+  font-size: 0.85rem;
+  font-style: italic;
+  padding-top: 0;
+  padding-left: 1.5rem;
+}
+
+/* ============================================================
+   On-barrel marker badge (.status-bar__barrel-marker)
+   ============================================================ */
+
+.status-bar__barrel-marker {
+  background: #3d2a06;
+  border: 1px solid #8a5c10;
+  border-radius: var(--radius);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  color: #d4a843;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* ============================================================
+   Final Results Screen (.final-results__*)
+   ============================================================ */
+
+/* Ranking section wrapper */
+.final-results__ranking {
+  width: 100%;
+  max-width: 32rem;
+  margin-bottom: 2rem;
+}
+
+/* Ranking row — displays player name and cumulative score */
+.final-results__ranking-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+/* Winner highlight with warm gold/yellow accent */
+.final-results__ranking-row--winner {
+  background: var(--color-surface);
+  border-color: #d4a574;
+  box-shadow: 0 0 12px rgba(212, 165, 116, 0.2);
+}
+
+/* Player nickname in ranking */
+.final-results__ranking-nickname {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Final score in ranking row */
+.final-results__ranking-score {
+  color: var(--color-primary-hover);
+  font-weight: 700;
+  font-size: 1.1rem;
+  font-family: monospace;
+}
+
+/* History table for per-round results */
+.final-results__history-table {
+  width: 100%;
+  max-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.final-results__history-table tbody {
+  display: block;
+  overflow-x: auto;
+  max-height: 20rem;
+}
+
+/* Per-round history row */
+.final-results__history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition);
+}
+
+.final-results__history-row:hover {
+  background: var(--color-surface-alt);
+}
+
+/* Round number cell */
+.final-results__history-round {
+  min-width: 4rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+/* Declarer name cell */
+.final-results__history-declarer {
+  flex: 1;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* Bid amount cell */
+.final-results__history-bid {
+  min-width: 3.5rem;
+  text-align: right;
+  color: var(--color-text-muted);
+}
+
+/* Per-player delta (round points) */
+.final-results__history-delta {
+  min-width: 3.5rem;
+  text-align: right;
+  color: var(--color-text);
+}
+
+/* Per-player cumulative score after the round */
+.final-results__history-cumulative {
+  min-width: 4rem;
+  text-align: right;
+  color: var(--color-primary-hover);
+  font-weight: 600;
+}
+
+/* Back to Lobby button */
+.final-results__back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 0 1.5rem;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+  margin-top: 1.5rem;
+}
+
+.final-results__back-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+/* ============================================================
+   Status bar Round Number display (.status-bar__round-number)
+   ============================================================ */
+
+.status-bar__round-number {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ============================================================
+   Play-phase animations
+   ============================================================ */
+
+@keyframes card-leave-right {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(200px); opacity: 0; }
+}
+
+@keyframes card-leave-left {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-200px); opacity: 0; }
+}
+
+@keyframes card-arrive {
+  from { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================================
+   Responsive breakpoints  (mobile-first)
+   ============================================================ */
+
+/* 480px — small phones */
+@media (max-width: 480px) {
+  .status-bar {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  /* Opponent: collapse stack to single card on narrow viewports.
+     OpponentView writes inline styles for width/left, so !important is the only
+     way to override them from CSS — refactoring to custom properties is tracked
+     separately. */
+  .opponent-view__stack {
+    width: var(--card-width) !important;
+  }
+
+  .opponent-view__stack-card:not(:last-child) {
+    display: none;
+  }
+
+  .opponent-view__stack-card:last-child {
+    left: 0 !important;
+  }
+
+  .opponent-view__count {
+    display: inline;
+  }
+}
+
+/* 640px — hand fan-stack */
+@media (max-width: 640px) {
+  .hand-view {
+    flex-wrap: nowrap;
+    justify-content: center;
+  }
+
+  .hand-view__card + .hand-view__card {
+    margin-left: calc(-1 * var(--card-width) * 0.55);
+  }
+}
+
+/* 600px — talon fan-stack (3 cards no longer fit side-by-side in center column) */
+@media (max-width: 600px) {
+  .talon-view {
+    gap: 0;
+  }
+
+  .talon-view .card-sprite + .card-sprite {
+    margin-left: calc(-1 * var(--card-width) * 0.5);
+  }
+}
+
+/* ============================================================
+   Live scoreboard panel (top-right overlay)
+   ============================================================ */
+.scoreboard {
+  position: fixed;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 50;
+  width: 16rem;
+  max-width: calc(100vw - 1rem);
+  background: rgba(20, 18, 38, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: #e8e6f5;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.scoreboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: default;
+}
+
+.scoreboard__title {
+  font-weight: 600;
+}
+
+.scoreboard__toggle {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.scoreboard--collapsed .scoreboard__body {
+  display: none;
+}
+
+.scoreboard__scroll {
+  /* Show the 3 most recent rounds (2 rows each) plus the pinned header and
+     TOTAL row; older rounds stay reachable by scrolling up. */
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.scoreboard__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+}
+
+.scoreboard__table th,
+.scoreboard__table td {
+  padding: 0.15rem 0.4rem;
+}
+
+.scoreboard__col-head {
+  position: sticky;
+  top: 0;
+  background: rgba(20, 18, 38, 0.98);
+  font-weight: 600;
+}
+
+.scoreboard__label {
+  text-align: left;
+  color: #b6b2d6;
+}
+
+.scoreboard__round-num {
+  font-weight: 600;
+  color: #e8e6f5;
+}
+
+.scoreboard__cum .scoreboard__val {
+  font-weight: 600;
+}
+
+.scoreboard__rnd .scoreboard__val {
+  color: #b6b2d6;
+}
+
+.scoreboard__total {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .scoreboard {
+    width: 11rem;
+    font-size: 0.72rem;
+  }
+}

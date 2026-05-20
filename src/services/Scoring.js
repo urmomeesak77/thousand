@@ -23,7 +23,7 @@ function roundScores(round) {
   }
   for (const m of round.declaredMarriages) {
     const seat = m.playerSeat;
-    scores[seat] += MARRIAGE_BONUS[m.suit];
+    scores[seat] += MARRIAGE_BONUS[m.suit] ?? 0;
   }
   return scores;
 }

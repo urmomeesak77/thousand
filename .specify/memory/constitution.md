@@ -61,7 +61,9 @@ src/utils/
 src/public/                          # frontend assets
   index.html                         # lobby entry point
   css/
-    index.css                        # lobby styles
+    index.css                        # lobby / waiting-room styles
+    game.css                         # in-round game-screen styles
+    cards.css                        # card face/back styles
   js/
     index.js                         # lobby entry point script (uses Antlion — see §XI)
     antlion/                         # engine layer — generic, game-agnostic (§XI)
