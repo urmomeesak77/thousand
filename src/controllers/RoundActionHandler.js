@@ -3,7 +3,6 @@
 const RateLimiter = require('../utils/RateLimiter');
 const { roundScores, roundDeltas, buildFinalResults } = require('../services/Scoring');
 const { VICTORY_THRESHOLD } = require('../services/GameRules');
-const Round = require('../services/Round');
 const RoundSnapshot = require('../services/RoundSnapshot');
 
 class RoundActionHandler {
@@ -474,10 +473,7 @@ class RoundActionHandler {
   _startAndBroadcastNextRound(game) {
     const session = game.session;
     session.startNextRound();
-    game.round = new Round({ game, store: this._store });
-    game.round.start();
-    game.round.advanceFromDealingToBidding();
-    const newRound = game.round;
+    const newRound = this._store.buildRound(game);
     const roundNumber = session.currentRoundNumber;
     for (const pid of game.players) {
       const selfSeat = newRound.seatByPlayer.get(pid);
