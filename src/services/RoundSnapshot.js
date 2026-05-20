@@ -57,6 +57,24 @@ function disconnectedNicknames(round) {
     .filter(Boolean);
 }
 
+// Compact per-round history for the live scoreboard: only roundNumber and the
+// per-seat delta + cumulativeAfter the scoreboard renders. Full history (with
+// declarer/bid/penalties) is sent only at game-end via buildFinalResults.
+function compactScoreHistory(session) {
+  if (!session || !session.history) {
+    return [];
+  }
+  return session.history.map((entry) => ({
+    roundNumber: entry.roundNumber,
+    perPlayer: Object.fromEntries(
+      [0, 1, 2].map((s) => [s, {
+        delta: entry.perPlayer[s].delta,
+        cumulativeAfter: entry.perPlayer[s].cumulativeAfter,
+      }]),
+    ),
+  }));
+}
+
 function buildViewModel(round, seat) {
   const session = round._game?.session;
   const isPhaseFinal = round.phase === 'round-summary' || session?.gameStatus === 'game-over';
@@ -72,6 +90,7 @@ function buildViewModel(round, seat) {
     trickNumber: round.trickNumber > 0 ? round.trickNumber : null,
     currentTrumpSuit: round.currentTrumpSuit ?? null,
     cumulativeScores: session ? session.cumulativeScores : { 0: 0, 1: 0, 2: 0 },
+    scoreHistory: compactScoreHistory(session),
     collectedTrickCounts: round.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 },
     roundPoints: (round.phase === 'trick-play' || round.phase === 'round-summary')
       ? Scoring.roundScores(round)
@@ -246,4 +265,5 @@ module.exports = {
   buildSnapshot,
   buildSeatLayout,
   buildDealSequenceFor,
+  compactScoreHistory,
 };

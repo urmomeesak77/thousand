@@ -1753,3 +1753,106 @@ fieldset legend {
     width: 100%;
   }
 }
+
+/* ============================================================
+   Live scoreboard panel (top-right overlay)
+   ============================================================ */
+.scoreboard {
+  position: fixed;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 50;
+  width: 16rem;
+  max-width: calc(100vw - 1rem);
+  background: rgba(20, 18, 38, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: #e8e6f5;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.scoreboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: default;
+}
+
+.scoreboard__title {
+  font-weight: 600;
+}
+
+.scoreboard__toggle {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.scoreboard--collapsed .scoreboard__body {
+  display: none;
+}
+
+.scoreboard__scroll {
+  max-height: 13rem; /* ~5 rounds (2 rows each) + header/footer before scrolling */
+  overflow-y: auto;
+}
+
+.scoreboard__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+}
+
+.scoreboard__table th,
+.scoreboard__table td {
+  padding: 0.15rem 0.4rem;
+}
+
+.scoreboard__col-head {
+  position: sticky;
+  top: 0;
+  background: rgba(20, 18, 38, 0.98);
+  font-weight: 600;
+}
+
+.scoreboard__label {
+  text-align: left;
+  color: #b6b2d6;
+}
+
+.scoreboard__round-num {
+  font-weight: 600;
+  color: #e8e6f5;
+}
+
+.scoreboard__cum .scoreboard__val {
+  font-weight: 600;
+}
+
+.scoreboard__rnd .scoreboard__val {
+  color: #b6b2d6;
+}
+
+.scoreboard__total {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .scoreboard {
+    width: 11rem;
+    font-size: 0.72rem;
+  }
+}

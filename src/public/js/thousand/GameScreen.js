@@ -3,6 +3,7 @@
 // ============================================================
 
 import StatusBar from './StatusBar.js';
+import ScoreboardPanel from './ScoreboardPanel.js';
 import GameStatusBox from './GameStatusBox.js';
 import CardTable from './CardTable.js';
 import HandView from './HandView.js';
@@ -69,7 +70,9 @@ class GameScreen {
     this._lastActionEl = lastActionEl;
 
     tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, selfStatsEl, handEl);
-    container.append(statusBarEl, tableEl, this._controlsEl);
+    const scoreboardEl = document.createElement('div');
+    container.append(statusBarEl, tableEl, this._controlsEl, scoreboardEl);
+    this._scoreboard = new ScoreboardPanel(scoreboardEl, antlion);
 
     this._tableEl = tableEl;
     this._leftEl = leftEl;
@@ -437,6 +440,13 @@ class GameScreen {
 
   _renderStatus(gameStatus) {
     this._statusBar.render(gameStatus, this._sellWinnerNickname);
+    if (this._seats) {
+      this._scoreboard.render(
+        gameStatus.scoreHistory ?? [],
+        gameStatus.cumulativeScores ?? { 0: 0, 1: 0, 2: 0 },
+        this._seats,
+      );
+    }
     this._renderRoundStats(gameStatus);
     if (this._statusOverride) { return; }
     const { text, isActive } = computeStatusText(gameStatus, {
