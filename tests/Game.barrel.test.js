@@ -618,6 +618,9 @@ describe('Round.submitBid — barrel forced-last-bidder floor (FR-022d)', () => 
     round.submitPass(1);
     round.submitPass(2);
     assert.equal(round.phase, 'bidding', 'dealer must bid, not auto-take');
+    const passResult = round.submitPass(0);
+    assert.equal(passResult.rejected, true, 'barrel dealer cannot pass as forced last bidder');
+    assert.match(passResult.reason, /120/, 'rejection message reflects the barrel floor (120)');
     assert.equal(round.submitBid(0, 100).rejected, true, 'barrel dealer cannot take at 100');
     const r = round.submitBid(0, 120);
     assert.equal(r.rejected, false, 'barrel dealer takes at 120');

@@ -130,9 +130,11 @@ class Round {
     if (seat !== this.currentTurnSeat) {return { rejected: true, reason: 'Not your turn' };}
 
     // Forced last bidder: if both others have already passed and no bid was
-    // placed, this seat must take the contract (>= MIN_BID). They cannot pass.
+    // placed, this seat must take the contract. They cannot pass. The floor is
+    // MIN_BID, or BARREL_BID_FLOOR when this seat is on barrel (FR-022).
     if (this.currentHighBid === null && this.passedBidders.size === 2) {
-      return { rejected: true, reason: `You must bid at least ${MIN_BID}; you cannot pass.` };
+      const floor = this._game.session?.barrelState?.[seat]?.onBarrel ? BARREL_BID_FLOOR : MIN_BID;
+      return { rejected: true, reason: `You must bid at least ${floor}; you cannot pass.` };
     }
 
     this.passedBidders.add(seat);
