@@ -16,7 +16,8 @@ class BidControls extends BiddingControls {
     });
   }
 
-  setActiveState({ isActiveBidder, isEligible }) {
+  setActiveState({ isActiveBidder, isEligible, mustBid = false }) {
+    this.setPassHidden(mustBid);
     this.setActive(isActiveBidder, isEligible);
   }
 }

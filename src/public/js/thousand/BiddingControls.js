@@ -13,6 +13,7 @@ class BiddingControls {
     this._config = config;
     this._smallestLegalBid = config.defaultBid;
     this._barrelFloor = 0;
+    this._passHidden = false;
     this._state = 'hidden';
 
     // Disposers for every onInput handler + bindInput listener registered below,
@@ -66,6 +67,12 @@ class BiddingControls {
     this._applyState();
   }
 
+  // When true, the Pass button is removed from view (forced last bidder must bid).
+  setPassHidden(hidden) {
+    this._passHidden = hidden;
+    this._passBtn.classList.toggle('hidden', hidden);
+  }
+
   // Per FR-022: barrel players cannot bid below BARREL_BID_FLOOR.
   setOnBarrel(isOnBarrel) {
     this._barrelFloor = isOnBarrel ? BARREL_BID_FLOOR : 0;
@@ -87,6 +94,7 @@ class BiddingControls {
       return;
     }
     this._el.classList.remove('hidden');
+    this._passBtn.classList.toggle('hidden', this._passHidden);
 
     if (this._state === 'disabled') {
       for (const el of [this._decreaseBtn, this._increaseBtn, this._bidBtn, this._passBtn, this._input]) {

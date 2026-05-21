@@ -145,6 +145,7 @@ class GameScreenControls {
     this._bidControls.setActiveState({
       isActiveBidder: gameStatus.viewerIsActive,
       isEligible: !viewerHasPassed,
+      mustBid: gameStatus.viewerMustBid === true,
     });
   }
 

@@ -33,7 +33,7 @@ function makeMockAntlion() {
   };
 }
 
-function makeControls({ currentHighBid = undefined, isActiveBidder = true, isEligible = true } = {}) {
+function makeControls({ currentHighBid = undefined, isActiveBidder = true, isEligible = true, mustBid = false } = {}) {
   const container = dom.window.document.createElement('div');
   const antlion = makeMockAntlion();
   const sent = { bids: [], passes: [] };
@@ -45,7 +45,7 @@ function makeControls({ currentHighBid = undefined, isActiveBidder = true, isEli
   if (currentHighBid !== undefined) {
     bc.setCurrentHighBid(currentHighBid);
   }
-  bc.setActiveState({ isActiveBidder, isEligible });
+  bc.setActiveState({ isActiveBidder, isEligible, mustBid });
   return { bc, antlion, sent };
 }
 
@@ -185,5 +185,25 @@ describe('BidControls — submit actions', () => {
     const { antlion, sent } = makeControls({ currentHighBid: null });
     antlion._fire('bid-pass-click');
     assert.equal(sent.passes.length, 1);
+  });
+});
+
+describe('BidControls — mustBid (forced last bidder)', () => {
+  it('hides the Pass button when mustBid is true', () => {
+    const { bc } = makeControls({ currentHighBid: null, mustBid: true });
+    assert.ok(bc._passBtn.classList.contains('hidden'), 'Pass must be hidden when mustBid');
+  });
+
+  it('shows the Pass button when mustBid is false', () => {
+    const { bc } = makeControls({ currentHighBid: null, mustBid: false });
+    assert.ok(!bc._passBtn.classList.contains('hidden'), 'Pass visible by default');
+  });
+
+  it('Bid still works when mustBid is true', () => {
+    const { bc, antlion, sent } = makeControls({ currentHighBid: null, mustBid: true });
+    bc._input.value = '100';
+    antlion._fire('bid-input-change');
+    antlion._fire('bid-submit-click');
+    assert.deepEqual(sent.bids, [100]);
   });
 });
