@@ -374,6 +374,23 @@ class GameScreen {
     this._controls.notifyCardPlayed(playerSeat, cardId);
   }
 
+  // crawl_committed (feature 007): drop the viewer's own committed card from hand
+  // (the server echoes it via viewerCrawlCommit; other players' commits stay
+  // hidden), then refresh the trick view's placeholders/prompt.
+  onCrawlCommitted(msg) {
+    const own = msg.gameStatus?.viewerCrawlCommit;
+    if (own && typeof own.cardId === 'number') {
+      this._handView.removeCard(own.cardId);
+    }
+    this.updateStatus(msg.gameStatus);
+  }
+
+  // crawl_revealed (feature 007): run the reveal/collect animation, then refresh.
+  onCrawlRevealed(msg) {
+    this._controls.revealCrawl(msg.commits, msg.winnerSeat, msg.gameStatus);
+    this.updateStatus(msg.gameStatus);
+  }
+
   // Hides the table/controls and shows the round-ready (or aborted) screen.
   showRoundReady(mode, context, onBack) {
     this._tableEl.classList.add('hidden');

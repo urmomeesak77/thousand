@@ -75,6 +75,21 @@ function compactScoreHistory(session) {
   }));
 }
 
+// FR-002/FR-009/FR-011: the crawl offer is derived, declarer-only, and shown
+// only on the first lead — before any commit, while the declarer holds no ace,
+// and after the four-nines ack-gate (if any) has cleared.
+function crawlAvailableFor(round, seat) {
+  return round.phase === 'trick-play'
+    && seat === round.declarerSeat
+    && round.trickNumber === 1
+    && round.currentTrickLeaderSeat === round.declarerSeat
+    && (round.currentTrick?.length ?? 0) === 0
+    && !round.crawlActive
+    && !round.fourNinesAckPending
+    && !round.isPausedByDisconnect
+    && !Scoring.handHasAce(round.hands[round.declarerSeat], round.deck);
+}
+
 function buildViewModel(round, seat) {
   const session = round._game?.session;
   const isPhaseFinal = round.phase === 'round-summary' || session?.gameStatus === 'game-over';
@@ -121,7 +136,23 @@ function buildViewModel(round, seat) {
         : null]))
       : null,
     opponentHandSizes: buildOpponentHandSizesFor(round, seat),
+    // Crawl (feature 007): an offer flag for the declarer, progress for everyone,
+    // and a self-only echo of the viewer's own committed card. No opponent faces
+    // appear here — they ship only in crawl_revealed (FR-005).
+    crawlAvailable: crawlAvailableFor(round, seat),
+    crawlActive: round.phase === 'trick-play' ? !!round.crawlActive : false,
+    crawlCommittedSeats: (round.crawlCommits ?? []).map((c) => c.seat),
+    viewerCrawlCommit: viewerCrawlCommitFor(round, seat),
   };
+}
+
+// FR-005/FR-012: a committer may see their own face-down card (they already know
+// it); no one else's commit is ever exposed before the reveal.
+function viewerCrawlCommitFor(round, seat) {
+  const own = (round.crawlCommits ?? []).find((c) => c.seat === seat);
+  if (!own) { return null; }
+  const card = round.deck[own.cardId];
+  return { cardId: own.cardId, rank: card.rank, suit: card.suit };
 }
 
 function buildSeatLayout(round, seat) {
@@ -249,6 +280,13 @@ function buildSnapshot(round, seat) {
     payload.myHand = buildHandIdentitiesFor(round, seat);
     payload.isMyTurn = round.currentTurnSeat === seat;
     payload.legalCardIds = _computeLegalCardIds(round, seat);
+    // Crawl (FR-005/FR-010/FR-012): a reconnecting client recovers the crawl in
+    // its current state — who has committed (face-down) and its own sticky
+    // commit. Other players' committed faces are never included.
+    payload.crawlAvailable = crawlAvailableFor(round, seat);
+    payload.crawlActive = !!round.crawlActive;
+    payload.crawlCommittedSeats = (round.crawlCommits ?? []).map((c) => c.seat);
+    payload.viewerCrawlCommit = viewerCrawlCommitFor(round, seat);
   }
 
   if (round.phase === 'round-summary') {

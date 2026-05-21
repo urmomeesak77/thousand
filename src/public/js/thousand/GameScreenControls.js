@@ -105,6 +105,11 @@ class GameScreenControls {
     this._trickPlayView?.render(gameStatus);
   }
 
+  // crawl_revealed (feature 007): flip placeholders to faces and collect to winner.
+  revealCrawl(commits, winnerSeat, gameStatus) {
+    this._trickPlayView?.revealCrawl(commits, winnerSeat, gameStatus);
+  }
+
   // Sell flow drops these directly when entering bidding sub-phase or resolving.
   clearSellSelection() {
     if (this._sellSelectionControls) {

@@ -403,6 +403,45 @@ class RoundActionHandler {
     }
   }
 
+  // FR-003/FR-004/FR-006/FR-007: a single crawl_commit serves the declarer's
+  // initiating commit and each opponent's response (disambiguated by turn order).
+  // Bypasses _runRoundAction's shared limiter — commits arrive in quick
+  // succession, like play_card/exchange_pass.
+  handleCrawlCommit(playerId, cardId) {
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const round = game.round;
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      this._reject(playerId, 'Not in a round');
+      return;
+    }
+    const result = round.commitCrawlCard(seat, cardId);
+    if (!result || result.noop) { return; }
+    if (result.rejected) {
+      this._reject(playerId, result.reason);
+      return;
+    }
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      if (result.crawlResolved) {
+        // FR-005/FR-006: all three faces are disclosed exactly once, here.
+        const commits = result.commits.map(({ seat: s, cardId: id }) => {
+          const card = round.deck[id];
+          return { seat: s, cardId: id, rank: card.rank, suit: card.suit };
+        });
+        this._store.sendToPlayer(pid, { type: 'crawl_revealed', commits, winnerSeat: result.winnerSeat, gameStatus });
+      } else {
+        // FR-005: progress only — no card identity.
+        this._store.sendToPlayer(pid, { type: 'crawl_committed', seat, committedSeats: result.committedSeats, gameStatus });
+      }
+    }
+  }
+
   _computeRoundEnd(game, round) {
     round.roundScores = roundScores(round);
     round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);

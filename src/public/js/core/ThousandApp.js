@@ -269,6 +269,23 @@ class ThousandApp {
     this._gameScreen.updateStatus(msg.gameStatus);
   }
 
+  // crawl_committed: progress only — no faces (FR-005). GameScreen removes the
+  // viewer's own committed card from hand (echoed via gameStatus.viewerCrawlCommit).
+  onCrawlCommitted(msg) {
+    this._gameScreen.onCrawlCommitted(msg);
+  }
+
+  // crawl_revealed: the three faces + winner (FR-006). Seed the lookup table so
+  // the centre/flight can render every revealed card, then run the reveal.
+  onCrawlRevealed(msg) {
+    for (const c of msg.commits) {
+      if (typeof c.cardId === 'number' && c.rank && c.suit) {
+        this._gameScreen.cardsById[c.cardId] = { id: c.cardId, rank: c.rank, suit: c.suit };
+      }
+    }
+    this._gameScreen.onCrawlRevealed(msg);
+  }
+
   onMarriageDeclared(msg) {
     this._gameScreen.updateStatus(msg.gameStatus);
   }

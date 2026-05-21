@@ -58,6 +58,13 @@ class RoundActionDispatcher {
     this._socket.send({ type: 'acknowledge_four_nines' });
   }
 
+  // FR-003: commit one card face-down during the crawl (declarer initiate or
+  // opponent response — the server disambiguates by turn order).
+  sendCrawlCommit(cardId) {
+    if (typeof cardId !== 'number' || !Number.isFinite(cardId)) { return; }
+    this._socket.send({ type: 'crawl_commit', cardId });
+  }
+
   sendContinueToNextRound() {
     this._socket.send({ type: 'continue_to_next_round' });
   }

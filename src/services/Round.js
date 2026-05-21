@@ -4,7 +4,7 @@
 // snapshot/view-model serialization → RoundSnapshot.js
 const { makeDeck, shuffle } = require('./Deck');
 const { buildDealDistribution } = require('./DealSequencer');
-const { MARRIAGE_BONUS, applyPenaltyAnnotations, findFourNinesSeat } = require('./Scoring');
+const { MARRIAGE_BONUS, applyPenaltyAnnotations, findFourNinesSeat, handHasAce } = require('./Scoring');
 const { FOUR_NINES_BONUS } = require('./GameRules');
 const {
   absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned,
@@ -72,6 +72,10 @@ class Round {
     this.fourNinesAward = null;          // { seat, amount } | null
     this.fourNinesAckPending = false;
     this.fourNinesAcks = new Set();      // seats that acknowledged (sticky, FR-010)
+
+    // Crawl sub-state (feature 007), mirrored from _trickPlay for snapshot/view-model.
+    this.crawlActive = false;
+    this.crawlCommits = [];
   }
 
   start() {
@@ -87,17 +91,29 @@ class Round {
 
   // Test-only deck seam. Inert in production (returns null unless
   // THOUSAND_STACK_DECK is set), it lets the quickstart and the live e2e force
-  // the otherwise astronomically-rare four-nines deal by placing all four 9s on
-  // one opponent seat's dealt cards. `four-nines` → seat 1; `four-nines-2` → seat 2.
+  // otherwise astronomically-rare deals:
+  //   `four-nines`      → all four 9s on seat 1; `four-nines-2` → seat 2.
+  //   `no-ace-declarer` → all four aces split across seats 1 & 2 (never seat 0
+  //                       or the talon), so seat 0 — the intended declarer —
+  //                       holds no ace through talon pickup and the exchange.
   _stackedDeckForTest() {
     const mode = process.env.THOUSAND_STACK_DECK;
-    if (!mode || !mode.startsWith('four-nines')) { return null; }
-    const slots = mode === 'four-nines-2' ? [1, 5, 9, 13] : [0, 4, 8, 12];
+    if (!mode) { return null; }
+    if (mode.startsWith('four-nines')) { return this._stackRankOnSlots('9', mode === 'four-nines-2' ? [1, 5, 9, 13] : [0, 4, 8, 12]); }
+    if (mode === 'no-ace-declarer') { return this._stackRankOnSlots('A', [0, 4, 1, 5]); }
+    return null;
+  }
+
+  // Build a deck where the four cards of `rank` occupy `slots` (deck indices),
+  // with the remaining 20 cards filling the rest in order. Deck index → seat is
+  // fixed by DealSequencer.stepDest, so callers pick slots that land the cards
+  // on the intended seats.
+  _stackRankOnSlots(rank, slots) {
     const full = makeDeck();
-    const nines = full.filter((c) => c.rank === '9');
-    const rest = full.filter((c) => c.rank !== '9');
+    const picked = full.filter((c) => c.rank === rank);
+    const rest = full.filter((c) => c.rank !== rank);
     const ordered = new Array(24);
-    slots.forEach((pos, idx) => { ordered[pos] = nines[idx]; });
+    slots.forEach((pos, idx) => { ordered[pos] = picked[idx]; });
     let r = 0;
     for (let i = 0; i < 24; i++) { if (!ordered[i]) { ordered[i] = rest[r++]; } }
     return ordered;
@@ -324,13 +340,7 @@ class Round {
     const result = this._trickPlay.playCard(this.hands, seat, cardId, opts);
     if (result.rejected) {return result;}
 
-    // Sync trickPlay state back to Round fields for snapshot/view-model
-    this.trickNumber = this._trickPlay.trickNumber;
-    this.currentTrickLeaderSeat = this._trickPlay.currentTrickLeaderSeat;
-    this.currentTurnSeat = this._trickPlay.currentTurnSeat;
-    this.currentTrick = this._trickPlay.currentTrick;
-    this.collectedTricks = this._trickPlay.collectedTricks;
-    this.collectedTrickCounts = this._trickPlay.collectedTrickCounts;
+    this._syncTrickState();
 
     if (result.trickResolved && result.roundComplete) {
       this.phase = 'round-summary';
@@ -338,6 +348,59 @@ class Round {
       // roundScores and buildSummary will be called by the controller (T027)
     }
 
+    return result;
+  }
+
+  // Mirror TrickPlay state onto Round fields for snapshot/view-model. Shared by
+  // playCard and the crawl methods so the two paths can never drift.
+  _syncTrickState() {
+    this.trickNumber = this._trickPlay.trickNumber;
+    this.currentTrickLeaderSeat = this._trickPlay.currentTrickLeaderSeat;
+    this.currentTurnSeat = this._trickPlay.currentTurnSeat;
+    this.currentTrick = this._trickPlay.currentTrick;
+    this.collectedTricks = this._trickPlay.collectedTricks;
+    this.collectedTrickCounts = this._trickPlay.collectedTrickCounts;
+    this.crawlActive = this._trickPlay.crawlActive;
+    this.crawlCommits = this._trickPlay.crawlCommits;
+  }
+
+  // FR-003: arm the crawl for an eligible ace-less declarer. The trick-1/leader
+  // check lives in TrickPlay; the declarer + ace-eligibility checks need the
+  // hands/deck and live here.
+  beginCrawl(seat) {
+    if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (this.fourNinesAckPending) {return { rejected: true, reason: 'Acknowledge the four-nines bonus first' };}
+    if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can crawl' };}
+    if (handHasAce(this.hands[this.declarerSeat], this.deck)) {
+      return { rejected: true, reason: 'You hold an ace — cannot crawl' };
+    }
+
+    this._ensureTrickPlay();
+    const result = this._trickPlay.beginCrawl();
+    if (result.rejected) {return result;}
+    this._syncTrickState();
+    return result;
+  }
+
+  // FR-004/FR-006/FR-007: commit one card face-down. The declarer's first commit
+  // auto-arms the crawl (the wire message is a bare crawl_commit, disambiguated
+  // by turn order — research Decision 4). On the third commit TrickPlay resolves
+  // the trick and advances to trick 2.
+  commitCrawlCard(seat, cardId) {
+    if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
+    if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (this.fourNinesAckPending) {return { rejected: true, reason: 'Acknowledge the four-nines bonus first' };}
+
+    this._ensureTrickPlay();
+    if (!this._trickPlay.crawlActive) {
+      const begin = this.beginCrawl(seat);
+      if (begin.rejected) {return begin;}
+    }
+
+    const result = this._trickPlay.commitCrawlCard(this.hands, seat, cardId);
+    if (result.rejected) {return result;}
+    this._syncTrickState();
     return result;
   }
 

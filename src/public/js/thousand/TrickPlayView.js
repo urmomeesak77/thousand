@@ -1,4 +1,5 @@
 import MarriageDeclarationPrompt from './MarriageDeclarationPrompt.js';
+import CrawlControls from './CrawlControls.js';
 import { MARRIAGE_BONUS } from './constants.js';
 import { SUIT_LETTER } from './cardSymbols.js';
 
@@ -40,6 +41,24 @@ class TrickPlayView {
       antlion: this._antlion, dispatcher: this._dispatcher,
     });
 
+    // Crawl (feature 007): face-down first-trick play for an ace-less declarer.
+    // _crawlMode routes the next hand-card click to sendCrawlCommit; _crawlChoice
+    // tracks the declarer's Crawl/Lead-normally decision so the choice buttons
+    // aren't re-shown after a pick. Placeholders are face-down centre cards held
+    // outside _centerCards until the reveal.
+    this._crawlMode = false;
+    this._crawlChoice = null; // null | 'crawl' | 'lead'
+    this._crawlPlaceholders = [];
+    this._crawlControlsEl = document.createElement('div');
+    this._crawlControlsEl.className = 'trick-play__crawl-controls';
+    this._crawlControlsEl.style.display = 'none';
+    this._el.appendChild(this._crawlControlsEl);
+    this._crawlControls = new CrawlControls(this._crawlControlsEl, {
+      antlion: this._antlion,
+      onCrawl: () => { this._crawlChoice = 'crawl'; this._crawlMode = true; },
+      onLeadNormally: () => { this._crawlChoice = 'lead'; this._crawlMode = false; },
+    });
+
     this._handClickHandler = (e) => {
       // Hard guard: while a trick-resolve is animating, the previous trick's cards
       // are still held in the centre. Reject plays until the centre clears so the
@@ -48,6 +67,15 @@ class TrickPlayView {
       const cardEl = e.target.closest('[data-card-id]');
       if (!cardEl || cardEl.classList.contains('card--disabled')) { return; }
       const cardId = parseInt(cardEl.dataset.cardId, 10);
+
+      // Crawl commit: one face-down play per turn. The server re-enables the mode
+      // (via crawlActive + the viewer's turn) for the next committer.
+      if (this._crawlMode) {
+        this._crawlMode = false;
+        cardEl.style.visibility = 'hidden';
+        this._dispatcher.sendCrawlCommit(cardId);
+        return;
+      }
 
       if (this._canOfferMarriage(cardId)) {
         const card = this._cardsById[cardId];
@@ -96,6 +124,8 @@ class TrickPlayView {
 
     this._el.textContent = '';
     this._el.appendChild(this._promptEl);
+    this._el.appendChild(this._crawlControlsEl);
+    this._updateCrawlControls(gameStatus);
 
     // While the trick-resolve animation runs, the previous trick's three cards
     // are still in the centre. Freeze the whole hand (visually disabled) so the
@@ -147,6 +177,13 @@ class TrickPlayView {
 
   _reconcileCenter(gameStatus) {
     if (!this._trickCenterEl) { return; }
+    // During an active crawl the centre shows only face-down placeholders; the
+    // real faces (in _centerCards) arrive only at reveal. Keep the normal
+    // currentTrick reconciliation out of it.
+    if (gameStatus.crawlActive) {
+      this._renderCrawlPlaceholders(gameStatus.crawlCommittedSeats ?? []);
+      return;
+    }
     const incomingTrick = gameStatus.currentTrick ?? [];
     const prevCounts = this._lastCollectedCounts;
     const curCounts = gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 };
@@ -219,6 +256,84 @@ class TrickPlayView {
         this._commitToCenter(entry.seat, entry.cardId, entry.rank, entry.suit);
       }
     }
+  }
+
+  // -------- crawl (feature 007) --------
+
+  // FR-002/FR-004: surface the declarer's Crawl/Lead-normally choice or the
+  // opponent's "commit face-down" prompt; otherwise hide the affordance.
+  _updateCrawlControls(gameStatus) {
+    if (gameStatus.crawlAvailable && this._crawlChoice === null) {
+      this._crawlControls.showDeclarerChoice();
+    } else if (gameStatus.crawlActive && gameStatus.viewerIsActive) {
+      this._crawlControls.showOpponentPrompt();
+    } else {
+      this._crawlControls.hide();
+    }
+    // The active committer (an opponent on their turn) plays in crawl mode.
+    if (gameStatus.crawlActive) { this._crawlMode = gameStatus.viewerIsActive; }
+  }
+
+  // FR-003/FR-010: face-down placeholders for every committed seat, no faces.
+  _renderCrawlPlaceholders(committedSeats) {
+    for (const seat of committedSeats) {
+      if (this._crawlPlaceholders.some((p) => p.seat === seat)) { continue; }
+      const slot = this._slotForSeat(seat);
+      if (!slot) { continue; }
+      const el = document.createElement('div');
+      el.className = 'card-sprite card-sprite--back crawl-placeholder';
+      slot.appendChild(el);
+      this._crawlPlaceholders.push({ seat, el });
+    }
+  }
+
+  _clearCrawlPlaceholders() {
+    for (const p of this._crawlPlaceholders) { p.el.remove(); }
+    this._crawlPlaceholders = [];
+  }
+
+  // FR-006/FR-007: flip the placeholders to the three revealed faces, then reuse
+  // the standard collect-to-winner flight and trick-2 restore.
+  revealCrawl(commits, winnerSeat, gameStatus) {
+    this._gameStatus = gameStatus;
+    this._crawlMode = false;
+    this._crawlChoice = null;
+    this._crawlControls.hide();
+    this._clearCrawlPlaceholders();
+    for (const c of commits) {
+      if (!this._centerCards.some((e) => e.cardId === c.cardId)) {
+        this._cardsById[c.cardId] = { id: c.cardId, rank: c.rank, suit: c.suit };
+        this._commitToCenter(c.seat, c.cardId, c.rank, c.suit);
+      }
+    }
+    this._resolveCrawl(winnerSeat, gameStatus);
+  }
+
+  // Mirrors _handleTrickResolve but works from already-committed centre cards
+  // (no pending-played card, no opponent-landing pause): hold, collect-flight,
+  // then _finalizeTrickResolve re-renders trick 2 and releases the lock.
+  _resolveCrawl(winnerSeat, gameStatus) {
+    this._lastCollectedCounts = { ...(gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 }) };
+    this._resolveFinalized = false;
+    this._pendingWinnerSeat = winnerSeat;
+    this._setControlsLocked(true);
+
+    const nickname = this._getPlayerNickname(winnerSeat);
+    if (nickname) {
+      this._setStatusOverride(`${nickname} won the trick`, TRICK_WINNER_HOLD_MS + FLIGHT_MS);
+    }
+
+    const holdId = this._antlion.schedule(TRICK_WINNER_HOLD_MS, () => {
+      this._scheduledIds.delete(holdId);
+      this._collectFlightToWinner(winnerSeat);
+    });
+    this._scheduledIds.add(holdId);
+
+    const safetyId = this._antlion.schedule(TRICK_WINNER_HOLD_MS + FLIGHT_MS + 200, () => {
+      this._scheduledIds.delete(safetyId);
+      this._finalizeTrickResolve();
+    });
+    this._scheduledIds.add(safetyId);
   }
 
   _commitToCenter(seat, cardId, rank, suit) {
@@ -482,6 +597,8 @@ class TrickPlayView {
   destroy() {
     this._antlion.offInput('hand-card-click', this._handClickHandler);
     this._prompt?.destroy();
+    this._crawlControls?.destroy();
+    this._clearCrawlPlaceholders();
     for (const id of this._scheduledIds) {
       this._antlion.cancelScheduled?.(id);
     }

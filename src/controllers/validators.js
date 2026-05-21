@@ -31,6 +31,12 @@ function validateAcknowledgeFourNines(msg) {
   return !!msg && typeof msg === 'object' && msg.type === 'acknowledge_four_nines';
 }
 
+// FR-003: crawl_commit carries a single card id; every turn/eligibility/phase
+// check is enforced server-side. This guards the envelope shape at dispatch.
+function validateCrawlCommit(msg) {
+  return !!msg && typeof msg === 'object' && msg.type === 'crawl_commit' && Number.isInteger(msg.cardId);
+}
+
 function validateRequiredPlayers(v) {
   const n = Number(v);
   // Only 3-player rooms are supported today. The Round state machine is hardcoded
@@ -40,4 +46,4 @@ function validateRequiredPlayers(v) {
   return null;
 }
 
-module.exports = { validateNickname, validateRequiredPlayers, validateAcknowledgeFourNines };
+module.exports = { validateNickname, validateRequiredPlayers, validateAcknowledgeFourNines, validateCrawlCommit };

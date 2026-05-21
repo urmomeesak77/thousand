@@ -18,6 +18,55 @@ class TrickPlay {
     this.declaredMarriages = [];
     this.collectedTricks = { 0: [], 1: [], 2: [] };
     this.collectedTrickCounts = { 0: 0, 1: 0, 2: 0 };
+
+    // Crawl sub-state (feature 007). Only ever active during trick 1 when an
+    // ace-less declarer crawls. Commits accumulate here — never in the
+    // face-exposing `currentTrick` — until the third lands (R-202).
+    this.crawlActive = false;
+    this.crawlCommits = [];
+  }
+
+  // FR-003: arm the crawl. Only valid on trick 1 with the declarer leading.
+  // Idempotent — re-arming an active crawl is a harmless no-op.
+  beginCrawl() {
+    if (this.trickNumber !== 1 || this.currentTrickLeaderSeat !== this.declarerSeat) {
+      return { rejected: true, reason: 'Crawl is only available on the first lead' };
+    }
+    this.crawlActive = true;
+    return { rejected: false };
+  }
+
+  // FR-004/FR-006/FR-007: commit one card face-down. Follow-suit is suspended
+  // (no _checkFollowSuit). On the third commit the three commits funnel into
+  // `currentTrick` and resolve via the standard `_resolveTrick`, so winner
+  // determination, collection, and the trick-2 advance are not reimplemented.
+  commitCrawlCard(hands, seat, cardId) {
+    if (!this.crawlActive) {
+      return { rejected: true, reason: 'Crawl is not active' };
+    }
+    if (seat !== this.currentTurnSeat) {
+      return { rejected: true, reason: 'Not your turn' };
+    }
+    if (!hands[seat].includes(cardId)) {
+      return { rejected: true, reason: 'Card not in hand' };
+    }
+
+    hands[seat] = hands[seat].filter(id => id !== cardId);
+    this.crawlCommits.push({ seat, cardId });
+    this.currentTurnSeat = (seat + 1) % 3;
+    const committedSeats = this.crawlCommits.map(c => c.seat);
+
+    if (this.crawlCommits.length < 3) {
+      return { rejected: false, crawlResolved: false, committedSeats, commits: this.crawlCommits.slice() };
+    }
+
+    // Third commit: the declarer's commit (index 0) sets the led suit.
+    this.currentTrick = this.crawlCommits.map(({ seat: s, cardId: id }) => ({ seat: s, cardId: id }));
+    const commits = this.crawlCommits.slice();
+    const resolve = this._resolveTrick();
+    this.crawlActive = false;
+    this.crawlCommits = [];
+    return { ...resolve, crawlResolved: true, commits, committedSeats };
   }
 
   playCard(hands, seat, cardId, _opts = {}) {

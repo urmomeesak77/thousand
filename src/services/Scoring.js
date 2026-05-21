@@ -26,6 +26,14 @@ function findFourNinesSeat(hands, deck) {
   return null;
 }
 
+// FR-001: At trick-play start, report whether a hand holds an ace of any suit.
+// Drives crawl eligibility — the declarer may crawl only when this is false for
+// the post-talon-pickup, post-exchange 8-card hand. `handCardIds` is a card-id
+// list; `deck[id]` is the card.
+function handHasAce(handCardIds, deck) {
+  return handCardIds.some(id => deck[id]?.rank === 'A');
+}
+
 function roundScores(round) {
   const scores = { 0: 0, 1: 0, 2: 0 };
   for (const seat of [0, 1, 2]) {
@@ -156,4 +164,4 @@ function applyPenaltyAnnotations(session, perPlayer, deltas) {
   }
 }
 
-module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, findFourNinesSeat, roundScores, roundDeltas, determineWinner, buildFinalResults, applyPenaltyAnnotations };
+module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, findFourNinesSeat, handHasAce, roundScores, roundDeltas, determineWinner, buildFinalResults, applyPenaltyAnnotations };

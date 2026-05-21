@@ -41,6 +41,7 @@ before(() => {
     'thousand/CardExchangeView.js',
     'thousand/CollectedTricksStack.js',
     'thousand/MarriageDeclarationPrompt.js',
+    'thousand/CrawlControls.js',
     'thousand/TrickPlayView.js',
     'thousand/RoundSummaryScreen.js',
     'thousand/GameScreenControls.js',

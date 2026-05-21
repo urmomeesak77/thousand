@@ -816,6 +816,29 @@
 }
 
 /* ============================================================
+   Crawl controls (feature 007) — declarer choice / opponent prompt
+   ============================================================ */
+
+.trick-play__crawl-controls {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.crawl-controls__text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.trick-play__crawl-controls button {
+  min-width: 12rem;
+}
+
+/* ============================================================
    Round summary marriage bonus column
    ============================================================ */
 
