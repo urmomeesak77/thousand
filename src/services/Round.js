@@ -75,14 +75,32 @@ class Round {
   }
 
   start() {
-    const shuffled = shuffle(makeDeck());
-    this.deck = shuffled.map((card, i) => ({ id: i, rank: card.rank, suit: card.suit }));
+    const ordered = this._stackedDeckForTest() ?? shuffle(makeDeck());
+    this.deck = ordered.map((card, i) => ({ id: i, rank: card.rank, suit: card.suit }));
     const dist = buildDealDistribution();
     this.hands = dist.hands;
     this.talon = dist.talon;
     this.phase = 'dealing';
     this.currentTurnSeat = null;
     this.currentHighBid = null;
+  }
+
+  // Test-only deck seam. Inert in production (returns null unless
+  // THOUSAND_STACK_DECK is set), it lets the quickstart and the live e2e force
+  // the otherwise astronomically-rare four-nines deal by placing all four 9s on
+  // one opponent seat's dealt cards. `four-nines` → seat 1; `four-nines-2` → seat 2.
+  _stackedDeckForTest() {
+    const mode = process.env.THOUSAND_STACK_DECK;
+    if (!mode || !mode.startsWith('four-nines')) { return null; }
+    const slots = mode === 'four-nines-2' ? [1, 5, 9, 13] : [0, 4, 8, 12];
+    const full = makeDeck();
+    const nines = full.filter((c) => c.rank === '9');
+    const rest = full.filter((c) => c.rank !== '9');
+    const ordered = new Array(24);
+    slots.forEach((pos, idx) => { ordered[pos] = nines[idx]; });
+    let r = 0;
+    for (let i = 0; i < 24; i++) { if (!ordered[i]) { ordered[i] = rest[r++]; } }
+    return ordered;
   }
 
   getRoundStartedPayloadFor(playerId) {
