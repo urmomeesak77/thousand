@@ -180,3 +180,42 @@ describe('Round.bidding — turn rotation skips passed players after a bid', () 
     assert.equal(round.currentTurnSeat, 2, 'turn must skip passed seat 1 and land on seat 2');
   });
 });
+
+describe('Round.bidding — forced last bidder (no auto-take at 100)', () => {
+  it('rejects a pass from the last seat when no bid is on the table', () => {
+    const round = makeRound();
+    round.submitPass(1);             // P1 passes; turn → seat 2
+    round.submitPass(2);             // P2 passes; turn → seat 0 (dealer), still bidding
+    assert.equal(round.phase, 'bidding', 'still bidding — dealer must bid, not auto-take');
+    assert.equal(round.currentTurnSeat, 0, 'turn is the forced last bidder (dealer)');
+    const r = round.submitPass(0);   // dealer tries to pass
+    assert.equal(r.rejected, true, 'last bidder cannot pass');
+    assert.match(r.reason, /at least 100/);
+    assert.equal(round.phase, 'bidding', 'still bidding after rejected pass');
+  });
+
+  it('forced last bidder takes the contract at 100 via submitBid', () => {
+    const round = makeRound();
+    round.submitPass(1);
+    round.submitPass(2);
+    const r = round.submitBid(0, 100);
+    assert.equal(r.rejected, false);
+    assert.equal(r.resolved, true, 'a bid by the sole survivor resolves the auction');
+    assert.equal(round.declarerSeat, 0);
+    assert.equal(round.currentHighBid, 100);
+    assert.equal(round.phase, 'post-bid-decision');
+    assert.ok(Array.isArray(r.talonIds), 'talon absorbed on resolution');
+  });
+
+  it('forced last bidder may raise above 100', () => {
+    const round = makeRound();
+    round.submitPass(1);
+    round.submitPass(2);
+    const r = round.submitBid(0, 150);
+    assert.equal(r.rejected, false);
+    assert.equal(r.resolved, true);
+    assert.equal(round.declarerSeat, 0);
+    assert.equal(round.currentHighBid, 150);
+    assert.equal(round.phase, 'post-bid-decision');
+  });
+});

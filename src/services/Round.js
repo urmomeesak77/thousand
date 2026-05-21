@@ -109,8 +109,18 @@ class Round {
     this.bidHistory.push({ seat, amount });
     this.currentHighBid = amount;
 
-    this.currentTurnSeat = this._nextActiveBidder(seat);
+    // If both other seats have already passed, this bid resolves the auction:
+    // the bidder is the declarer (this is the forced-last-bidder take/raise path).
+    const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
+    if (remaining.length === 1) {
+      this.declarerSeat = seat;
+      this.phase = 'post-bid-decision';
+      this.currentTurnSeat = seat;
+      const { talonIds, identities } = this._absorbTalon();
+      return { rejected: false, resolved: true, talonIds, identities };
+    }
 
+    this.currentTurnSeat = this._nextActiveBidder(seat);
     return { rejected: false };
   }
 
@@ -119,21 +129,26 @@ class Round {
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
     if (seat !== this.currentTurnSeat) {return { rejected: true, reason: 'Not your turn' };}
 
+    // Forced last bidder: if both others have already passed and no bid was
+    // placed, this seat must take the contract (>= MIN_BID). They cannot pass.
+    if (this.currentHighBid === null && this.passedBidders.size === 2) {
+      return { rejected: true, reason: `You must bid at least ${MIN_BID}; you cannot pass.` };
+    }
+
     this.passedBidders.add(seat);
     this.bidHistory.push({ seat, amount: null });
 
     const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
-    if (remaining.length === 1) {
+    if (remaining.length === 1 && this.currentHighBid !== null) {
+      // A real bid exists and the last opponent just passed — resolve to that sole survivor.
       this.declarerSeat = remaining[0];
-      if (this.currentHighBid === null) {
-        const dealerOnBarrel = this._game.session?.barrelState?.[this.declarerSeat]?.onBarrel === true;
-        this.currentHighBid = dealerOnBarrel ? BARREL_BID_FLOOR : MIN_BID;
-      }
       this.phase = 'post-bid-decision';
       this.currentTurnSeat = remaining[0];
       const { talonIds, identities } = this._absorbTalon();
       return { rejected: false, resolved: true, talonIds, identities };
     } else {
+      // Either more bidders remain, or no bid has been placed yet (forced-last-bidder path:
+      // the sole survivor must take a real bidding turn before the auction resolves).
       this.currentTurnSeat = this._nextActiveBidder(seat);
     }
 
