@@ -165,10 +165,18 @@ async function takeAction(page, name, stats) {
     return 'sell-pass';
   }
 
-  // Main bidding: pass (let the dealer auto-win at 100)
+  // Main bidding: pass when possible. The first two bidders fold; the third
+  // (forced last bidder) has no Pass button, so this falls through to the Bid click below.
   if (await tryClick(page, '.bid-controls:not(.hidden) .bid-controls__pass:not(:disabled)')) {
     log(name, '  passes bid');
     return 'bid-pass';
+  }
+
+  // Forced last bidder: Pass is hidden, so take the contract by bidding the
+  // pre-filled minimum (100, or 120 on barrel). Clicking Bid resolves the auction.
+  if (await tryClick(page, '.bid-controls:not(.hidden) .bid-controls__bid:not(:disabled)')) {
+    log(name, '  bids (forced last bidder takes the contract)');
+    return 'bid-take';
   }
 
   return null;
