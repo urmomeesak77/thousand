@@ -54,6 +54,10 @@ class RoundActionDispatcher {
     this._socket.send(msg);
   }
 
+  sendAcknowledgeFourNines() {
+    this._socket.send({ type: 'acknowledge_four_nines' });
+  }
+
   sendContinueToNextRound() {
     this._socket.send({ type: 'continue_to_next_round' });
   }

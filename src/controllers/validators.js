@@ -24,6 +24,13 @@ function validateNickname(nickname) {
   return true;
 }
 
+// The four-nines acknowledgment carries no payload beyond its type — every
+// player-specific check (open gate, valid seat) is enforced server-side in the
+// handler. This guards against a malformed/spoofed envelope reaching dispatch.
+function validateAcknowledgeFourNines(msg) {
+  return !!msg && typeof msg === 'object' && msg.type === 'acknowledge_four_nines';
+}
+
 function validateRequiredPlayers(v) {
   const n = Number(v);
   // Only 3-player rooms are supported today. The Round state machine is hardcoded
@@ -33,4 +40,4 @@ function validateRequiredPlayers(v) {
   return null;
 }
 
-module.exports = { validateNickname, validateRequiredPlayers };
+module.exports = { validateNickname, validateRequiredPlayers, validateAcknowledgeFourNines };

@@ -7,4 +7,5 @@ module.exports = {
   SPECIAL_PENALTY: 120,
   BARREL_ROUND_LIMIT: 3,
   ZERO_ROUND_LIMIT: 3,
+  FOUR_NINES_BONUS: 100,
 };

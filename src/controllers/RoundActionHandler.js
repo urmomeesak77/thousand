@@ -267,6 +267,12 @@ class RoundActionHandler {
       this._reject(playerId, result.reason);
       return;
     }
+    // FR-002: bank the four-nines bonus before building any view-model so the
+    // broadcast cumulative scores reflect the +100 immediately (FR-018).
+    const award = result.transitionedToTrickPlay ? result.fourNinesAward : null;
+    if (award && game.session) {
+      game.session.applyFourNinesBonus(award.seat);
+    }
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
@@ -278,7 +284,57 @@ class RoundActionHandler {
         }
       }
       this._store.sendToPlayer(pid, msg);
-      if (result.transitionedToTrickPlay) {
+      if (!result.transitionedToTrickPlay) { continue; }
+      if (award) {
+        // FR-003: announce the award and gate the first lead — trick_play_started
+        // is withheld until all three acknowledge_four_nines arrive.
+        this._store.sendToPlayer(pid, this._fourNinesAwardedMsg(round, game, award));
+      } else {
+        this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
+      }
+    }
+  }
+
+  _fourNinesAwardedMsg(round, game, award) {
+    const nickname = this._store.players.get(round.seatOrder[award.seat])?.nickname ?? null;
+    const cumulativeScores = game.session
+      ? { ...game.session.cumulativeScores }
+      : round.getViewModelFor(award.seat).cumulativeScores;
+    return { type: 'four_nines_awarded', seat: award.seat, nickname, amount: award.amount, cumulativeScores };
+  }
+
+  // FR-003/FR-027: each player acknowledges the four-nines modal. Sticky and
+  // idempotent. When all three have acknowledged, release the held-back
+  // trick_play_started so the declarer's first lead becomes operable.
+  handleAcknowledgeFourNines(playerId) {
+    if (!this._rateLimiter.isAllowed(playerId)) {
+      return;
+    }
+    const game = this._gameOf(playerId);
+    if (!game?.round) {
+      return;
+    }
+    const round = game.round;
+    const seat = this._seatOf(playerId);
+    if (seat === null || seat === undefined) {
+      return;
+    }
+    // No open gate → nothing to acknowledge; ignore silently (no toast).
+    if (!round.fourNinesAckPending) {
+      return;
+    }
+    const ack = round.recordFourNinesAck(seat);
+    const acknowledgedSeats = ack.acknowledgedSeats ?? [...round.fourNinesAcks];
+    for (const pid of game.players) {
+      const pSeat = round.seatByPlayer.get(pid);
+      const gameStatus = round.getViewModelFor(pSeat);
+      this._store.sendToPlayer(pid, {
+        type: 'four_nines_ack_progress',
+        acknowledgedSeats,
+        remaining: 3 - acknowledgedSeats.length,
+        gameStatus,
+      });
+      if (ack.gateClosed) {
         this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
       }
     }

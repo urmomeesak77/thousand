@@ -46,6 +46,7 @@ before(() => {
     'thousand/SellPhaseView.js',
     'thousand/statusText.js',
     'thousand/ScoreboardPanel.js',
+    'thousand/FourNinesPrompt.js',
     'thousand/GameScreen.js',
   ];
   for (const mod of modules) {

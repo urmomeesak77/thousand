@@ -88,6 +88,8 @@ class RoundSummaryScreen {
     for (const data of Object.values(perPlayer)) {
       const row = this._makePlayerRow(data);
       tbody.appendChild(row);
+      const fourNinesRow = this._makeFourNinesRow(data);
+      if (fourNinesRow) { tbody.appendChild(fourNinesRow); }
       for (const penaltyRow of this._makePenaltyRows(data)) {
         tbody.appendChild(penaltyRow);
       }
@@ -121,6 +123,20 @@ class RoundSummaryScreen {
     }
 
     return row;
+  }
+
+  // FR-008: a distinct, labelled line item for the four-nines bonus, separate
+  // from trick points, marriage bonus, and the made/missed delta.
+  _makeFourNinesRow(data) {
+    if (!data.fourNinesBonus) { return null; }
+    const tr = document.createElement('tr');
+    tr.className = 'round-summary__four-nines-row';
+    tr.setAttribute('data-seat', data.seat);
+    const td = document.createElement('td');
+    td.colSpan = 5;
+    td.textContent = `Four nines: +${data.fourNinesBonus}`;
+    tr.appendChild(td);
+    return tr;
   }
 
   _makePenaltyRows(data) {

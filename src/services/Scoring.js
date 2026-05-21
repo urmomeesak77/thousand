@@ -15,6 +15,17 @@ function cardPoints(cards) {
   return cards.reduce((sum, { rank }) => sum + CARD_POINT_VALUE[rank], 0);
 }
 
+// FR-001: At trick-play start, return the seat whose hand holds all four 9s
+// (one per suit), or null if the 9s are split, sit in the talon, or were passed
+// away in the exchange. `hands` maps seat → card-id list; `deck[id]` is the card.
+function findFourNinesSeat(hands, deck) {
+  for (const seat of [0, 1, 2]) {
+    const nineCount = hands[seat].filter(id => deck[id]?.rank === '9').length;
+    if (nineCount === 4) { return seat; }
+  }
+  return null;
+}
+
 function roundScores(round) {
   const scores = { 0: 0, 1: 0, 2: 0 };
   for (const seat of [0, 1, 2]) {
@@ -145,4 +156,4 @@ function applyPenaltyAnnotations(session, perPlayer, deltas) {
   }
 }
 
-module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, roundScores, roundDeltas, determineWinner, buildFinalResults, applyPenaltyAnnotations };
+module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, findFourNinesSeat, roundScores, roundDeltas, determineWinner, buildFinalResults, applyPenaltyAnnotations };

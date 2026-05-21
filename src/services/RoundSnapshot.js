@@ -262,6 +262,15 @@ function buildSnapshot(round, seat) {
     payload.continuePressedSeats = session ? [...session.continuePresses] : [];
   }
 
+  // FR-010: while the four-nines ack-gate is open, the reconnecting client needs
+  // the award (for the modal text), whether the gate is still pending, and its
+  // own sticky-press state. Cumulative scores already reflect the banked +100.
+  if (round.fourNinesAckPending && round.fourNinesAward) {
+    payload.fourNinesAward = { ...round.fourNinesAward };
+    payload.fourNinesAckPending = true;
+    payload.viewerHasAcknowledged = round.fourNinesAcks.has(seat);
+  }
+
   // Final-results snapshot for game-over
   const session = round._game?.session;
   if (session?.gameStatus === 'game-over') {

@@ -2,6 +2,7 @@
 
 const HttpUtil = require('../utils/HttpUtil');
 const RoundActionHandler = require('../controllers/RoundActionHandler');
+const { validateAcknowledgeFourNines } = require('../controllers/validators');
 
 const MAX_CONNECTIONS_PER_IP = 10;
 const HELLO_TIMEOUT_MS = 5000;
@@ -24,6 +25,7 @@ const ACTION_DISPATCH = {
   start_game:             (h, pid)    => h.handleStartGame(pid),
   exchange_pass:          (h, pid, m) => h.handleExchangePass(pid, m.cardId, m.toSeat),
   play_card:              (h, pid, m) => h.handlePlayCard(pid, m.cardId, m.declareMarriage === true),
+  acknowledge_four_nines: (h, pid, m) => { if (validateAcknowledgeFourNines(m)) { h.handleAcknowledgeFourNines(pid); } },
   continue_to_next_round: (h, pid)    => h.handleContinueToNextRound(pid),
   request_snapshot:       (h, pid)    => h.handleRequestSnapshot(pid),
 };

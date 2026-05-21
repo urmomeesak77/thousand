@@ -13,6 +13,7 @@ import DealAnimation from './DealAnimation.js';
 import RoundReadyScreen from './RoundReadyScreen.js';
 import GameScreenControls from './GameScreenControls.js';
 import SellPhaseView from './SellPhaseView.js';
+import FourNinesPrompt from './FourNinesPrompt.js';
 import { computeStatusText } from './statusText.js';
 import { formatRoundStats } from './roundStatsText.js';
 
@@ -47,6 +48,10 @@ class GameScreen {
       this, antlion, this._controlsEl, this._handView, dispatcher,
     );
     this.sellPhase = new SellPhaseView(this);
+
+    // Blocking four-nines modal (FR-003). A GameScreen-lifetime singleton, like
+    // the scoreboard — its single Antlion input persists across rounds.
+    this._fourNinesPrompt = new FourNinesPrompt(this._fourNinesEl, { antlion, dispatcher });
   }
 
   _buildDom(antlion, container) {
@@ -72,8 +77,11 @@ class GameScreen {
 
     tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, selfStatsEl, handEl);
     const scoreboardEl = document.createElement('div');
-    container.append(statusBarEl, tableEl, this._controlsEl, scoreboardEl);
+    const fourNinesEl = document.createElement('div');
+    fourNinesEl.style.display = 'none';
+    container.append(statusBarEl, tableEl, this._controlsEl, scoreboardEl, fourNinesEl);
     this._scoreboard = new ScoreboardPanel(scoreboardEl, antlion);
+    this._fourNinesEl = fourNinesEl;
 
     this._tableEl = tableEl;
     this._leftEl = leftEl;
@@ -192,6 +200,14 @@ class GameScreen {
     this.sellPhase.initFromSnapshot(msg);
 
     this._controls.mountForPhase(msg.gameStatus);
+
+    // FR-010: restore the four-nines blocking modal if the ack-gate is still open.
+    if (msg.fourNinesAckPending && msg.fourNinesAward) {
+      const { seat, amount } = msg.fourNinesAward;
+      this.showFourNinesPrompt(this.playerNicknameForSeat(seat) ?? '', amount, msg.viewerHasAcknowledged === true);
+    } else {
+      this.hideFourNinesPrompt();
+    }
   }
 
   // Called when a fresh snapshot arrives mid-round (e.g. card exchange or trick play update).
@@ -485,6 +501,30 @@ class GameScreen {
 
   playerNicknameForSeat(seat) {
     return this._seats?.players.find((p) => p.seat === seat)?.nickname ?? null;
+  }
+
+  // FR-003: open the blocking four-nines modal. `alreadyAcknowledged` restores the
+  // sticky waiting-state for a player reconnecting after they had pressed it (FR-010).
+  showFourNinesPrompt(nickname, amount, alreadyAcknowledged = false) {
+    this._fourNinesPrompt.show(nickname, amount);
+    if (alreadyAcknowledged) { this._fourNinesPrompt.markAcknowledged(); }
+  }
+
+  updateFourNinesProgress(acknowledgedSeats) {
+    this._fourNinesPrompt.setProgress((acknowledgedSeats ?? []).length);
+  }
+
+  hideFourNinesPrompt() {
+    this._fourNinesPrompt.hide();
+  }
+
+  // FR-018: reflect the mid-round +100 cumulative bump immediately on
+  // four_nines_awarded (the message carries post-bonus cumulative scores but no
+  // full view-model), re-rendering the status bar and scoreboard.
+  applyCumulativeBump(cumulativeScores) {
+    if (!cumulativeScores || !this._lastGameStatus) { return; }
+    this._lastGameStatus = { ...this._lastGameStatus, cumulativeScores };
+    this._renderStatus(this._lastGameStatus);
   }
 }
 

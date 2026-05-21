@@ -4,7 +4,8 @@
 // snapshot/view-model serialization → RoundSnapshot.js
 const { makeDeck, shuffle } = require('./Deck');
 const { buildDealDistribution } = require('./DealSequencer');
-const { MARRIAGE_BONUS, applyPenaltyAnnotations } = require('./Scoring');
+const { MARRIAGE_BONUS, applyPenaltyAnnotations, findFourNinesSeat } = require('./Scoring');
+const { FOUR_NINES_BONUS } = require('./GameRules');
 const {
   absorbTalon, activeSellOpponents, nextSellOpponent, resolveSellSold, resolveSellReturned,
 } = require('./RoundPhases');
@@ -64,6 +65,13 @@ class Round {
     this.roundDeltas = null;
     this.summary = null;
     this._trickPlay = null;  // TrickPlay instance, set on entry to trick-play phase
+
+    // Four-nines bonus (feature 006). Detected once at the card-exchange →
+    // trick-play transition; the ack-gate holds the first lead until all three
+    // players acknowledge (FR-001, FR-003, FR-005).
+    this.fourNinesAward = null;          // { seat, amount } | null
+    this.fourNinesAckPending = false;
+    this.fourNinesAcks = new Set();      // seats that acknowledged (sticky, FR-010)
   }
 
   start() {
@@ -226,10 +234,34 @@ class Round {
       this.currentTrickLeaderSeat = this.declarerSeat;
       this.currentTurnSeat = this.declarerSeat;
       this._trickPlay = new TrickPlay(this.declarerSeat, this.deck);
-      return { rejected: false, transitionedToTrickPlay: true, cardId, destSeat };
+      this._detectFourNines();
+      return { rejected: false, transitionedToTrickPlay: true, cardId, destSeat, fourNinesAward: this.fourNinesAward };
     }
 
     return { rejected: false, cardId, destSeat };
+  }
+
+  // FR-001/FR-003/FR-005: at trick-play start, award the four-nines bonus to the
+  // seat (if any) whose 8-card hand holds all four 9s and open the ack-gate.
+  // Idempotent: only fires when no award has been recorded yet.
+  _detectFourNines() {
+    if (this.fourNinesAward) {return;}
+    const seat = findFourNinesSeat(this.hands, this.deck);
+    if (seat === null) {return;}
+    this.fourNinesAward = { seat, amount: FOUR_NINES_BONUS };
+    this.fourNinesAckPending = true;
+    this.fourNinesAcks = new Set();
+  }
+
+  // FR-003: record a player's acknowledgment (sticky/idempotent). Closes the gate
+  // once all three seats have acknowledged. Returns whether the gate just closed.
+  recordFourNinesAck(seat) {
+    if (!this.fourNinesAckPending) {return { changed: false, gateClosed: false };}
+    const sizeBefore = this.fourNinesAcks.size;
+    this.fourNinesAcks.add(seat);
+    const changed = this.fourNinesAcks.size !== sizeBefore;
+    if (this.fourNinesAcks.size === 3) {this.fourNinesAckPending = false;}
+    return { changed, gateClosed: !this.fourNinesAckPending, acknowledgedSeats: [...this.fourNinesAcks] };
   }
 
   // Lazily create the TrickPlay instance if the round was forced into trick-play
@@ -267,6 +299,7 @@ class Round {
   playCard(seat, cardId, opts = {}) {
     if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
+    if (this.fourNinesAckPending) {return { rejected: true, reason: 'Acknowledge the four-nines bonus first' };}
 
     this._ensureTrickPlay();
 
@@ -316,6 +349,8 @@ class Round {
         delta,
         cumulativeAfter: delta,  // US3 replaces
         penalties: [],
+        // FR-008: distinct four-nines line item on the awarded seat's row.
+        fourNinesBonus: this.fourNinesAward?.seat === seat ? this.fourNinesAward.amount : 0,
       };
     }
 

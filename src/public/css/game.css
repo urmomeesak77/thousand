@@ -879,6 +879,28 @@
   padding-left: 1.5rem;
 }
 
+/* Four-nines bonus line item (.round-summary__four-nines-row) — a positive,
+   distinct contribution separate from trick points and the made/missed delta. */
+.round-summary__four-nines-row td {
+  color: var(--color-success, #4caf50);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding-top: 0;
+  padding-left: 1.5rem;
+}
+
+/* Four-nines annotation on the final-results per-round history. */
+.final-results__history-row--four-nines td {
+  color: var(--color-success, #4caf50);
+  font-size: 0.8rem;
+  font-style: italic;
+  padding-left: 1.5rem;
+}
+
+.final-results__history-cumulative--four-nines {
+  font-weight: 700;
+}
+
 /* ============================================================
    On-barrel marker badge (.status-bar__barrel-marker)
    ============================================================ */
@@ -1217,4 +1239,30 @@
     width: 11rem;
     font-size: 0.72rem;
   }
+}
+
+/* ============================================================
+   Four-nines bonus modal (FR-003) — blocking announcement.
+   Reuses .modal-overlay / .modal-card from index.css; this layer
+   sits above the status bar so the table is fully gated.
+   ============================================================ */
+.four-nines-modal {
+  z-index: 250;
+  text-align: center;
+}
+
+.four-nines-modal__card {
+  max-width: 22rem;
+}
+
+.four-nines-modal__text {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.four-nines-modal__progress {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+  min-height: 1.1em;
 }

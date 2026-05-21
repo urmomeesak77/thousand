@@ -55,6 +55,13 @@ const MESSAGE_VALIDATORS = {
   card_exchange_started: (m) => typeof m.declarerId === 'string' && typeof m.finalBid === 'number' && isObj(m.gameStatus),
   card_passed: (m) => isObj(m.gameStatus),
   trick_play_started: (m) => isObj(m.gameStatus),
+  four_nines_awarded: (m) => (
+    typeof m.seat === 'number'
+    && (m.nickname === null || typeof m.nickname === 'string')
+    && typeof m.amount === 'number'
+    && isObj(m.cumulativeScores)
+  ),
+  four_nines_ack_progress: (m) => Array.isArray(m.acknowledgedSeats),
   card_played: (m) => isObj(m.gameStatus),
   marriage_declared: (m) => (
     typeof m.playerSeat === 'number'
@@ -123,6 +130,8 @@ class ThousandMessageRouter {
       card_exchange_started:    (m) => app.onCardExchangeStarted(m),
       card_passed:              (m) => app.onCardPassed(m),
       trick_play_started:       (m) => app.onTrickPlayStarted(m),
+      four_nines_awarded:       (m) => app.onFourNinesAwarded(m),
+      four_nines_ack_progress:  (m) => app.onFourNinesAckProgress(m),
       card_played:              (m) => app.onCardPlayed(m),
       marriage_declared:        (m) => app.onMarriageDeclared(m),
       trump_changed:            (m) => app.onTrumpChanged(m),

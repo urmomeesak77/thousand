@@ -1,6 +1,6 @@
 'use strict';
 
-const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT } = require('./GameRules');
+const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT, FOUR_NINES_BONUS } = require('./GameRules');
 
 class Game {
   constructor({ gameId, seatOrder, dealerSeat }) {
@@ -19,6 +19,17 @@ class Game {
     this.history = [];
     this.gameStatus = 'in-progress';
     this.nicknames = {};
+    // Four-nines award banked this round (FR-002), pending the round-end history
+    // append (FR-009). Reset each round in startNextRound. null when none.
+    this.pendingFourNinesAward = null;
+  }
+
+  // FR-002: bank the +100 four-nines bonus onto the cumulative game score at
+  // trick-play start. Does NOT touch roundDeltas, barrel state, or victory —
+  // those evaluate at round end via the unchanged applyRoundEnd (R-102).
+  applyFourNinesBonus(seat) {
+    this.cumulativeScores[seat] += FOUR_NINES_BONUS;
+    this.pendingFourNinesAward = { seat, amount: FOUR_NINES_BONUS };
   }
 
   applyRoundEnd(roundDeltas, summaryEntry) {
@@ -69,6 +80,12 @@ class Game {
       this.barrelState[seat].onBarrel = nowOnBarrel;
     }
 
+    // FR-009: attribute the +100 to this round's history row so the
+    // final-results running cumulative is auditable.
+    if (this.pendingFourNinesAward) {
+      summaryEntry.fourNinesAward = this.pendingFourNinesAward;
+    }
+
     this.history.push(summaryEntry);
     return this.cumulativeScores;
   }
@@ -82,6 +99,7 @@ class Game {
     this.currentRoundNumber++;
     this.dealerSeat = (this.dealerSeat + 1) % 3;
     this.continuePresses = new Set();
+    this.pendingFourNinesAward = null;
   }
 }
 

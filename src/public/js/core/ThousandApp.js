@@ -237,8 +237,23 @@ class ThousandApp {
   }
 
   onTrickPlayStarted(msg) {
+    // The held-back trick_play_started arrives once the four-nines gate closes —
+    // dismiss the modal for everyone (FR-003).
+    this._gameScreen.hideFourNinesPrompt();
     this._applyHandToCardsById(msg.gameStatus?.myHand);
     this._gameScreen.updateStatus(msg.gameStatus);
+  }
+
+  // four_nines_awarded: open the blocking modal and reflect the banked +100 in the
+  // always-visible cumulative display immediately (FR-003, FR-018).
+  onFourNinesAwarded(msg) {
+    this._gameScreen.applyCumulativeBump(msg.cumulativeScores);
+    this._gameScreen.showFourNinesPrompt(msg.nickname, msg.amount);
+  }
+
+  onFourNinesAckProgress(msg) {
+    if (msg.gameStatus) { this._gameScreen.updateStatus(msg.gameStatus); }
+    this._gameScreen.updateFourNinesProgress(msg.acknowledgedSeats);
   }
 
   onCardPlayed(msg) {

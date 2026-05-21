@@ -71,7 +71,8 @@ class FinalResultsScreen {
       row.appendChild(declarerTd);
       row.appendChild(bidTd);
 
-      for (const [, playerData] of Object.entries(round.perPlayer)) {
+      const awardSeat = round.fourNinesAward?.seat;
+      for (const [seatKey, playerData] of Object.entries(round.perPlayer)) {
         const deltaTd = document.createElement('td');
         deltaTd.className = 'final-results__history-delta';
         deltaTd.textContent = playerData.delta;
@@ -79,16 +80,38 @@ class FinalResultsScreen {
         const cumTd = document.createElement('td');
         cumTd.className = 'final-results__history-cumulative';
         cumTd.textContent = playerData.cumulativeAfter;
+        // FR-009: mark the running cumulative that includes the four-nines bonus.
+        if (awardSeat != null && Number(seatKey) === awardSeat) {
+          cumTd.classList.add('final-results__history-cumulative--four-nines');
+          cumTd.title = `Includes four-nines bonus +${round.fourNinesAward.amount}`;
+        }
 
         row.appendChild(deltaTd);
         row.appendChild(cumTd);
       }
 
       tbody.appendChild(row);
+
+      // FR-009: a distinct annotation row attributing the +100 to the awarded player.
+      if (awardSeat != null) {
+        tbody.appendChild(this._fourNinesAnnotationRow(round, awardSeat));
+      }
     }
 
     table.appendChild(tbody);
     this._container.appendChild(table);
+  }
+
+  _fourNinesAnnotationRow(round, awardSeat) {
+    const tr = document.createElement('tr');
+    tr.className = 'final-results__history-row--four-nines';
+    tr.setAttribute('data-seat', awardSeat);
+    const td = document.createElement('td');
+    td.colSpan = 9;
+    const nickname = round.perPlayer[awardSeat]?.nickname ?? 'Player';
+    td.textContent = `Four nines: +${round.fourNinesAward.amount} to ${nickname}`;
+    tr.appendChild(td);
+    return tr;
   }
 
   _renderBackButton() {
