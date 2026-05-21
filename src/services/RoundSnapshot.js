@@ -92,6 +92,13 @@ function buildViewModel(round, seat) {
     sellAttempt: currentSellAttempt(round),
     disconnectedPlayers: disconnectedNicknames(round),
     trickNumber: round.trickNumber > 0 ? round.trickNumber : null,
+    // Played-card pile for the current trick. The client renders and (critically)
+    // recovers deferred centre cards from this; without it, cards played during a
+    // trick-resolve animation are dropped. Played cards are public, so no leak.
+    currentTrick: (round.currentTrick ?? []).map(({ seat: s, cardId }) => {
+      const card = round.deck?.[cardId];
+      return { seat: s, cardId, rank: card?.rank ?? null, suit: card?.suit ?? null };
+    }),
     currentTrumpSuit: round.currentTrumpSuit ?? null,
     cumulativeScores: session ? session.cumulativeScores : { 0: 0, 1: 0, 2: 0 },
     scoreHistory: compactScoreHistory(session),

@@ -64,6 +64,34 @@ function setHand(round, seat, cardIds) {
 }
 
 // ---------------------------------------------------------------------------
+// View-model must expose currentTrick so the client can render / recover the
+// centre pile. Without it, gameStatus.currentTrick is undefined on every
+// card_played and cards deferred during a trick-resolve animation are lost.
+// ---------------------------------------------------------------------------
+
+describe('Round.trickplay — view-model exposes currentTrick', () => {
+  it('currentTrick is an empty array when no card is on the table', () => {
+    const round = makeTrickPlayRound();
+    const vm = round.getViewModelFor(0);
+    assert.deepEqual(vm.currentTrick, []);
+  });
+
+  it('getViewModelFor includes the played card with seat + identity', () => {
+    const round = makeTrickPlayRound();
+    const lead = round.hands[0][0];
+    const card = round.deck[lead];
+    round.playCard(0, lead);
+
+    const vm = round.getViewModelFor(1);
+    assert.ok(Array.isArray(vm.currentTrick), 'view-model must expose a currentTrick array');
+    assert.equal(vm.currentTrick.length, 1, 'one card should be on the table');
+    assert.deepEqual(vm.currentTrick[0], {
+      seat: 0, cardId: lead, rank: card.rank, suit: card.suit,
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // FR-006 — Leading player can play any card
 // ---------------------------------------------------------------------------
 
