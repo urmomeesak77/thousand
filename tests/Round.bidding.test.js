@@ -220,3 +220,26 @@ describe('Round.bidding — forced last bidder (no auto-take at 100)', () => {
     assert.equal(round.phase, 'post-bid-decision');
   });
 });
+
+describe('Round.bidding — viewerMustBid view-model flag', () => {
+  it('false before two passes', () => {
+    const round = makeRound();
+    assert.equal(round.getViewModelFor(1).viewerMustBid, false);
+  });
+
+  it('true only for the forced last bidder after two passes', () => {
+    const round = makeRound();
+    round.submitPass(1);
+    round.submitPass(2);
+    assert.equal(round.getViewModelFor(0).viewerMustBid, true);
+    assert.equal(round.getViewModelFor(1).viewerMustBid, false);
+    assert.equal(round.getViewModelFor(2).viewerMustBid, false);
+  });
+
+  it('false once a real bid exists', () => {
+    const round = makeRound();
+    round.submitBid(1, 100);
+    round.submitPass(2);
+    assert.equal(round.getViewModelFor(0).viewerMustBid, false);
+  });
+});

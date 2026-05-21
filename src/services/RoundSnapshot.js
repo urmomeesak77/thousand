@@ -82,6 +82,10 @@ function buildViewModel(round, seat) {
     phase: PHASE_LABELS[round.phase] ?? round.phase,
     activePlayer: seatInfo(round, round.currentTurnSeat),
     viewerIsActive: round.currentTurnSeat === seat,
+    viewerMustBid: round.phase === 'bidding'
+      && round.currentTurnSeat === seat
+      && round.currentHighBid === null
+      && round.passedBidders.size === 2,
     currentHighBid: round.currentHighBid,
     declarer: seatInfo(round, round.declarerSeat),
     passedPlayers: passedNicknamesForCurrentPhase(round),
