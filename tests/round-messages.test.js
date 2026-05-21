@@ -420,6 +420,23 @@ describe('round-messages — talon_absorbed on bidding resolution (US2)', () => 
       assert.equal(phaseMsg.phase, 'Declarer deciding');
     }
   });
+
+  it('forced last bidder: bid resolves and broadcasts talon_absorbed to all players', () => {
+    const { ws, store } = setupInProgressGame();
+    const game = store.games.get('test-game');
+    game.round.advanceFromDealingToBidding();
+    // seat 1 and seat 2 pass → dealer (seat 0) is the forced last bidder
+    sendMsg(ws[1], { type: 'pass' });
+    sendMsg(ws[2], { type: 'pass' });
+    ws.forEach((w) => { w._sent.length = 0; });
+    sendMsg(ws[0], { type: 'bid', amount: 100 });
+    for (const w of ws) {
+      assert.ok(w._sent.find((m) => m.type === 'talon_absorbed'),
+        'every player must receive talon_absorbed when the bid resolves the auction');
+    }
+    const declarerMsg = ws[0]._sent.find((m) => m.type === 'talon_absorbed');
+    assert.ok(declarerMsg.identities, 'declarer receives talon identities');
+  });
 });
 
 // ---------------------------------------------------------------------------

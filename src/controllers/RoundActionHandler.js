@@ -92,8 +92,16 @@ class RoundActionHandler {
     this._runRoundAction(
       playerId,
       (round, seat) => round.submitBid(seat, amount),
-      (pid, gameStatus) => {
+      (pid, gameStatus, result, { round }) => {
         this._store.sendToPlayer(pid, { type: 'bid_accepted', playerId, amount, gameStatus });
+        if (result.resolved) {
+          const declarerPid = round.seatOrder[round.declarerSeat];
+          const msg = { type: 'talon_absorbed', declarerId: declarerPid, talonIds: result.talonIds, gameStatus };
+          if (pid === declarerPid) {
+            msg.identities = result.identities;
+          }
+          this._store.sendToPlayer(pid, msg);
+        }
       },
     );
   }
