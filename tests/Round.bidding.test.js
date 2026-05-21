@@ -136,16 +136,15 @@ describe('Round.bidding — turn rotation with passes', () => {
   });
 });
 
-describe('Round.bidding — all-pass resolution (FR-011)', () => {
-  it('dealer becomes declarer at 100 when P1 and P2 both pass (all-pass scenario)', () => {
-    // When P1 and P2 pass without bidding, the dealer is the sole remaining player.
-    // The remaining.length===1 branch fires immediately; FR-011 requires currentHighBid=100.
+describe('Round.bidding — all-pass leaves dealer as forced last bidder (FR-011)', () => {
+  it('after P1 and P2 pass, the dealer must bid (no auto-take); pass is rejected', () => {
     const round = makeRound();
     round.submitPass(1); // P1 passes; turn → seat 2
-    round.submitPass(2); // P2 passes; only dealer remains → resolution fires
-    assert.equal(round.declarerSeat, 0, 'dealer (seat 0) must be declarer');
-    assert.equal(round.currentHighBid, 100, 'currentHighBid must be set to 100 per FR-011');
-    assert.equal(round.phase, 'post-bid-decision');
+    round.submitPass(2); // P2 passes; turn → seat 0 (dealer), still bidding
+    assert.equal(round.phase, 'bidding', 'dealer is not auto-declared');
+    assert.equal(round.currentTurnSeat, 0);
+    assert.equal(round.currentHighBid, null, 'no bid forced onto the dealer');
+    assert.equal(round.submitPass(0).rejected, true, 'dealer cannot pass as last bidder');
   });
 });
 
@@ -160,10 +159,12 @@ describe('Round.bidding — last-bidder-remaining resolution (FR-010)', () => {
     assert.equal(round.phase, 'post-bid-decision');
   });
 
-  it('sole survivor via submitBid (3 players, 2 already passed)', () => {
+  it('sole survivor takes the contract via submitBid (2 already passed)', () => {
     const round = makeRound();
     round.submitPass(1); // seat 1 passes; turn → seat 2
-    round.submitPass(2); // seat 2 passes; remaining = [0] → declarer = seat 0
+    round.submitPass(2); // seat 2 passes; turn → seat 0, still bidding
+    const r = round.submitBid(0, 100);
+    assert.equal(r.resolved, true);
     assert.equal(round.declarerSeat, 0);
     assert.equal(round.phase, 'post-bid-decision');
   });

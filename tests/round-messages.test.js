@@ -364,8 +364,8 @@ describe('round-messages — talon_absorbed on bidding resolution (US2)', () => 
     game.round.advanceFromDealingToBidding();
     ws.forEach((w) => { w._sent.length = 0; });
 
-    // All-pass resolution: seat 1 → seat 2 → seat 0
-    sendMsg(ws[1], { type: 'pass' });
+    // seat 1 bids 100; seats 2 and 0 pass → seat 1 is sole survivor with a real bid
+    sendMsg(ws[1], { type: 'bid', amount: 100 });
     sendMsg(ws[2], { type: 'pass' });
     sendMsg(ws[0], { type: 'pass' });
 
@@ -382,19 +382,20 @@ describe('round-messages — talon_absorbed on bidding resolution (US2)', () => 
     game.round.advanceFromDealingToBidding();
     ws.forEach((w) => { w._sent.length = 0; });
 
-    sendMsg(ws[1], { type: 'pass' });
+    // seat 1 bids 100; seats 2 and 0 pass → seat 1 (Bob) is declarer
+    sendMsg(ws[1], { type: 'bid', amount: 100 });
     sendMsg(ws[2], { type: 'pass' });
-    sendMsg(ws[0], { type: 'pass' }); // seat 0 (Alice) is declarer after all-pass
+    sendMsg(ws[0], { type: 'pass' }); // seat 1 (Bob) is declarer after final pass resolves
 
-    // ws[0] = declarer (Alice, seat 0) — must have identities
-    const declarerMsg = ws[0]._sent.find((m) => m.type === 'talon_absorbed');
+    // ws[1] = declarer (Bob, seat 1) — must have identities
+    const declarerMsg = ws[1]._sent.find((m) => m.type === 'talon_absorbed');
     assert.ok(declarerMsg.identities, 'declarer must receive identities');
     for (const id of declarerMsg.talonIds) {
       assert.ok(declarerMsg.identities[String(id)], `identity for card ${id} must be present`);
     }
 
-    // ws[1] and ws[2] are non-declarers — must NOT have identities
-    for (const w of [ws[1], ws[2]]) {
+    // ws[0] and ws[2] are non-declarers — must NOT have identities
+    for (const w of [ws[0], ws[2]]) {
       const msg = w._sent.find((m) => m.type === 'talon_absorbed');
       assert.equal(msg.identities, undefined, 'non-declarer must not receive card identities');
     }
@@ -406,13 +407,14 @@ describe('round-messages — talon_absorbed on bidding resolution (US2)', () => 
     game.round.advanceFromDealingToBidding();
     ws.forEach((w) => { w._sent.length = 0; });
 
+    // seat 1 passes, seat 2 passes → seat 0 bids 100 to resolve (forced last bidder)
     sendMsg(ws[1], { type: 'pass' });
     sendMsg(ws[2], { type: 'pass' });
-    sendMsg(ws[0], { type: 'pass' });
+    sendMsg(ws[0], { type: 'bid', amount: 100 });
 
     for (const w of ws) {
-      // handlePass broadcasts phase_changed after every pass; use findLast to get the
-      // one from the resolving pass (the only one that carries 'Declarer deciding')
+      // handleBid broadcasts phase_changed when bidding resolves; use findLast to get the
+      // one from the resolving bid (the only one that carries 'Declarer deciding')
       const phaseMsg = w._sent.findLast((m) => m.type === 'phase_changed');
       assert.ok(phaseMsg, 'phase_changed must be broadcast after bidding resolves');
       assert.equal(phaseMsg.phase, 'Declarer deciding');

@@ -39,9 +39,10 @@ function makeRoundInTrickPlay() {
   const round = new Round({ game, store });
   round.start();
   round.advanceFromDealingToBidding();
-  // Pass from seat 1 then seat 2 → seat 0 becomes declarer at 100
+  // Pass from seat 1 then seat 2 → seat 0 is forced last bidder; bids 100 to become declarer
   round.submitPass(1);
   round.submitPass(2);
+  round.submitBid(0, 100);
 
   // Force trick-play state directly (mirrors Round.trickplay.test.js pattern)
   round.phase = 'trick-play';

@@ -28,7 +28,8 @@ function makeRound() {
 function makeSellingRound() {
   const round = makeRound();
   round.submitPass(1); // P1 passes → seat 2 is next
-  round.submitPass(2); // P2 passes → remaining=[0], dealer becomes declarer at 100
+  round.submitPass(2); // P2 passes → seat 0 is forced last bidder
+  round.submitBid(0, 100); // dealer bids 100 → becomes declarer
   return round;
 }
 

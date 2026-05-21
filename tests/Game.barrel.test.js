@@ -91,12 +91,13 @@ function fakeSession(barrelOverrides = {}) {
 }
 
 // Advance a fresh round to selling-bidding phase with seat 0 as declarer.
-// seat 1 and seat 2 both pass → dealer (seat 0) is auto-declarer at 100.
+// seat 1 and seat 2 both pass; dealer (seat 0) takes the contract at 100 (forced last bidder must bid).
 // Then seat 0 starts selling and commits 3 cards.
 function makeSellBiddingRound(gameSession = null) {
   const round = makeRound(gameSession);
   round.submitPass(1);
   round.submitPass(2);
+  round.submitBid(0, 100); // dealer (seat 0) takes the contract at 100 (forced last bidder must bid)
   // Now in post-bid-decision, declarer = seat 0
   round.startSelling(0);
   round.commitSellSelection(0, [2, 6, 10]);
@@ -610,69 +611,51 @@ describe('Round.submitSellBid — barrel bid-floor (FR-022)', () => {
 // NOTE: These tests WILL FAIL until T089 implements the barrel 120 override in submitPass.
 // ---------------------------------------------------------------------------
 
-describe('Round.submitPass — auto-declarer barrel override (FR-022d)', () => {
-  it('all 3 pass; dealer (seat 0) is on barrel → auto-declarer bid = 120 (not 100)', () => {
+describe('Round.submitBid — barrel forced-last-bidder floor (FR-022d)', () => {
+  it('P1+P2 pass; barrel dealer (seat 0) cannot take at 100 — must bid >= 120', () => {
     const session = fakeSession({ 0: { onBarrel: true, barrelRoundsUsed: 1 } });
     const round = makeRound(session);
-
-    // All 3 players pass in order: seat 1, seat 2, seat 0
-    round.submitPass(1); // P1 passes; turn → seat 2
-    round.submitPass(2); // P2 passes; remaining = [0] → resolution fires
-
-    // Dealer (seat 0) is the last remaining player and is on barrel.
-    // FR-022d: auto-declared bid must be 120 instead of 100.
-    assert.equal(round.declarerSeat, 0, 'dealer (seat 0) must be the declarer');
-    assert.equal(round.currentHighBid, 120, 'barrel dealer auto-declares at 120 (not 100)');
+    round.submitPass(1);
+    round.submitPass(2);
+    assert.equal(round.phase, 'bidding', 'dealer must bid, not auto-take');
+    assert.equal(round.submitBid(0, 100).rejected, true, 'barrel dealer cannot take at 100');
+    const r = round.submitBid(0, 120);
+    assert.equal(r.rejected, false, 'barrel dealer takes at 120');
+    assert.equal(r.resolved, true);
+    assert.equal(round.declarerSeat, 0);
+    assert.equal(round.currentHighBid, 120);
     assert.equal(round.phase, 'post-bid-decision');
   });
 
-  it('all 3 pass; dealer (seat 0) is NOT on barrel → auto-declarer bid = 100', () => {
+  it('P1+P2 pass; non-barrel dealer takes at 100 via submitBid', () => {
     const session = fakeSession({ 0: { onBarrel: false, barrelRoundsUsed: 0 } });
     const round = makeRound(session);
-
     round.submitPass(1);
     round.submitPass(2);
-
-    assert.equal(round.declarerSeat, 0, 'dealer (seat 0) must be the declarer');
-    assert.equal(round.currentHighBid, 100, 'non-barrel dealer auto-declares at 100');
-    assert.equal(round.phase, 'post-bid-decision');
-  });
-
-  it('all 3 pass; dealer (seat 0) is on barrel with barrelRoundsUsed=0 → auto-bid = 120', () => {
-    const session = fakeSession({ 0: { onBarrel: true, barrelRoundsUsed: 0 } });
-    const round = makeRound(session);
-
-    round.submitPass(1);
-    round.submitPass(2);
-
-    assert.equal(round.currentHighBid, 120, 'barrel dealer (fresh entry) auto-declares at 120');
-  });
-
-  it('all 3 pass; no game session attached → auto-declarer bid = 100 (graceful fallback)', () => {
-    // When round has no session (no barrel info), normal behavior must apply.
-    const round = makeRound(null);
-
-    round.submitPass(1);
-    round.submitPass(2);
-
+    const r = round.submitBid(0, 100);
+    assert.equal(r.rejected, false);
     assert.equal(round.declarerSeat, 0);
-    assert.equal(round.currentHighBid, 100, 'without session context, auto-declares at 100');
-    assert.equal(round.phase, 'post-bid-decision');
+    assert.equal(round.currentHighBid, 100);
   });
 
-  it('P1 and P2 pass, dealer (seat 0) is on barrel, but P1 had already bid 120 before passing → declarerSeat is P1 or P2, not affected by barrel rule', () => {
-    // P1 bids 120 (seat 1), P2 passes, seat 0 passes → seat 1 is declarer at 120.
-    // Barrel rule only fires when currentHighBid is null (all-pass without any bid).
+  it('no session attached: dealer takes at 100 via submitBid (graceful fallback)', () => {
+    const round = makeRound(null);
+    round.submitPass(1);
+    round.submitPass(2);
+    const r = round.submitBid(0, 100);
+    assert.equal(r.rejected, false);
+    assert.equal(round.declarerSeat, 0);
+    assert.equal(round.currentHighBid, 100);
+  });
+
+  it('P1 already bid 120 before passing: seat 1 is declarer, barrel rule irrelevant', () => {
     const session = fakeSession({ 0: { onBarrel: true, barrelRoundsUsed: 0 } });
     const round = makeRound(session);
-
     round.submitBid(1, 120); // seat 1 bids 120; turn → seat 2
     round.submitPass(2);     // seat 2 passes; turn → seat 0
-    round.submitPass(0);     // seat 0 passes; remaining = [1] → seat 1 is declarer
-
-    assert.equal(round.declarerSeat, 1, 'seat 1 won the bid');
-    assert.equal(round.currentHighBid, 120, 'bid remains 120 from P1');
-    // Barrel override does NOT apply here because currentHighBid was already set
+    round.submitPass(0);     // seat 0 passes; remaining = [1] → seat 1 declarer
+    assert.equal(round.declarerSeat, 1);
+    assert.equal(round.currentHighBid, 120);
     assert.equal(round.phase, 'post-bid-decision');
   });
 });

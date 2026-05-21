@@ -38,7 +38,8 @@ function makeTrickPlayRound() {
   const round = makeRound();
   round.advanceFromDealingToBidding();
   round.submitPass(1);
-  round.submitPass(2); // declarerSeat = 0
+  round.submitPass(2);
+  round.submitBid(0, 100); // declarerSeat = 0
 
   round.phase = 'trick-play';
   round.trickNumber = 1;

@@ -44,20 +44,25 @@ describe('Round honors rotated dealerSeat from Game session', () => {
     assert.equal(round.currentTurnSeat, 0);
   });
 
-  it('auto-declarer on all-pass is the dealer (seat 1)', () => {
+  it('forced last bidder on all-pass is the dealer (seat 1)', () => {
     const round = makeRound(1);
-    // seat 2 passes, then seat 0 passes → seat 1 auto-declares
     round.submitPass(2);
     round.submitPass(0);
+    assert.equal(round.phase, 'bidding');
+    assert.equal(round.currentTurnSeat, 1, 'dealer (seat 1) is the forced last bidder');
+    const r = round.submitBid(1, 100);
+    assert.equal(r.resolved, true);
     assert.equal(round.declarerSeat, 1);
     assert.equal(round.currentHighBid, 100);
   });
 
-  it('auto-declarer on all-pass is the dealer (seat 2)', () => {
+  it('forced last bidder on all-pass is the dealer (seat 2)', () => {
     const round = makeRound(2);
-    // seat 0 passes, then seat 1 passes → seat 2 auto-declares
     round.submitPass(0);
     round.submitPass(1);
+    assert.equal(round.currentTurnSeat, 2);
+    const r = round.submitBid(2, 100);
+    assert.equal(r.resolved, true);
     assert.equal(round.declarerSeat, 2);
   });
 });

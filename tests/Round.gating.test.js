@@ -84,11 +84,11 @@ describe('Round.gating — post-resolution', () => {
   it('submitPass is rejected after the round resolves', () => {
     const round = makeRound();
     round.advanceFromDealingToBidding();
-    round.submitPass(1);
-    round.submitPass(2);
-    round.submitPass(0);
+    round.submitBid(1, 120); // seat 1 bids; turn → seat 2
+    round.submitPass(2);     // seat 2 passes; turn → seat 0
+    round.submitPass(0);     // seat 0 passes; remaining = [1] with a bid → resolves
     assert.equal(round.phase, 'post-bid-decision');
-    const r = round.submitPass(0);
+    const r = round.submitPass(1);
     assert.equal(r.rejected, true);
   });
 });
