@@ -145,5 +145,5 @@ Post-feature enhancements (landed on this branch, no separate spec dir — desig
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/006-four-nines-bonus/plan.md`.
+at `specs/007-crawling/plan.md`.
 <!-- SPECKIT END -->
