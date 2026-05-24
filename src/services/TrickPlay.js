@@ -26,11 +26,18 @@ class TrickPlay {
     this.crawlCommits = [];
   }
 
-  // FR-003: arm the crawl. Only valid on trick 1 with the declarer leading.
-  // Idempotent — re-arming an active crawl is a harmless no-op.
+  // FR-003: arm the crawl. Only valid on trick 1 with the declarer leading AND
+  // before any normal card has landed on the centre — otherwise a declarer who
+  // led face-up could re-arm a stale `crawlActive`, leak it past _resolveTrick,
+  // and let any client bypass follow-suit on tricks 2-8.
+  // Idempotent — re-arming an already-active crawl short-circuits to success.
   beginCrawl() {
+    if (this.crawlActive) { return { rejected: false }; }
     if (this.trickNumber !== 1 || this.currentTrickLeaderSeat !== this.declarerSeat) {
       return { rejected: true, reason: 'Crawl is only available on the first lead' };
+    }
+    if (this.currentTrick.length !== 0) {
+      return { rejected: true, reason: 'Crawl is only available before the first lead' };
     }
     this.crawlActive = true;
     return { rejected: false };
@@ -160,6 +167,10 @@ class TrickPlay {
     this.currentTrick = [];
     this.currentTrickLeaderSeat = winnerSeat;
     this.currentTurnSeat = winnerSeat;
+    // Defensive: a normal trick resolution must never leave crawl flags armed —
+    // they would otherwise be picked up by a later crawl_commit.
+    this.crawlActive = false;
+    this.crawlCommits = [];
 
     const result = { rejected: false, trickResolved: true, winnerSeat, winningCardId, trickCardIds };
 

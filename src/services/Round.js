@@ -394,6 +394,12 @@ class Round {
 
     this._ensureTrickPlay();
     if (!this._trickPlay.crawlActive) {
+      // Specific reason for opponents who fire ahead of the declarer's
+      // initiating commit — bubbling up beginCrawl's "Only the declarer can
+      // crawl" would imply they're trying to initiate, not just out of turn.
+      if (seat !== this.declarerSeat) {
+        return { rejected: true, reason: 'Wait for the declarer to crawl first' };
+      }
       const begin = this.beginCrawl(seat);
       if (begin.rejected) {return begin;}
     }

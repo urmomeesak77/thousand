@@ -209,3 +209,36 @@ describe('Round crawl — decline path (FR-002)', () => {
     assert.equal(round.getViewModelFor(0).crawlAvailable, false, 'no crawl offer after a normal lead');
   });
 });
+
+// Regression: a malicious declarer who leads face-up on trick 1 must not be
+// able to re-arm crawlActive via a follow-up crawl_commit (would leak past
+// _resolveTrick and let any client bypass follow-suit on later tricks). FR-008.
+describe('Round crawl — no cross-trick state leak after a normal lead (FR-008)', () => {
+  it('rejects crawl_commit from the declarer after a normal lead and never sets crawlActive', () => { // per FR-008
+    const round = makeTrickPlayRound();
+    const { s0 } = arrangeAcelessCrawl(round);
+    const lead = round.playCard(0, s0);
+    assert.equal(lead.rejected, false);
+
+    // Declarer's second card — the malicious crawl_commit candidate.
+    const stragglerId = findId(round, 'J', '♣');
+    const attempt = round.commitCrawlCard(0, stragglerId);
+    assert.equal(attempt.rejected, true);
+    assert.equal(round.crawlActive, false, 'auto-arm must not flip crawlActive once a normal lead has landed');
+  });
+
+  it('leaves crawlActive=false after a normal trick 1 resolves, so trick 2 crawl_commit is rejected', () => { // per FR-008
+    const round = makeTrickPlayRound();
+    const { s0, s1, s2 } = arrangeAcelessCrawl(round);
+    round.playCard(0, s0); // declarer leads Q♥
+    round.playCard(1, s1); // seat 1 K♠ (no hearts to follow)
+    round.playCard(2, s2); // seat 2 10♥ → seat 2 wins trick 1
+
+    assert.equal(round.trickNumber, 2);
+    assert.equal(round.crawlActive, false, 'no crawl flag survives a normal trick 1 resolution');
+
+    // Any seat trying to crawl on trick 2 must be rejected.
+    const r = round.commitCrawlCard(2, findId(round, 'A', '♥'));
+    assert.equal(r.rejected, true);
+  });
+});

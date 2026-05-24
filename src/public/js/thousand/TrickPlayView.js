@@ -267,6 +267,9 @@ class TrickPlayView {
       this._crawlControls.showDeclarerChoice();
     } else if (gameStatus.crawlActive && gameStatus.viewerIsActive) {
       this._crawlControls.showOpponentPrompt();
+    } else if (gameStatus.crawlAvailable && this._crawlChoice === 'lead') {
+      // Keep the "Leading — pick a card to play" text alive across re-renders
+      // until the declarer's normal play lands (clears crawlAvailable).
     } else {
       this._crawlControls.hide();
     }
