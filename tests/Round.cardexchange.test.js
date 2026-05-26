@@ -200,3 +200,25 @@ describe('Round.cardexchange — card moves from declarer hand to recipient hand
     assert.ok(round.hands[1].includes(cardId), 'card must arrive in recipient hand');
   });
 });
+
+// Regression: an out-of-range destSeat used to crash the server because
+// `this.hands[destSeat].push(...)` was reached on an undefined entry. The
+// dispatch path has no try/catch, so the throw becomes uncaughtException.
+describe('Round.cardexchange — destSeat must be 0/1/2', () => {
+  it('rejects toSeat=99 instead of throwing', () => {
+    const round = makeCardExchangeRound();
+    const cardId = round.hands[0][0];
+    const r = round.submitExchangePass(0, cardId, 99);
+    assert.equal(r.rejected, true);
+    assert.match(r.reason, /invalid destination seat/i);
+  });
+
+  it('rejects toSeat=null, "1", undefined, -1', () => {
+    for (const bad of [null, '1', undefined, -1, 1.5, NaN]) {
+      const round = makeCardExchangeRound();
+      const cardId = round.hands[0][0];
+      const r = round.submitExchangePass(0, cardId, bad);
+      assert.equal(r.rejected, true, `expected rejection for destSeat=${String(bad)}`);
+    }
+  });
+});

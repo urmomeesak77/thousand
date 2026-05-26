@@ -246,3 +246,31 @@ describe('ConnectionManager heartbeat', () => {
     assert.equal(ws.isAlive, false, 'isAlive reset to false after ping');
   });
 });
+
+// Regression: a synchronous throw from any RoundActionHandler used to escape
+// the WS 'message' listener and crash the whole Node process. _handleAuthedMessage
+// must catch and surface an error frame instead.
+describe('ConnectionManager dispatch error boundary', () => {
+  it('catches a synchronous throw in a dispatched handler and sends an error frame', () => {
+    const store = new ThousandStore();
+    const cm = new ConnectionManager(store);
+    const ws = makeWs();
+    cm.handleConnection(ws);
+    sendMsg(ws, { type: 'hello' });
+
+    // Force a throw from inside the dispatched action by replacing the handler.
+    cm._roundActionHandler.handlePlayCard = () => { throw new Error('boom'); };
+
+    // Must not throw up to the caller (this is what would have crashed Node).
+    const origConsoleError = console.error;
+    console.error = () => {};
+    try {
+      assert.doesNotThrow(() => sendMsg(ws, { type: 'play_card', cardId: 0 }));
+    } finally {
+      console.error = origConsoleError;
+    }
+
+    const err = ws._sent.find((m) => m.type === 'error' && m.code === 'internal_error');
+    assert.ok(err, 'an internal_error frame was sent to the client');
+  });
+});

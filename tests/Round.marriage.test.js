@@ -437,3 +437,31 @@ describe('Round.marriage — stacking and trump replacement (FR-012)', () => {
     assert.notEqual(round.currentTrumpSuit, '♠');
   });
 });
+
+// Regression: an out-of-range cardId used to crash the server because
+// `this.deck[cardId].rank` was evaluated before any in-hand validation. The
+// WS dispatch had no try/catch, so the throw became uncaughtException.
+describe('Round.declareMarriage — invalid cardId rejects cleanly', () => {
+  it('rejects cardId=999 instead of throwing', () => {
+    const round = makeTrickPlayRound();
+    round.trickNumber = 2;
+    round.currentTrick = [];
+    round.currentTrickLeaderSeat = 0;
+    round.currentTurnSeat = 0;
+    const r = round.declareMarriage(0, 999);
+    assert.equal(r.rejected, true);
+    assert.match(r.reason, /card not in hand/i);
+  });
+
+  it('rejects cardId=-1 and other out-of-range ids', () => {
+    for (const bad of [-1, 9999, 24]) {
+      const round = makeTrickPlayRound();
+      round.trickNumber = 2;
+      round.currentTrick = [];
+      round.currentTrickLeaderSeat = 0;
+      round.currentTurnSeat = 0;
+      const r = round.declareMarriage(0, bad);
+      assert.equal(r.rejected, true, `expected rejection for cardId=${bad}`);
+    }
+  });
+});

@@ -137,6 +137,11 @@ class TrickPlay {
     }
 
     const card = this.deck[cardId];
+    // An out-of-range cardId would throw on `card.rank` and crash the WS dispatch
+    // (this function runs before any in-hand check in the play_card handler).
+    if (!card) {
+      return { rejected: true, reason: 'Card not in hand' };
+    }
     if (card.rank !== 'K' && card.rank !== 'Q') {
       return { rejected: true, reason: 'Marriage can only be declared with K or Q' };
     }

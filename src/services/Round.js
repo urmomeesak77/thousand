@@ -251,6 +251,11 @@ class Round {
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can pass cards' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
     if (!this.hands[seat].includes(cardId)) {return { rejected: true, reason: 'Card not in hand' };}
+    // Reject before the `hands[destSeat].push` below — an out-of-range key (e.g. 99,
+    // null, "foo") makes `this.hands[destSeat]` undefined and crashes the WS handler.
+    if (destSeat !== 0 && destSeat !== 1 && destSeat !== 2) {
+      return { rejected: true, reason: 'Invalid destination seat' };
+    }
     if (destSeat === this.declarerSeat) {return { rejected: true, reason: 'Cannot pass to yourself' };}
     if (this._usedExchangeDestSeats.has(destSeat)) {
       return { rejected: true, reason: 'Already passed to that opponent' };

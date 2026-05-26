@@ -188,7 +188,17 @@ class ConnectionManager {
   _handleAuthedMessage(ws, msg) {
     const action = ACTION_DISPATCH[msg.type];
     if (!action) {return false;}
-    action(this._roundActionHandler, ws._playerId, msg);
+    // Boundary against a synchronous throw from any RoundActionHandler — the `ws`
+    // library emits 'message' synchronously, so an uncaught error would otherwise
+    // crash the whole Node process (one bad message frame DOS-es every player).
+    try {
+      action(this._roundActionHandler, ws._playerId, msg);
+    } catch (err) {
+      console.error('[dispatch] uncaught', { playerId: ws._playerId, type: msg.type, err: err.message });
+      try {
+        ws.send(JSON.stringify({ type: 'error', code: 'internal_error', message: 'Server error' }));
+      } catch { /* socket already gone */ }
+    }
     return true;
   }
 

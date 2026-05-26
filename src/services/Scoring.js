@@ -47,7 +47,7 @@ function roundScores(round) {
   return scores;
 }
 
-function roundDeltas(roundScoresMap, declarerSeat, bid, _penalties = []) {
+function roundDeltas(roundScoresMap, declarerSeat, bid) {
   const deltas = { 0: 0, 1: 0, 2: 0 };
   for (const seat of [0, 1, 2]) {
     if (seat === declarerSeat) {
@@ -103,6 +103,10 @@ function determineWinner(game) {
       return { winnerSeat: seat };
     }
   }
+  // Unreachable: {P1, P2, Dealer} is a permutation of {0,1,2} and `tied` is a
+  // non-empty subset, so the loop above must return. Fall back to the first tied
+  // seat so a future refactor that breaks the invariant doesn't yield `undefined`.
+  return { winnerSeat: tied[0] };
 }
 
 // FR-017: Builds the FinalResults view-model when the game ends
