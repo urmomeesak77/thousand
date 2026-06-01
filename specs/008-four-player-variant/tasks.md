@@ -118,8 +118,8 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 - [x] T037 [US3] Dest buttons over all opponent seats (not just left/right); generalized direction label in `src/public/js/thousand/CardExchangeView.js` (FR-011, FR-018).
 - [x] T038 [P] [US3] Verify `OpponentView` is position-agnostic (one instance per opponent seat); no structural change expected, in `src/public/js/thousand/OpponentView.js` (FR-018).
 - [x] T039 [P] [US3] "/2 cards passed" → "/(playerCount-1) cards passed" in `src/public/js/thousand/StatusBar.js` (FR-011, FR-020).
-- [ ] T040 [P] [US3] Verify the default `cumulativeScores` fallback no longer assumes 3 seats in `src/public/js/thousand/ScoreboardPanel.js` (FR-019).
-- [ ] T041 [P] [US3] Derive the table `colSpan` from the player count (not literal 9) in `src/public/js/thousand/FinalResultsScreen.js` (FR-019).
+- [x] T040 [P] [US3] Verify the default `cumulativeScores` fallback no longer assumes 3 seats in `src/public/js/thousand/ScoreboardPanel.js` (FR-019).
+- [x] T041 [P] [US3] Derive the table `colSpan` from the player count (not literal 9) in `src/public/js/thousand/FinalResultsScreen.js` (FR-019).
 - [ ] T042 [US3] Add the 4th (top/across) seat slot to the table grid + trick-centre and keep it responsive on mobile in `src/public/css/game.css` (FR-018, §VI, R-302). (Depends on T034)
 
 **Checkpoint**: 4-player creation flow and table are fully visible and usable; T029–T030 pass.
