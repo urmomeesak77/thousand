@@ -41,7 +41,11 @@ class WaitingRoom extends HtmlContainer {
     }
     const hint = document.querySelector('.waiting-hint');
     if (hint && this._requiredPlayers !== null) {
-      hint.textContent = `Waiting for players… (${this._requiredPlayers} needed to start)`;
+      // FR-003: surface join progress (joined / required) alongside the start threshold
+      const joined = this._players.length;
+      hint.textContent =
+        `Waiting for players… ${joined} / ${this._requiredPlayers} joined ` +
+        `(${this._requiredPlayers} needed to start)`;
     }
   }
 

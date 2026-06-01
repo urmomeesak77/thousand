@@ -496,7 +496,9 @@ class GameScreen {
   }
 
   _renderStatus(gameStatus) {
-    this._statusBar.render(gameStatus, this._sellWinnerNickname);
+    // playerCount = seat count; lets the bar render count-aware text (FR-011/FR-020)
+    const playerCount = this._seats?.players.length ?? 3;
+    this._statusBar.render(gameStatus, this._sellWinnerNickname, playerCount);
     if (this._seats) {
       this._scoreboard.render(
         gameStatus.scoreHistory ?? [],

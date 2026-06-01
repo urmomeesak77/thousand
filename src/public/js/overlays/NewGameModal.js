@@ -45,7 +45,9 @@ class NewGameModal {
         this._onError('Pick public or private.');
         return;
       }
-      const requiredPlayers = parseInt(HtmlUtil.byId('player-count').value, 10);
+      // FR-001: read 3-or-4 from the player-count radio group; default 3 if unset
+      const countRadio = document.querySelector('input[name="player-count"]:checked');
+      const requiredPlayers = countRadio ? parseInt(countRadio.value, 10) : 3;
       this._close();
       this._onCreateGame(checked.value, requiredPlayers);
     });

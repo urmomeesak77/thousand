@@ -102,7 +102,7 @@
         </div>
       </div>
       <ul class="player-list" id="player-list" aria-label="Players in game"></ul>
-      <p class="waiting-hint">Waiting for players… (3 needed to start)</p>
+      <p class="waiting-hint">Waiting for players…</p>
       <p class="waiting-elapsed">Waiting for <span id="waiting-elapsed">0s</span></p>
       <button class="btn btn-ghost btn-sm" id="leave-game-btn">Leave Game</button>
     </div>
@@ -128,7 +128,17 @@
             Private — invite only
           </label>
         </fieldset>
-        <input type="hidden" id="player-count" name="player-count" value="3" />
+        <fieldset>
+          <legend>Players</legend>
+          <label class="radio-label">
+            <input type="radio" name="player-count" value="3" checked />
+            3 players
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="player-count" value="4" />
+            4 players
+          </label>
+        </fieldset>
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">Create Game</button>
           <button class="btn btn-ghost" id="modal-cancel-btn" type="button">Cancel</button>

@@ -158,6 +158,27 @@ describe('StatusBar — exchangePassesCommitted field (FR-018)', () => {
   });
 });
 
+// per FR-011 / FR-020: exchange-pass total is player-count-aware (playerCount - 1 opponents)
+describe('StatusBar — player-count-aware exchange passes (FR-011)', () => {
+  it('shows "/2 cards passed" for a 3-player game (default playerCount)', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ exchangePassesCommitted: 1 }));
+    assert.equal(text(sb, '.status-bar__exchange-passes'), '1/2 cards passed');
+  });
+
+  it('shows "/2 cards passed" when playerCount is explicitly 3', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ exchangePassesCommitted: 0 }), null, 3);
+    assert.equal(text(sb, '.status-bar__exchange-passes'), '0/2 cards passed');
+  });
+
+  it('shows "/3 cards passed" for a 4-player game', () => {
+    const sb = makeStatusBar();
+    sb.render(status({ exchangePassesCommitted: 2 }), null, 4);
+    assert.equal(text(sb, '.status-bar__exchange-passes'), '2/3 cards passed');
+  });
+});
+
 // cumulativeScores removed from status bar (per 2026-05-20 design); barrel markers stay
 describe('StatusBar — cumulative scores removed, barrel markers kept', () => {
   it('does not render any .status-bar__cumulative-score spans', () => {

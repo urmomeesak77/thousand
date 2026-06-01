@@ -10,8 +10,10 @@ class StatusBar {
     this._el.className = 'status-bar';
   }
 
-  // Re-renders the bar from the GameStatus view-model
-  render(gameStatus, sellWinner = null) {
+  // Re-renders the bar from the GameStatus view-model.
+  // playerCount drives count-dependent text (e.g. exchange-pass total); defaults to 3.
+  render(gameStatus, sellWinner = null, playerCount = 3) {
+    this._playerCount = playerCount;
     this._el.textContent = '';
     this._el.appendChild(this._span('status-bar__phase', gameStatus.phase));
     this._renderRoundNumber(gameStatus.roundNumber);
@@ -104,8 +106,10 @@ class StatusBar {
     if (exchangePassesCommitted == null) {
       return;
     }
+    // FR-011: total passes = opponents = playerCount - 1 (2 for 3-player, 3 for 4-player)
+    const totalPasses = (this._playerCount ?? 3) - 1;
     this._el.appendChild(
-      this._span('status-bar__exchange-passes', `${exchangePassesCommitted}/2 cards passed`),
+      this._span('status-bar__exchange-passes', `${exchangePassesCommitted}/${totalPasses} cards passed`),
     );
   }
 
