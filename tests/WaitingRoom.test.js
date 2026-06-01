@@ -66,6 +66,7 @@ describe('WaitingRoom — required-player threshold (FR-003)', () => {
   it('shows "(4 needed to start)" for a 4-player room', () => {
     const wr = makeWaitingRoom();
     wr.load('g1', null, players(2), 4);
+    // per FR-020 — waiting hint reflects the configured player count, not a fixed "3"
     assert.ok(hintText().includes('(4 needed to start)'));
   });
 });

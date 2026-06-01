@@ -130,10 +130,10 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 
 **Purpose**: FR-004 cleanup, live e2e coverage, docs, and final verification.
 
-- [ ] T043 [P] Remove/replace outdated "3-player only / hardcoded count" comments in `src/controllers/validators.js` (FR-004).
-- [ ] T044 [P] Clear misleading "3-player as the only supported count / 4-player as a future feature" restriction notes in `specs/004` and `specs/005` historical docs without rewriting shipped spec history beyond those lines (FR-004).
+- [x] T043 [P] Remove/replace outdated "3-player only / hardcoded count" comments in `src/controllers/validators.js` (FR-004).
+- [x] T044 [P] Clear misleading "3-player as the only supported count / 4-player as a future feature" restriction notes in `specs/004` and `specs/005` historical docs without rewriting shipped spec history beyond those lines (FR-004).
 - [ ] T045 Generalize the live-e2e deck seam to the 32-card deck and add a 4-player variant (and `THOUSAND_STACK_DECK` four-nines / no-ace forcing) to `tests/e2e-live-smart.js` (R-304; quickstart §four-nines/crawl).
-- [ ] T046 Update `CLAUDE.md` Project Structure to note `src/services/Seats.js` and the `playerCount` parameter threaded through the engine.
+- [x] T046 Update `CLAUDE.md` Project Structure to note `src/services/Seats.js` and the `playerCount` parameter threaded through the engine.
 - [ ] T047 Run the FR-coverage check: confirm every FR-001…FR-020 has a matching `// per FR-NNN` test annotation (use the `fr-coverage-checker` agent).
 - [ ] T048 Final verification: `npm test && npm run lint`; confirm coverage stays ≥90% (SC-001…SC-005).
 - [ ] T049 Manual quickstart.md validation: 4-player happy path, four-nines/crawl via deck seam, and the responsive narrow-viewport check of all four seats + 4-card trick-centre (SC-002, SC-003, §VI).

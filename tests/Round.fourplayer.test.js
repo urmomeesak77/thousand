@@ -150,8 +150,8 @@ describe('Round (4-player) — selling with three opponents', () => {
   });
 });
 
-describe('Round (4-player) — four-nines acknowledgment gate (FR-005)', () => {
-  it('the gate closes only once all four seats have acknowledged', () => { // per FR-005
+describe('Round (4-player) — four-nines acknowledgment gate (FR-017)', () => {
+  it('the gate closes only once all four seats have acknowledged', () => { // per FR-017
     const round = makeRound();
     round.fourNinesAward = { seat: 0, amount: 100 };
     round.fourNinesAckPending = true;
