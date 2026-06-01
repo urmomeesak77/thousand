@@ -24,7 +24,10 @@ class TrickPlayView {
 
     this._centerCards = [];             // { seat, cardId, rank, suit, slotEl }
     this._pendingPlayed = null;         // { seat, cardId } from card_played, consumed by next render
-    this._lastCollectedCounts = { 0: 0, 1: 0, 2: 0 };
+    // Seats present at the table (3 or 4); drives the centre slots and the
+    // collected-count diff so a 4-player 'across' seat is handled like any other.
+    this._seatList = this._presentSeats();
+    this._lastCollectedCounts = this._initSeatCounts();
     this._flightCancels = new Set();    // Antlion.onTick deregister fns for in-flight clones
     this._scheduledIds = new Set();     // active Antlion.schedule ids (for teardown)
     this._activeClones = new Set();     // DOM nodes for in-flight clones (for teardown)
@@ -155,11 +158,30 @@ class TrickPlayView {
 
   // -------- centre rendering & reconciliation --------
 
+  // Clockwise slot names keyed by seat; 'across' is present only for 4-player.
+  _slotNamesBySeat() {
+    const s = this._seats;
+    const names = { [s.self]: 'self', [s.left]: 'left', [s.right]: 'right' };
+    if (s.across != null) { names[s.across] = 'across'; }
+    return names;
+  }
+
+  _presentSeats() {
+    return Object.keys(this._slotNamesBySeat()).map((seat) => Number(seat));
+  }
+
+  _initSeatCounts() {
+    const counts = {};
+    for (const seat of this._presentSeats()) { counts[seat] = 0; }
+    return counts;
+  }
+
   _buildCenter() {
     if (!this._trickCenterEl) { return; }
     this._trickCenterEl.classList.add('trick-center');
     this._trickCenterEl.textContent = '';
-    for (const slotName of ['self', 'left', 'right']) {
+    // A slot per present seat — four for 4-player (self/left/across/right).
+    for (const slotName of Object.values(this._slotNamesBySeat())) {
       const slot = document.createElement('div');
       slot.className = `trick-center__slot trick-center__slot--${slotName}`;
       slot.dataset.slot = slotName;
@@ -169,9 +191,7 @@ class TrickPlayView {
 
   _slotForSeat(seat) {
     if (!this._trickCenterEl) { return null; }
-    const slotName = seat === this._seats.self ? 'self'
-      : seat === this._seats.left ? 'left'
-      : seat === this._seats.right ? 'right' : null;
+    const slotName = this._slotNamesBySeat()[seat] ?? null;
     return slotName ? this._trickCenterEl.querySelector(`[data-slot="${slotName}"]`) : null;
   }
 
@@ -186,11 +206,12 @@ class TrickPlayView {
     }
     const incomingTrick = gameStatus.currentTrick ?? [];
     const prevCounts = this._lastCollectedCounts;
-    const curCounts = gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 };
+    const curCounts = gameStatus.collectedTrickCounts ?? this._initSeatCounts();
 
-    // Detect trick-resolve: the count went up for some seat (3rd card landed and was collected).
+    // Detect trick-resolve: the count went up for some seat (last card landed and
+    // was collected). Diff over every present seat so the 4th (across) winner counts.
     let winnerSeat = null;
-    for (const s of [0, 1, 2]) {
+    for (const s of this._seatList) {
       if ((curCounts[s] ?? 0) > (prevCounts[s] ?? 0)) { winnerSeat = s; break; }
     }
     this._lastCollectedCounts = { ...curCounts };
@@ -316,7 +337,7 @@ class TrickPlayView {
   // (no pending-played card, no opponent-landing pause): hold, collect-flight,
   // then _finalizeTrickResolve re-renders trick 2 and releases the lock.
   _resolveCrawl(winnerSeat, gameStatus) {
-    this._lastCollectedCounts = { ...(gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 }) };
+    this._lastCollectedCounts = { ...(gameStatus.collectedTrickCounts ?? this._initSeatCounts()) };
     this._resolveFinalized = false;
     this._pendingWinnerSeat = winnerSeat;
     this._setControlsLocked(true);

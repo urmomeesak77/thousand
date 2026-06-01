@@ -207,6 +207,57 @@ describe('CardExchangeView — after first pass, remaining dest btn is for other
   });
 });
 
+// per FR-011 / FR-018 — declarer passes one card to each of the (playerCount-1) opponents
+describe('CardExchangeView — 4-player exchange has three destination buttons (FR-011)', () => {
+  const FOUR_SEATS = { self: 0, left: 1, across: 2, right: 3, declarerSeat: 0 };
+
+  it('tapping a card shows three destination buttons (left, across, right) for a 4-player room', () => {
+    const { view, el, antlion } = makeCardExchangeView(FOUR_SEATS);
+    const hand = makeHand(13);
+    view.render(makeDeclarerSnapshot({ myHand: hand, exchangePassesCommitted: 0 }));
+
+    fireHandCardClick(antlion, hand[0].id, dom.window.document);
+
+    const destBtns = el.querySelectorAll('.card-exchange__dest-btn');
+    assert.equal(destBtns.length, 3,
+      'a 4-player declarer must pass to each of the three opponents');
+    const seats = [...destBtns].map((b) => b.dataset.seat).sort();
+    assert.deepEqual(seats, ['1', '2', '3'],
+      'destination buttons must target all three opponent seats');
+  });
+
+  it('after passing to across (seat 2), the remaining two buttons target left and right', () => {
+    const { view, el, antlion } = makeCardExchangeView(FOUR_SEATS);
+    const hand = makeHand(13);
+    view.render(makeDeclarerSnapshot({
+      myHand: hand, exchangePassesCommitted: 1, exchangePassesToSeats: [2],
+    }));
+
+    fireHandCardClick(antlion, hand[0].id, dom.window.document);
+
+    const destBtns = el.querySelectorAll('.card-exchange__dest-btn');
+    const seats = [...destBtns].map((b) => b.dataset.seat).sort();
+    assert.deepEqual(seats, ['1', '3'],
+      'the already-used across seat must be excluded from remaining dest buttons');
+  });
+
+  it('passing to the across seat dispatches sendExchangePass with that seat', () => {
+    const { view, el, antlion, dispatcher } = makeCardExchangeView(FOUR_SEATS);
+    const hand = makeHand(13);
+    view.render(makeDeclarerSnapshot({ myHand: hand, exchangePassesCommitted: 0 }));
+
+    fireHandCardClick(antlion, hand[2].id, dom.window.document);
+    const acrossBtn = [...el.querySelectorAll('.card-exchange__dest-btn')]
+      .find((b) => b.dataset.seat === '2');
+    assert.ok(acrossBtn, 'an across destination button must exist');
+    acrossBtn.click();
+
+    assert.equal(dispatcher._calls.length, 1, 'sendExchangePass must fire once');
+    assert.equal(dispatcher._calls[0].toSeat, 2, 'pass must target the across seat');
+    assert.equal(dispatcher._calls[0].cardId, hand[2].id);
+  });
+});
+
 describe('CardExchangeView — tapping card then dest btn calls dispatcher.sendExchangePass (FR-002)', () => {
   it('clicking a card then a destination button calls sendExchangePass with correct args', () => {
     const { view, el, antlion, dispatcher } = makeCardExchangeView();

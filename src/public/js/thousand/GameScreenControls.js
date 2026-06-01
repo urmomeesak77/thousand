@@ -250,6 +250,9 @@ class GameScreenControls {
     return {
       self: seats?.self ?? null,
       left: seats?.left ?? null,
+      // Present only for 4-player rooms; left undefined for 3-player so the
+      // exchange/trick views collapse to two opponents.
+      across: seats?.across ?? null,
       right: seats?.right ?? null,
       declarerSeat: gameStatus.declarer?.seat ?? null,
       players: seats?.players ?? [],

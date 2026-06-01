@@ -28,7 +28,7 @@ class CardExchangeView {
       const destBtn = e.target.closest('.card-exchange__dest-btn');
       if (!destBtn || this._selectedCardId === null) { return; }
       const toSeat = parseInt(destBtn.dataset.seat, 10);
-      const direction = toSeat === this._seats.left ? 'left' : 'right';
+      const direction = this._leaveDirectionForSeat(toSeat);
       const cardId = this._selectedCardId;
       this._selectedCardId = null;
       this._handView.setSingleSelected(null);
@@ -68,12 +68,24 @@ class CardExchangeView {
     if (existing) { existing.remove(); }
   }
 
+  // Opponent seats in clockwise order; 'across' is present only for 4-player
+  // (FR-011: the declarer passes one card to each of the playerCount-1 opponents).
+  _opponentSeats() {
+    const { left, across, right } = this._seats;
+    return [left, across, right].filter((s) => s != null);
+  }
+
+  // HandView's leave animation only knows 'left'/'right'; the across pass reuses
+  // 'left' so the card slides outward rather than snapping to a default.
+  _leaveDirectionForSeat(seat) {
+    return seat === this._seats.right ? 'right' : 'left';
+  }
+
   _renderDestButtons() {
     this._removeDestRow();
 
-    const { left, right } = this._seats;
     const used = new Set(this._exchangePassesToSeats);
-    const remaining = [left, right].filter((s) => !used.has(s));
+    const remaining = this._opponentSeats().filter((s) => !used.has(s));
 
     if (remaining.length === 0) { return; }
 

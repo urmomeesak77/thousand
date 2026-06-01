@@ -224,6 +224,74 @@ describe('TrickPlayView — trick centre renders cards from gameStatus.currentTr
   });
 });
 
+// per FR-018 — 4-player trick centre supports a 4th (across) seat
+describe('TrickPlayView — 4-player trick centre (FR-018)', () => {
+  const FOUR_SEATS = { self: 0, left: 1, across: 2, right: 3 };
+
+  it('builds four centre slots (self, left, across, right) for a 4-player room', () => {
+    const { trickCenterEl } = makeTrickPlayView(FOUR_SEATS);
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--self'));
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--left'));
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--across'));
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--right'));
+  });
+
+  it('places the across seat card in the across slot', () => {
+    const { view, trickCenterEl } = makeTrickPlayView(FOUR_SEATS);
+    view.render(makeGameStatus({
+      collectedTrickCounts: { 0: 0, 1: 0, 2: 0, 3: 0 },
+      currentTrick: [
+        { seat: 0, cardId: 12, rank: 'A', suit: '♥' },
+        { seat: 2, cardId: 5, rank: '10', suit: '♣' },
+      ],
+    }));
+    assert.ok(trickCenterEl.querySelector('.trick-center__slot--across .card-sprite'),
+      'across slot must hold the across-opponent card');
+  });
+
+  it('renders up to four cards in the centre for a 4-player trick', () => {
+    const { view, trickCenterEl } = makeTrickPlayView(FOUR_SEATS);
+    view.render(makeGameStatus({
+      collectedTrickCounts: { 0: 0, 1: 0, 2: 0, 3: 0 },
+      currentTrick: [
+        { seat: 0, cardId: 12, rank: 'A', suit: '♥' },
+        { seat: 1, cardId: 5, rank: '10', suit: '♣' },
+        { seat: 2, cardId: 7, rank: 'K', suit: '♠' },
+        { seat: 3, cardId: 9, rank: 'Q', suit: '♦' },
+      ],
+    }));
+    assert.equal(trickCenterEl.querySelectorAll('.trick-center__slot .card-sprite').length, 4,
+      'all four players\' cards must be visible in the centre');
+  });
+
+  it('detects a trick-resolve when the 4th seat\'s collected count goes up', () => {
+    const cardsById = {
+      1: { id: 1, rank: 'A', suit: '♣' },
+      2: { id: 2, rank: 'K', suit: '♣' },
+      3: { id: 3, rank: 'Q', suit: '♣' },
+      4: { id: 4, rank: 'J', suit: '♣' },
+    };
+    const { view, antlion, lockCalls } = makeTrickPlayView(FOUR_SEATS, { cardsById });
+    view.render(makeGameStatus({
+      collectedTrickCounts: { 0: 0, 1: 0, 2: 0, 3: 0 },
+      currentTrick: [
+        { seat: 0, cardId: 1, rank: 'A', suit: '♣' },
+        { seat: 1, cardId: 2, rank: 'K', suit: '♣' },
+        { seat: 2, cardId: 3, rank: 'Q', suit: '♣' },
+      ],
+    }));
+    // Seat 3 plays and wins the trick: count for seat 3 goes 0 → 1.
+    view.notifyCardPlayed(3, 4);
+    view.render(makeGameStatus({
+      collectedTrickCounts: { 0: 0, 1: 0, 2: 0, 3: 1 },
+      currentTrick: [],
+    }));
+    assert.deepEqual(lockCalls, [true],
+      'a count bump on the 4th seat must still trigger the trick-resolve lock');
+    assert.ok(antlion._scheduled.length >= 1, 'resolve must schedule the collect-flight');
+  });
+});
+
 describe('TrickPlayView — opponent card_played spawns a flight clone', () => {
   it('notifyCardPlayed + render with cardsById entry creates a card-flight-clone in document.body', () => {
     const doc = dom.window.document;
