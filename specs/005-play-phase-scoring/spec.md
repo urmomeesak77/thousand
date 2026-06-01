@@ -220,7 +220,7 @@ Two special scoring rules constrain late-game and habitual-passivity play. **(a)
 ## Assumptions
 
 - **Builds directly on feature 004**: this spec assumes feature 004 (lobby, dealing, bidding, selling, declarer decision) is fully implemented and shipped. The "Round ready to play — next phase coming soon" handoff screen from 004 FR-019 is superseded by the card-exchange transition introduced here (FR-001). Feature 004's FRs around minimum-knowledge (FR-022, FR-023), animations (FR-024), persistent status (FR-025), action gating (FR-026), reconnect snapshots (FR-027), bid input (FR-028), rate limiting (FR-030), and toast feedback (FR-031) all remain in force; this spec extends them rather than redefining them.
-- **3-player mode only**: 4-player support remains a future feature. Dealer rotation clockwise applies within the 3-seat ring.
+- **3-player mode only** (at the time of this spec; 4-player added in feature 008): dealer rotation clockwise applies within the seat ring.
 - **In-memory persistence**: cumulative scores, barrel state, and consecutive-zero counters live in the server's in-memory game store for the lifetime of the game and are lost on server restart (consistent with feature 004's posture). Cross-session game persistence is out of scope.
 - **No turn timer**: trick-play turns are untimed in v1, consistent with feature 004's bidding-untimed posture. Disconnect handling uses feature 003's grace period.
 - **"Rospisat'" / round-pass option is OUT of scope**: the rulebook glossary mentions an option for the declarer to pass the round without playing, giving opponents 60 points each. This variant is not implemented in v1.

@@ -33,4 +33,4 @@
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
 - All clarification questions resolved during /speckit-specify session 2026-05-11 (see Clarifications section of spec.md).
-- Out-of-scope items explicitly listed in Assumptions: marriages, trump declaration, card exchange, trick play, scoring, barrel rule, three-zeros rule, victory condition, multi-round play, 4-player mode.
+- Out-of-scope items explicitly listed in Assumptions: marriages, trump declaration, card exchange, trick play, scoring, barrel rule, three-zeros rule, victory condition, multi-round play (4-player mode was out of scope here but added in feature 008).

@@ -209,5 +209,5 @@ node --test tests/HandView.test.js tests/GameScreen.gating.test.js tests/BidCont
 ## Notes for downstream specs
 
 - The `play_phase_ready` event with `{ declarerId, finalBid }` is the handoff for the actual play phase (tricks, marriages, trump, exchange of 2 cards, scoring). That work is intentionally out of scope here.
-- 4-player mode, multi-round dealer rotation, scoring, barrel rule, 1000-point victory: all deferred to future features.
+- Multi-round dealer rotation, scoring, barrel rule, 1000-point victory: all deferred to future features (4-player mode was deferred here too, then added in feature 008).
 - Accessibility (colorblind suit signalling, non-color selection highlight): deferred per spec Clarification 12. The card-sprite class is designed so adding a non-color signal later is a CSS change only.

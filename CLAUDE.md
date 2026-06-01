@@ -27,6 +27,7 @@ src/services/
   Scoring.js                           # pure scoring functions (card points, round deltas, winner, final results)
   Game.js                              # persists-across-rounds session: cumulative scores, dealer, barrel/zero state, round history
   GameRules.js                         # numeric rule constants (barrel thresholds, victory threshold, special penalty)
+  Seats.js                             # seat-range helpers (`seatRange`, `initSeatMap`) used by the playerCount generalization
   Deck.js                              # deck creation and shuffle
 src/controllers/
   RequestHandler.js                    # HTTP routing
@@ -99,6 +100,11 @@ tests/                                 # Node.js built-in test runner (*.test.js
 specs/                                 # feature specs, plans, and contracts (read-only at runtime)
 docs/                                  # developer documentation
 ```
+
+A `playerCount` parameter (3 or 4) is threaded through the engine
+(`Game` / `Round` / `TrickPlay` / `Scoring` / `RoundSnapshot` / `DealSequencer` / `Deck`)
+to support the 3- and 4-player variants (feature 008). Seat-range derivation lives in
+`src/services/Seats.js`.
 
 ## Commands
 

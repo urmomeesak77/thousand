@@ -30,7 +30,7 @@ Frontend gains four new phase screens — `CardExchangeView`, `TrickPlayView`, `
 - FR-019: clients receive a card's `{ rank, suit }` only while currently visible to them; identities of cards that have left view MUST be dropped client-side and never re-sent. Trick-play extends this to centre cards (face-up while in centre, dropped on collect-animation land) and round-summary collected cards (sent only for the viewer's own won tricks).
 - FR-027: per-player 250 ms throttle on every new state-changing message (`exchange_pass`, `play_card`, `continue_to_next_round`).
 - FR-029: game record persists across rounds; purged only at game-end / abort. Supersedes feature 004's FR-032 for any game with multi-round play (which is now every game).
-**Scale/Scope**: 3-player rooms only (consistent with feature 004). FR-001 .. FR-030. Multi-round, scoring, barrel rule, 1000-point victory. Same small-context (<100 concurrent players) target.
+**Scale/Scope**: 3-player rooms (consistent with feature 004; 4-player added in feature 008). FR-001 .. FR-030. Multi-round, scoring, barrel rule, 1000-point victory. Same small-context (<100 concurrent players) target.
 
 ## Constitution Check
 

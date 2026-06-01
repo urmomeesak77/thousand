@@ -170,7 +170,7 @@ The declarer can attempt to sell their bid by selecting 3 cards from their 10-ca
 ## Assumptions
 
 - **Single round only**: this spec covers exactly one round of bidding and selling. Multi-round play (dealer rotation, cumulative score, barrel rule, three-zeros rule, victory at 1000) is **out of scope** for this spec.
-- **3-player mode only**: 4-player support is a future feature; the current store already defaults `requiredPlayers = 3`.
+- **3-player mode only** (at the time of this spec; 4-player added in feature 008): the current store already defaults `requiredPlayers = 3`.
 - **Dealer is the game host** for the single round defined here.
 - **No turn timer for v1**: players take as long as they need. Disconnect handling relies on feature 003's grace period; expiry aborts the round.
 - **Marriages, trump declaration, card exchange (passing 2 cards), trick play, and scoring are out of scope** for this spec — they belong to the follow-up feature triggered by the "play phase ready" handoff.

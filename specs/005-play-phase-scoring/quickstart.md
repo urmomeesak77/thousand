@@ -124,7 +124,7 @@ node --test tests/CardExchangeView.test.js tests/TrickPlayView.test.js \
 
 ## Notes for downstream specs
 
-- 4-player mode and accessibility (colorblind suit signalling) remain out of scope.
+- Accessibility (colorblind suit signalling) remains out of scope (4-player mode was out of scope here but added in feature 008).
 - Persistent game state across server restarts is out of scope (in-memory only, consistent with features 003 / 004).
 - The rulebook's "Rospisat'" (round-pass) variant is explicitly out of scope (see spec Assumptions).
 - Game-end is currently always victory-driven. A future feature could add explicit resignation / surrender flows; these are not implemented in v1.

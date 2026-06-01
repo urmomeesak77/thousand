@@ -27,7 +27,7 @@ Server-authoritative model: a new `Round` class owns the in-round state machine 
 - Constitution §II: ES modules under `src/public/js/`, no bundlers/transpilers/CDN deps
 - FR-022 / FR-023: clients receive a card's `{ rank, suit }` only while that card is currently visible to the viewer; identities of cards that have left view MUST be dropped client-side and never re-sent
 - FR-030: per-player 250 ms throttle on state-changing in-round messages, silent drops
-**Scale/Scope**: 3-player rooms only (FR-001 .. FR-032). One round, no scoring, no multi-round dealer rotation. Small LAN/shared gaming context (<100 concurrent players).
+**Scale/Scope**: 3-player rooms (4-player added in feature 008) (FR-001 .. FR-032). One round, no scoring, no multi-round dealer rotation. Small LAN/shared gaming context (<100 concurrent players).
 
 ## Constitution Check
 
