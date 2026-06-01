@@ -149,4 +149,39 @@ describe('ScoreboardPanel render', () => {
     panel.render(history, { 0: 180, 1: -60, 2: 120 }, seats);
     assert.equal(el.querySelectorAll('.scoreboard__cum').length, 2);
   });
+
+  // per FR-019: scoreboard must render TOTAL across 4 seats (no 3-seat fallback).
+  it('renders a 4-seat TOTAL row in seat order', () => {
+    const fourSeats = {
+      self: 0,
+      players: [
+        { seat: 3, nickname: 'Dave' },
+        { seat: 1, nickname: 'Bob' },
+        { seat: 0, nickname: 'Alice' },
+        { seat: 2, nickname: 'Carol' },
+      ],
+    };
+    const { panel, el } = makePanel();
+    panel.render([], { 0: 100, 1: -20, 2: 40, 3: 80 }, fourSeats);
+    assert.deepEqual(headerTexts(el), ['Alice', 'Bob', 'Carol', 'Dave']);
+    const vals = [...el.querySelector('.scoreboard__total').querySelectorAll('.scoreboard__val')].map((td) => td.textContent);
+    assert.deepEqual(vals, ['100', '-20', '40', '80']);
+  });
+
+  // per FR-019: undefined cumulativeScores must not fall back to a 3-seat shape.
+  it('renders a zero TOTAL for all 4 seats when cumulativeScores is undefined', () => {
+    const fourSeats = {
+      self: 0,
+      players: [
+        { seat: 0, nickname: 'Alice' },
+        { seat: 1, nickname: 'Bob' },
+        { seat: 2, nickname: 'Carol' },
+        { seat: 3, nickname: 'Dave' },
+      ],
+    };
+    const { panel, el } = makePanel();
+    panel.render([], undefined, fourSeats);
+    const vals = [...el.querySelector('.scoreboard__total').querySelectorAll('.scoreboard__val')].map((td) => td.textContent);
+    assert.deepEqual(vals, ['0', '0', '0', '0']);
+  });
 });

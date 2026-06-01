@@ -295,6 +295,45 @@ describe('FinalResultsScreen — history table rendering (FR-017)', () => {
   });
 });
 
+// per FR-019: four-nines annotation row must span the full table width,
+// derived from player count (3 fixed cols + 2 per player).
+describe('FinalResultsScreen — four-nines annotation row width (FR-019)', () => {
+  it('spans 9 columns for a 3-player history', () => {
+    const { screen, el } = makeFinalResultsScreen();
+    const results = makeFinalResults();
+    results.history[0].fourNinesAward = { seat: 0, amount: 100 };
+    screen.mount(results);
+    const annotation = el.querySelector('.final-results__history-row--four-nines td');
+    assert.ok(annotation, 'four-nines annotation cell must exist');
+    assert.equal(annotation.colSpan, 9, '3 fixed + 2*3 players = 9');
+  });
+
+  it('spans 11 columns for a 4-player history', () => {
+    const { screen, el } = makeFinalResultsScreen();
+    const results = makeFinalResults({
+      history: [
+        {
+          roundNumber: 1,
+          declarerSeat: 0,
+          declarerNickname: 'Alice',
+          bid: 120,
+          fourNinesAward: { seat: 2, amount: 100 },
+          perPlayer: {
+            '0': { delta: 120, cumulativeAfter: 120, nickname: 'Alice' },
+            '1': { delta: 30, cumulativeAfter: 30, nickname: 'Bob' },
+            '2': { delta: 30, cumulativeAfter: 130, nickname: 'Carol' },
+            '3': { delta: 20, cumulativeAfter: 20, nickname: 'Dave' },
+          },
+        },
+      ],
+    });
+    screen.mount(results);
+    const annotation = el.querySelector('.final-results__history-row--four-nines td');
+    assert.ok(annotation, 'four-nines annotation cell must exist');
+    assert.equal(annotation.colSpan, 11, '3 fixed + 2*4 players = 11');
+  });
+});
+
 // Test 6: Back to Lobby button
 describe('FinalResultsScreen — back to lobby button (FR-017)', () => {
   it('renders .final-results__back-btn', () => {

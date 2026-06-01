@@ -106,7 +106,7 @@ class ScoreboardPanel {
 
     table.appendChild(this._buildHead(players));
     table.appendChild(this._buildRoundsBody(scoreHistory ?? [], players));
-    table.appendChild(this._buildTotalFoot(cumulativeScores ?? { 0: 0, 1: 0, 2: 0 }, players));
+    table.appendChild(this._buildTotalFoot(cumulativeScores ?? {}, players));
 
     scroll.appendChild(table);
     this._bodyEl.appendChild(scroll);

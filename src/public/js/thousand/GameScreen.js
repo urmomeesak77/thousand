@@ -502,7 +502,7 @@ class GameScreen {
     if (this._seats) {
       this._scoreboard.render(
         gameStatus.scoreHistory ?? [],
-        gameStatus.cumulativeScores ?? { 0: 0, 1: 0, 2: 0 },
+        gameStatus.cumulativeScores ?? {},
         this._seats,
       );
     }

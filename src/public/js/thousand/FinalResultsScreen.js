@@ -107,7 +107,9 @@ class FinalResultsScreen {
     tr.className = 'final-results__history-row--four-nines';
     tr.setAttribute('data-seat', awardSeat);
     const td = document.createElement('td');
-    td.colSpan = 9;
+    // History table = 3 fixed columns (round#, declarer, bid) + 2 per player (delta + cumulative).
+    const playerCount = Object.keys(round.perPlayer).length;
+    td.colSpan = 3 + 2 * playerCount;
     const nickname = round.perPlayer[awardSeat]?.nickname ?? 'Player';
     td.textContent = `Four nines: +${round.fourNinesAward.amount} to ${nickname}`;
     tr.appendChild(td);

@@ -109,15 +109,15 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Replace the hidden player-count input with a 3/4 selector and make the subtitle + waiting-hint text player-count-aware in `src/public/index.html` (FR-001, FR-020).
-- [ ] T032 [US3] Read the selected player count (3|4) from the new selector instead of a fixed hidden input in `src/public/js/overlays/NewGameModal.js` (FR-001). (Depends on T031)
-- [ ] T033 [P] [US3] Verify the server-provided `requiredPlayers` renders "(N needed to start)" for 4 **and** that current join progress (e.g. "2 / 4 joined") renders from the joined count vs `requiredPlayers` in `src/public/js/screens/WaitingRoom.js` (FR-003).
+- [x] T031 [US3] Replace the hidden player-count input with a 3/4 selector and make the subtitle + waiting-hint text player-count-aware in `src/public/index.html` (FR-001, FR-020).
+- [x] T032 [US3] Read the selected player count (3|4) from the new selector instead of a fixed hidden input in `src/public/js/overlays/NewGameModal.js` (FR-001). (Depends on T031)
+- [x] T033 [P] [US3] Verify the server-provided `requiredPlayers` renders "(N needed to start)" for 4 **and** that current join progress (e.g. "2 / 4 joined") renders from the joined count vs `requiredPlayers` in `src/public/js/screens/WaitingRoom.js` (FR-003).
 - [x] T034 [US3] `slotsForSeat(viewerSeat, playerCount)`: self + clockwise opponents, adding a top/across slot for the 4th seat in `src/public/js/thousand/CardTable.js` (FR-018; Decision 9).
 - [x] T035 [US3] Replace fixed `_leftOpponent`/`_rightOpponent` with a `seat → OpponentView` map built from `seats`; generalize `_opponentForSeat`/`_elForSeat`/`_applyOpponentHandSizes`/`_renderRoundStats`/`_setOpponentNicknames` over all opponent seats in `src/public/js/thousand/GameScreen.js` (FR-018, FR-019). (Depends on T034)
 - [x] T036 [US3] Centre slots self + opponent seats (add across); collected-count map over `playerCount` in `src/public/js/thousand/TrickPlayView.js` (FR-018). (Depends on T034)
 - [x] T037 [US3] Dest buttons over all opponent seats (not just left/right); generalized direction label in `src/public/js/thousand/CardExchangeView.js` (FR-011, FR-018).
 - [x] T038 [P] [US3] Verify `OpponentView` is position-agnostic (one instance per opponent seat); no structural change expected, in `src/public/js/thousand/OpponentView.js` (FR-018).
-- [ ] T039 [P] [US3] "/2 cards passed" → "/(playerCount-1) cards passed" in `src/public/js/thousand/StatusBar.js` (FR-011, FR-020).
+- [x] T039 [P] [US3] "/2 cards passed" → "/(playerCount-1) cards passed" in `src/public/js/thousand/StatusBar.js` (FR-011, FR-020).
 - [ ] T040 [P] [US3] Verify the default `cumulativeScores` fallback no longer assumes 3 seats in `src/public/js/thousand/ScoreboardPanel.js` (FR-019).
 - [ ] T041 [P] [US3] Derive the table `colSpan` from the player count (not literal 9) in `src/public/js/thousand/FinalResultsScreen.js` (FR-019).
 - [ ] T042 [US3] Add the 4th (top/across) seat slot to the table grid + trick-centre and keep it responsive on mobile in `src/public/css/game.css` (FR-018, §VI, R-302). (Depends on T034)
