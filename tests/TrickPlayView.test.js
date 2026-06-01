@@ -23,6 +23,7 @@ before(() => {
   loadModule(dom, 'thousand/CardSprite.js');
   loadModule(dom, 'thousand/MarriageDeclarationPrompt.js');
   loadModule(dom, 'thousand/CrawlControls.js');
+  loadModule(dom, 'thousand/CardFlightAnimator.js');
   loadModule(dom, 'thousand/TrickPlayView.js');
 });
 

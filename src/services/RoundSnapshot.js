@@ -91,6 +91,26 @@ function crawlAvailableFor(round, seat) {
     && !Scoring.handHasAce(round.hands[round.declarerSeat], round.deck);
 }
 
+function buildCurrentTrickVM(round) {
+  return (round.currentTrick ?? []).map(({ seat: s, cardId }) => {
+    const card = round.deck?.[cardId];
+    return { seat: s, cardId, rank: card?.rank ?? null, suit: card?.suit ?? null };
+  });
+}
+
+// Absent when no player is on barrel (null entry per seat when onBarrel === false)
+function buildBarrelMarkers(session, n) {
+  if (!session) {
+    return null;
+  }
+  return Object.fromEntries(seatRange(n).map((s) => {
+    const state = session.barrelState[s];
+    return [s, state.onBarrel
+      ? { onBarrel: true, barrelRoundsUsed: state.barrelRoundsUsed }
+      : null];
+  }));
+}
+
 function buildViewModel(round, seat) {
   const session = round._game?.session;
   const n = round.playerCount ?? 3;
@@ -112,10 +132,7 @@ function buildViewModel(round, seat) {
     // Played-card pile for the current trick. The client renders and (critically)
     // recovers deferred centre cards from this; without it, cards played during a
     // trick-resolve animation are dropped. Played cards are public, so no leak.
-    currentTrick: (round.currentTrick ?? []).map(({ seat: s, cardId }) => {
-      const card = round.deck?.[cardId];
-      return { seat: s, cardId, rank: card?.rank ?? null, suit: card?.suit ?? null };
-    }),
+    currentTrick: buildCurrentTrickVM(round),
     currentTrumpSuit: round.currentTrumpSuit ?? null,
     cumulativeScores: session ? session.cumulativeScores : initSeatMap(n, 0),
     scoreHistory: compactScoreHistory(session),
@@ -131,12 +148,7 @@ function buildViewModel(round, seat) {
     exchangePassesToSeats: round.phase === 'card-exchange' ? [...round._usedExchangeDestSeats] : null,
     continuePressedSeats: isPhaseFinal && session ? [...session.continuePresses] : null,
     roundNumber: session ? session.currentRoundNumber : 1,
-    // Absent when no player is on barrel (null entry per seat when onBarrel === false)
-    barrelMarkers: session
-      ? Object.fromEntries(seatRange(n).map(s => [s, session.barrelState[s].onBarrel
-        ? { onBarrel: true, barrelRoundsUsed: session.barrelState[s].barrelRoundsUsed }
-        : null]))
-      : null,
+    barrelMarkers: buildBarrelMarkers(session, n),
     opponentHandSizes: buildOpponentHandSizesFor(round, seat),
     // Crawl (feature 007): an offer flag for the declarer, progress for everyone,
     // and a self-only echo of the viewer's own committed card. No opponent faces
@@ -233,6 +245,65 @@ function _computeLegalCardIds(round, seat) {
   return hand;
 }
 
+// Exposed sell card identities visible to all during selling-bidding
+function decorateSellingBidding(payload, round) {
+  payload.exposed = round.exposedSellCards.map((id) => {
+    const card = round.deck[id];
+    return { id, rank: card.rank, suit: card.suit };
+  });
+}
+
+function decorateCardExchange(payload, round, seat) {
+  payload.exchangePassesCommitted = round.exchangePassesCommitted;
+  payload.exchangePassesToSeats = [...round._usedExchangeDestSeats];
+  payload.myHand = buildHandIdentitiesFor(round, seat);
+  payload.receivedFromExchange = null;
+  payload.isDeclarerView = seat === round.declarerSeat;
+  payload.isMyTurn = round.currentTurnSeat === seat;
+}
+
+function decorateTrickPlay(payload, round, seat) {
+  payload.trickNumber = round.trickNumber;
+  payload.currentTrickLeaderSeat = round.currentTrickLeaderSeat;
+  payload.currentTrick = round.currentTrick.map(({ seat: s, cardId }) => {
+    const card = round.deck[cardId];
+    return { seat: s, cardId, rank: card.rank, suit: card.suit };
+  });
+  payload.currentTrumpSuit = round.currentTrumpSuit;
+  payload.declaredMarriages = [...round.declaredMarriages];
+  payload.collectedTrickCounts = { ...round.collectedTrickCounts };
+  payload.myHand = buildHandIdentitiesFor(round, seat);
+  payload.isMyTurn = round.currentTurnSeat === seat;
+  payload.legalCardIds = _computeLegalCardIds(round, seat);
+  // Crawl (FR-005/FR-010/FR-012): a reconnecting client recovers the crawl in
+  // its current state — who has committed (face-down) and its own sticky
+  // commit. Other players' committed faces are never included.
+  payload.crawlAvailable = crawlAvailableFor(round, seat);
+  payload.crawlActive = !!round.crawlActive;
+  payload.crawlCommittedSeats = (round.crawlCommits ?? []).map((c) => c.seat);
+  payload.viewerCrawlCommit = viewerCrawlCommitFor(round, seat);
+}
+
+function decorateRoundSummary(payload, round, seat) {
+  payload.summary = round.summary;
+  const myCollected = round.collectedTricks?.[seat] ?? [];
+  payload.viewerCollectedCards = myCollected.map((id) => {
+    const card = round.deck[id];
+    return { rank: card.rank, suit: card.suit };
+  });
+  const session = round._game?.session;
+  payload.continuePressedSeats = session ? [...session.continuePresses] : [];
+}
+
+// FR-010: while the four-nines ack-gate is open, the reconnecting client needs
+// the award (for the modal text), whether the gate is still pending, and its
+// own sticky-press state. Cumulative scores already reflect the banked +100.
+function decorateFourNinesAck(payload, round, seat) {
+  payload.fourNinesAward = { ...round.fourNinesAward };
+  payload.fourNinesAckPending = true;
+  payload.viewerHasAcknowledged = round.fourNinesAcks.has(seat);
+}
+
 function buildSnapshot(round, seat) {
   const gameStatus = buildViewModel(round, seat);
   const payload = {
@@ -254,67 +325,23 @@ function buildSnapshot(round, seat) {
     payload.dealSequence = buildDealSequenceFor(round, seat);
   }
 
-  // Exposed sell card identities visible to all during selling-bidding
   if (round.phase === 'selling-bidding') {
-    payload.exposed = round.exposedSellCards.map((id) => {
-      const card = round.deck[id];
-      return { id, rank: card.rank, suit: card.suit };
-    });
+    decorateSellingBidding(payload, round);
   }
-
   if (round.exposedSellCards.length > 0) {
     payload.exposedSellCardIds = [...round.exposedSellCards];
   }
-
   if (round.phase === 'card-exchange') {
-    payload.exchangePassesCommitted = round.exchangePassesCommitted;
-    payload.exchangePassesToSeats = [...round._usedExchangeDestSeats];
-    payload.myHand = buildHandIdentitiesFor(round, seat);
-    payload.receivedFromExchange = null;
-    payload.isDeclarerView = seat === round.declarerSeat;
-    payload.isMyTurn = round.currentTurnSeat === seat;
+    decorateCardExchange(payload, round, seat);
   }
-
   if (round.phase === 'trick-play') {
-    payload.trickNumber = round.trickNumber;
-    payload.currentTrickLeaderSeat = round.currentTrickLeaderSeat;
-    payload.currentTrick = round.currentTrick.map(({ seat: s, cardId }) => {
-      const card = round.deck[cardId];
-      return { seat: s, cardId, rank: card.rank, suit: card.suit };
-    });
-    payload.currentTrumpSuit = round.currentTrumpSuit;
-    payload.declaredMarriages = [...round.declaredMarriages];
-    payload.collectedTrickCounts = { ...round.collectedTrickCounts };
-    payload.myHand = buildHandIdentitiesFor(round, seat);
-    payload.isMyTurn = round.currentTurnSeat === seat;
-    payload.legalCardIds = _computeLegalCardIds(round, seat);
-    // Crawl (FR-005/FR-010/FR-012): a reconnecting client recovers the crawl in
-    // its current state — who has committed (face-down) and its own sticky
-    // commit. Other players' committed faces are never included.
-    payload.crawlAvailable = crawlAvailableFor(round, seat);
-    payload.crawlActive = !!round.crawlActive;
-    payload.crawlCommittedSeats = (round.crawlCommits ?? []).map((c) => c.seat);
-    payload.viewerCrawlCommit = viewerCrawlCommitFor(round, seat);
+    decorateTrickPlay(payload, round, seat);
   }
-
   if (round.phase === 'round-summary') {
-    payload.summary = round.summary;
-    const myCollected = round.collectedTricks?.[seat] ?? [];
-    payload.viewerCollectedCards = myCollected.map((id) => {
-      const card = round.deck[id];
-      return { rank: card.rank, suit: card.suit };
-    });
-    const session = round._game?.session;
-    payload.continuePressedSeats = session ? [...session.continuePresses] : [];
+    decorateRoundSummary(payload, round, seat);
   }
-
-  // FR-010: while the four-nines ack-gate is open, the reconnecting client needs
-  // the award (for the modal text), whether the gate is still pending, and its
-  // own sticky-press state. Cumulative scores already reflect the banked +100.
   if (round.fourNinesAckPending && round.fourNinesAward) {
-    payload.fourNinesAward = { ...round.fourNinesAward };
-    payload.fourNinesAckPending = true;
-    payload.viewerHasAcknowledged = round.fourNinesAcks.has(seat);
+    decorateFourNinesAck(payload, round, seat);
   }
 
   // Final-results snapshot for game-over

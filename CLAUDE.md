@@ -16,8 +16,9 @@ Last updated: 2026-05-20
 ```text
 src/server.js                          # HTTP + WebSocket server entry point
 src/services/
-  ThousandStore.js                     # game/player state (in-memory) — delegates player Map to PlayerRegistry
+  ThousandStore.js                     # game/player state (in-memory) — delegates player Map to PlayerRegistry, disconnect/reconnect to ConnectionLifecycle
   PlayerRegistry.js                    # players Map + sessionToken index (extracted from ThousandStore)
+  ConnectionLifecycle.js               # disconnect grace timers, reconnect (last-connect-wins), grace-expiry purge (extracted from ThousandStore)
   ConnectionManager.js                 # WebSocket connection lifecycle + message dispatch
   Round.js                             # round state machine & action methods
   RoundPhases.js                       # phase-transition helpers (extracted from Round for size)
@@ -25,6 +26,7 @@ src/services/
   RoundSnapshot.js                     # per-viewer view-model, seats, snapshot payload (extracted from Round for size)
   TrickPlay.js                         # trick-play state machine (lead/follow/trump, collected tricks) — delegated to by Round
   Scoring.js                           # pure scoring functions (card points, round deltas, winner, final results)
+  RoundActionBroadcaster.js            # result-emission + round-end scoring for in-round actions (extracted from RoundActionHandler)
   Game.js                              # persists-across-rounds session: cumulative scores, dealer, barrel/zero state, round history
   GameRules.js                         # numeric rule constants (barrel thresholds, victory threshold, special penalty)
   Seats.js                             # seat-range helpers (`seatRange`, `initSeatMap`) used by the playerCount generalization
@@ -34,7 +36,8 @@ src/controllers/
   GameController.js                    # game CRUD handlers
   NicknameController.js                # POST /api/nickname handler
   nicknameLookup.js                    # `isNicknameTaken()` helper
-  RoundActionHandler.js                # in-round action dispatch (bid, pass, sell, etc.)
+  RoundActionHandler.js                # in-round action dispatch (auction actions + shared plumbing); delegates trick-play to TrickPlayActionHandler, emit/scoring to RoundActionBroadcaster
+  TrickPlayActionHandler.js            # bypass-the-limiter trick-play actions (start-game, exchange pass, four-nines ack, play card, crawl commit) — extracted from RoundActionHandler
   validators.js                        # input validation
 src/utils/
   HttpUtil.js                          # HTTP helpers
@@ -90,6 +93,7 @@ src/public/
       constants.js                     # bid/round + scoring constants (MIN_BID, MAX_BID, BID_STEP, CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER)
       CardExchangeView.js              # card-exchange phase UI (declarer passes 1 card to each opponent)
       TrickPlayView.js                 # trick-play phase UI (centre slot, follow-suit gating, trick animations)
+      CardFlightAnimator.js            # FLIP-style card-flight clone animation + source/dest rect geometry (extracted from TrickPlayView)
       MarriageDeclarationPrompt.js     # marriage-declaration modal (tricks 2–6)
       CollectedTricksStack.js          # per-seat face-down collected-tricks stack + count badge
       RoundSummaryScreen.js            # round summary (made/missed, deltas) + Continue / Back-to-Lobby

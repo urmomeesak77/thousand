@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const Round = require('./Round');
 const Game = require('./Game');
 const PlayerRegistry = require('./PlayerRegistry');
+const ConnectionLifecycle = require('./ConnectionLifecycle');
 
 const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
 const DEFAULT_GRACE_PERIOD_MS = 30_000;
@@ -19,6 +20,9 @@ class ThousandStore {
     // every disconnect would purge instantly. Reject anything that isn't a positive finite number.
     const parsed = process.env.GRACE_PERIOD_MS ? Number(process.env.GRACE_PERIOD_MS) : null;
     this._gracePeriodMs = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_GRACE_PERIOD_MS;
+    // Connection lifecycle (disconnect/reconnect/purge) reads `_gracePeriodMs`
+    // live, so it must be constructed after the field is set.
+    this._lifecycle = new ConnectionLifecycle(this);
   }
 
   get players() {
@@ -90,119 +94,11 @@ class ThousandStore {
   }
 
   handlePlayerDisconnect(playerId, ws) {
-    if (!playerId || !this.players.has(playerId)) {
-      return;
-    }
-    const player = this.players.get(playerId);
-    // If a newer ws has replaced this one (last-connect-wins), the old close event
-    // is stale — leave the live session alone.
-    if (ws && player.ws !== ws) {
-      return;
-    }
-    player.ws = null;
-    player.disconnectedAt = Date.now();
-    player.graceTimer = setTimeout(() => this._purgePlayer(playerId), this._gracePeriodMs);
-    if (typeof player.graceTimer.unref === 'function') {player.graceTimer.unref();}
-
-    if (player.gameId) {
-      const game = this.games.get(player.gameId);
-      if (game && game.status === 'in-progress' && game.round) {
-        const seat = game.round.seatByPlayer.get(playerId);
-        game.round.markDisconnected(seat);
-        for (const pid of game.players) {
-          if (pid === playerId) {continue;}
-          const recipientSeat = game.round.seatByPlayer.get(pid);
-          this.sendToPlayer(pid, {
-            type: 'player_disconnected',
-            playerId,
-            gameStatus: game.round.getViewModelFor(recipientSeat),
-          });
-        }
-      }
-    }
+    this._lifecycle.handleDisconnect(playerId, ws);
   }
 
   reconnectPlayer(playerId, ws) {
-    const player = this.players.get(playerId);
-    if (!player) {return;}
-    clearTimeout(player.graceTimer);
-    player.graceTimer = null;
-    player.disconnectedAt = null;
-    if (player.ws && player.ws.readyState === WS_OPEN) {
-      // readyState can flip between the check and send — swallow the error so
-      // the state-update steps below still run.
-      try {
-        player.ws.send(JSON.stringify({ type: 'session_replaced' }));
-        player.ws.close();
-      } catch { /* socket already gone */ }
-    }
-    player.ws = ws;
-    ws._playerId = playerId;
-
-    if (player.gameId) {
-      const game = this.games.get(player.gameId);
-      if (game && game.status === 'in-progress' && game.round) {
-        const seat = game.round.seatByPlayer.get(playerId);
-        game.round.markReconnected(seat);
-        for (const pid of game.players) {
-          if (pid === playerId) {continue;}
-          const recipientSeat = game.round.seatByPlayer.get(pid);
-          this.sendToPlayer(pid, {
-            type: 'player_reconnected',
-            playerId,
-            gameStatus: game.round.getViewModelFor(recipientSeat),
-          });
-        }
-      }
-    }
-  }
-
-  _purgePlayer(playerId) {
-    const player = this._registry.remove(playerId);
-    if (!player) {return;}
-    // Defensive: timer is normally already firing when we land here, but a future
-    // direct caller (e.g. abandon-on-leave) would leak the pending callback.
-    if (player.graceTimer) {
-      clearTimeout(player.graceTimer);
-      player.graceTimer = null;
-    }
-    const { gameId, nickname } = player;
-    if (!gameId) {return;}
-    const game = this.games.get(gameId);
-    if (!game) {return;}
-
-    if (game.status === 'in-progress' && game.round) {
-      // FR-025 / FR-029: grace expiry between rounds (round-summary phase) → game_aborted
-      if (game.round.phase === 'round-summary' && game.session) {
-        game.session.gameStatus = 'aborted';
-        const abortedMsg = {
-          type: 'game_aborted',
-          reason: 'player_grace_expired',
-          disconnectedNickname: nickname,
-          gameStatus: { phase: 'Game aborted' },
-        };
-        for (const pid of game.players) {
-          if (pid === playerId) {continue;}
-          this.sendToPlayer(pid, abortedMsg);
-        }
-        this._cleanupRound(gameId);
-        return;
-      }
-
-      // FR-021 / FR-029: grace expiry mid-round → round_aborted
-      game.round.abort();
-      const baseMsg = { type: 'round_aborted', reason: 'player_grace_expired', disconnectedNickname: nickname };
-      for (const pid of game.players) {
-        if (pid === playerId) {continue;}
-        const recipientSeat = game.round.seatByPlayer.get(pid);
-        this.sendToPlayer(pid, { ...baseMsg, gameStatus: game.round.getViewModelFor(recipientSeat) });
-      }
-      this._cleanupRound(gameId);
-      return;
-    }
-
-    game.players.delete(playerId);
-    this._resolveGameAfterExit(gameId, game, playerId, nickname);
+    this._lifecycle.reconnect(playerId, ws);
   }
 
   // T034 – broadcast lobby state to every client whose gameId is null

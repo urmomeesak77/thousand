@@ -27,7 +27,8 @@ const MESSAGE_VALIDATORS = {
   ),
   session_replaced: () => true,
   lobby_update: (m) => Array.isArray(m.games),
-  game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players) && typeof m.requiredPlayers === 'number',
+  game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players)
+    && typeof m.requiredPlayers === 'number',
   player_joined: (m) => Array.isArray(m.players) && m.player && typeof m.player.nickname === 'string',
   player_left: (m) => Array.isArray(m.players) && (m.nickname === null || typeof m.nickname === 'string'),
   game_disbanded: () => true,
@@ -52,7 +53,8 @@ const MESSAGE_VALIDATORS = {
     && isObj(m.gameStatus)
   ),
   play_phase_ready: (m) => typeof m.declarerId === 'string' && typeof m.finalBid === 'number' && isObj(m.gameStatus),
-  card_exchange_started: (m) => typeof m.declarerId === 'string' && typeof m.finalBid === 'number' && isObj(m.gameStatus),
+  card_exchange_started: (m) => typeof m.declarerId === 'string'
+    && typeof m.finalBid === 'number' && isObj(m.gameStatus),
   card_passed: (m) => isObj(m.gameStatus),
   trick_play_started: (m) => isObj(m.gameStatus),
   four_nines_awarded: (m) => (

@@ -25,7 +25,9 @@ const ACTION_DISPATCH = {
   start_game:             (h, pid)    => h.handleStartGame(pid),
   exchange_pass:          (h, pid, m) => h.handleExchangePass(pid, m.cardId, m.toSeat),
   play_card:              (h, pid, m) => h.handlePlayCard(pid, m.cardId, m.declareMarriage === true),
-  acknowledge_four_nines: (h, pid, m) => { if (validateAcknowledgeFourNines(m)) { h.handleAcknowledgeFourNines(pid); } },
+  acknowledge_four_nines: (h, pid, m) => {
+    if (validateAcknowledgeFourNines(m)) { h.handleAcknowledgeFourNines(pid); }
+  },
   crawl_commit:           (h, pid, m) => { if (validateCrawlCommit(m)) { h.handleCrawlCommit(pid, m.cardId); } },
   continue_to_next_round: (h, pid)    => h.handleContinueToNextRound(pid),
   request_snapshot:       (h, pid)    => h.handleRequestSnapshot(pid),
@@ -165,7 +167,10 @@ class ConnectionManager {
     if (result.restored) {
       this._store.reconnectPlayer(result.playerId, ws);
     }
-    ws.send(JSON.stringify({ type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken, restored: result.restored, nickname: result.nickname, gameId: result.gameId }));
+    ws.send(JSON.stringify({
+      type: 'connected', playerId: result.playerId, sessionToken: result.sessionToken,
+      restored: result.restored, nickname: result.nickname, gameId: result.gameId,
+    }));
     ws.send(JSON.stringify({ type: 'lobby_update', games: this._store.getLobbyGames() }));
     if (result.restored && result.gameId) {
       this._sendRestoredGameState(ws, result);
@@ -180,11 +185,16 @@ class ConnectionManager {
       const snapshot = game.round.getSnapshotFor(seat);
       if (snapshot) {ws.send(JSON.stringify(snapshot));}
     } else {
-      ws.send(JSON.stringify({ type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game), createdAt: game.createdAt, inviteCode: game.inviteCode ?? null, requiredPlayers: game.requiredPlayers }));
+      ws.send(JSON.stringify({
+        type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game),
+        createdAt: game.createdAt, inviteCode: game.inviteCode ?? null,
+        requiredPlayers: game.requiredPlayers,
+      }));
     }
   }
 
-  // Returns true if the message was handled (known authed action), false to let caller send the unrecognized-type error.
+  // Returns true if the message was handled (known authed action),
+  // false to let caller send the unrecognized-type error.
   _handleAuthedMessage(ws, msg) {
     const action = ACTION_DISPATCH[msg.type];
     if (!action) {return false;}

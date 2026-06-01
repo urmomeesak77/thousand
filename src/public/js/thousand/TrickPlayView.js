@@ -1,5 +1,6 @@
 import MarriageDeclarationPrompt from './MarriageDeclarationPrompt.js';
 import CrawlControls from './CrawlControls.js';
+import CardFlightAnimator from './CardFlightAnimator.js';
 import { MARRIAGE_BONUS } from './constants.js';
 import { SUIT_LETTER } from './cardSymbols.js';
 
@@ -28,10 +29,9 @@ class TrickPlayView {
     // collected-count diff so a 4-player 'across' seat is handled like any other.
     this._seatList = this._presentSeats();
     this._lastCollectedCounts = this._initSeatCounts();
-    this._flightCancels = new Set();    // Antlion.onTick deregister fns for in-flight clones
     this._scheduledIds = new Set();     // active Antlion.schedule ids (for teardown)
-    this._activeClones = new Set();     // DOM nodes for in-flight clones (for teardown)
     this._resolveFinalized = true;      // becomes false during a trick-resolve sequence
+    this._flight = new CardFlightAnimator(this._antlion, this._getSeatEl, this._seats);
 
     this._buildCenter();
 
@@ -444,61 +444,12 @@ class TrickPlayView {
     this._setControlsLocked(false);
   }
 
-  // Returns a card-sized source rect for an opponent's play-to-centre flight.
-  // Mirrors _destRectForWinner: anchors on .opponent-view__stack and clamps to
-  // a card width so the flight clone is card-sized rather than seat-container-sized.
-  // Why: the seat container is a 1fr CSS-grid column wrapping nickname + stack +
-  // last-action — much bigger than a card. Using its bounding rect as the
-  // flight source produced a HUGE clone whose card sprite-sheet (sized via
-  // --card-width CSS vars) tiled inside it, and the flight appeared to "drop in
-  // from above" because the top of the column sits above the actual stack.
-  _sourceRectForOpponent(seatEl, cardWidth) {
-    const stack = seatEl.querySelector('.opponent-view__stack');
-    if (stack) {
-      const r = stack.getBoundingClientRect();
-      const w = Math.min(r.width, cardWidth || r.width);
-      // Anchor on the right edge of the stack — the "top" of the deck visually,
-      // where the just-played card was lifted from.
-      return {
-        left: r.right - w, top: r.top, width: w, height: r.height,
-        right: r.right, bottom: r.bottom,
-      };
-    }
-    const r = seatEl.getBoundingClientRect();
-    const w = cardWidth || Math.min(r.width, 100);
-    const h = w * 1.4;
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
-    return {
-      left: cx - w / 2, top: cy - h / 2, width: w, height: h,
-      right: cx + w / 2, bottom: cy + h / 2,
-    };
-  }
-
-  // Returns a card-sized destination rect for the post-trick collect-flight.
-  // Anchors on the winner's hand-stack area so the flight clones don't scale
-  // up against a wide seat container.
+  // Card width comes from a committed centre sprite; the geometry lives in
+  // CardFlightAnimator. Thin wrapper so the _centerCards-derived width stays
+  // TrickPlayView's concern while the rect math stays in the animator.
   _destRectForWinner(winnerSeat) {
-    const seatEl = this._getSeatEl(winnerSeat);
-    if (!seatEl) { return null; }
     const cardWidth = this._centerCards[0]?.cardEl?.getBoundingClientRect().width ?? 0;
-    if (winnerSeat === this._seats?.self) {
-      const last = seatEl.querySelector('[data-card-id]:last-of-type');
-      if (last) { return last.getBoundingClientRect(); }
-    } else {
-      const stack = seatEl.querySelector('.opponent-view__stack');
-      if (stack) {
-        const r = stack.getBoundingClientRect();
-        const w = Math.min(r.width, cardWidth || r.width);
-        return { left: r.left, top: r.top, width: w, height: r.height, right: r.left + w, bottom: r.bottom };
-      }
-    }
-    const r = seatEl.getBoundingClientRect();
-    const w = cardWidth || Math.min(r.width, 100);
-    const h = w * 1.4; // typical card aspect ratio (h/w ≈ 1.4)
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
-    return { left: cx - w / 2, top: cy - h / 2, width: w, height: h, right: cx + w / 2, bottom: cy + h / 2 };
+    return this._flight.destRectForWinner(winnerSeat, cardWidth);
   }
 
   _collectFlightToWinner(winnerSeat) {
@@ -517,7 +468,7 @@ class TrickPlayView {
     };
     for (const entry of cards) {
       const fromRect = entry.cardEl.getBoundingClientRect();
-      this._spawnFlight({
+      this._flight.spawn({
         fromRect, toRect: destRect, rank: entry.rank, suit: entry.suit,
         duration: FLIGHT_MS, onDone: onLand,
       });
@@ -532,7 +483,7 @@ class TrickPlayView {
     this._centerCards = [];
   }
 
-  // -------- per-card flight animation (FLIP-style) --------
+  // -------- per-card play-to-centre flights (delegate clone mechanics to CardFlightAnimator) --------
 
   _startOwnFlight(cardId, cardEl) {
     const card = this._cardsById[cardId];
@@ -550,7 +501,7 @@ class TrickPlayView {
     if (!entry) { return; }
     entry.cardEl.style.visibility = 'hidden';
     const toRect = entry.cardEl.getBoundingClientRect();
-    this._spawnFlight({
+    this._flight.spawn({
       fromRect, toRect, rank: card.rank, suit: card.suit, duration: FLIGHT_MS,
       onDone: () => { entry.cardEl.style.visibility = ''; },
     });
@@ -569,53 +520,11 @@ class TrickPlayView {
     if (!entry) { return; }
     entry.cardEl.style.visibility = 'hidden';
     const toRect = entry.cardEl.getBoundingClientRect();
-    const fromRect = this._sourceRectForOpponent(sourceEl, toRect.width);
-    this._spawnFlight({
+    const fromRect = this._flight.sourceRectForOpponent(sourceEl, toRect.width);
+    this._flight.spawn({
       fromRect, toRect, rank, suit, duration: FLIGHT_MS,
       onDone: () => { entry.cardEl.style.visibility = ''; },
     });
-  }
-
-  _spawnFlight({ fromRect, toRect, rank, suit, duration, onDone }) {
-    const clone = document.createElement('div');
-    clone.className = `card-sprite card-sprite--up card--${rank}${SUIT_LETTER[suit]} card-flight-clone`;
-    clone.style.position = 'fixed';
-    clone.style.left = `${fromRect.left}px`;
-    clone.style.top = `${fromRect.top}px`;
-    clone.style.width = `${fromRect.width}px`;
-    clone.style.height = `${fromRect.height}px`;
-    clone.style.transform = 'translate3d(0,0,0)';
-    clone.style.willChange = 'transform';
-    clone.style.zIndex = '1000';
-    document.body.appendChild(clone);
-    this._activeClones.add(clone);
-
-    const dx = toRect.left - fromRect.left;
-    const dy = toRect.top - fromRect.top;
-    const scale = toRect.width / Math.max(fromRect.width, 1);
-
-    const start = Date.now();
-    let cancelTick;
-    const finish = () => {
-      if (cancelTick) {
-        this._flightCancels.delete(cancelTick);
-        cancelTick();
-        cancelTick = null;
-      }
-      this._activeClones.delete(clone);
-      clone.remove();
-      onDone?.();
-    };
-    const tick = () => {
-      const elapsed = Date.now() - start;
-      const t = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
-      clone.style.transform = `translate3d(${dx * eased}px, ${dy * eased}px, 0) scale(${1 + (scale - 1) * eased})`;
-      if (t >= 1) { finish(); }
-    };
-    // §XI: per-frame work goes through Antlion.onTick.
-    cancelTick = this._antlion.onTick(tick);
-    if (cancelTick) { this._flightCancels.add(cancelTick); }
   }
 
   destroy() {
@@ -627,14 +536,7 @@ class TrickPlayView {
       this._antlion.cancelScheduled?.(id);
     }
     this._scheduledIds.clear();
-    for (const cancel of this._flightCancels) {
-      cancel();
-    }
-    this._flightCancels.clear();
-    for (const clone of this._activeClones) {
-      clone.remove();
-    }
-    this._activeClones.clear();
+    this._flight.destroy();
     if (this._trickCenterEl) {
       this._trickCenterEl.classList.remove('trick-center');
       this._trickCenterEl.textContent = '';

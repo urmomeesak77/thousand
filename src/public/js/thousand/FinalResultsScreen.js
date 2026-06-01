@@ -50,49 +50,10 @@ class FinalResultsScreen {
     table.className = 'final-results__history-table';
 
     const tbody = document.createElement('tbody');
-
     for (const round of history) {
-      const row = document.createElement('tr');
-      row.className = 'final-results__history-row';
-
-      const roundNumTd = document.createElement('td');
-      roundNumTd.className = 'final-results__history-round';
-      roundNumTd.textContent = round.roundNumber;
-
-      const declarerTd = document.createElement('td');
-      declarerTd.className = 'final-results__history-declarer';
-      declarerTd.textContent = round.declarerNickname;
-
-      const bidTd = document.createElement('td');
-      bidTd.className = 'final-results__history-bid';
-      bidTd.textContent = round.bid;
-
-      row.appendChild(roundNumTd);
-      row.appendChild(declarerTd);
-      row.appendChild(bidTd);
-
-      const awardSeat = round.fourNinesAward?.seat;
-      for (const [seatKey, playerData] of Object.entries(round.perPlayer)) {
-        const deltaTd = document.createElement('td');
-        deltaTd.className = 'final-results__history-delta';
-        deltaTd.textContent = playerData.delta;
-
-        const cumTd = document.createElement('td');
-        cumTd.className = 'final-results__history-cumulative';
-        cumTd.textContent = playerData.cumulativeAfter;
-        // FR-009: mark the running cumulative that includes the four-nines bonus.
-        if (awardSeat != null && Number(seatKey) === awardSeat) {
-          cumTd.classList.add('final-results__history-cumulative--four-nines');
-          cumTd.title = `Includes four-nines bonus +${round.fourNinesAward.amount}`;
-        }
-
-        row.appendChild(deltaTd);
-        row.appendChild(cumTd);
-      }
-
-      tbody.appendChild(row);
-
+      tbody.appendChild(this._renderHistoryRow(round));
       // FR-009: a distinct annotation row attributing the +100 to the awarded player.
+      const awardSeat = round.fourNinesAward?.seat;
       if (awardSeat != null) {
         tbody.appendChild(this._fourNinesAnnotationRow(round, awardSeat));
       }
@@ -100,6 +61,47 @@ class FinalResultsScreen {
 
     table.appendChild(tbody);
     this._container.appendChild(table);
+  }
+
+  _renderHistoryRow(round) {
+    const row = document.createElement('tr');
+    row.className = 'final-results__history-row';
+
+    const roundNumTd = document.createElement('td');
+    roundNumTd.className = 'final-results__history-round';
+    roundNumTd.textContent = round.roundNumber;
+
+    const declarerTd = document.createElement('td');
+    declarerTd.className = 'final-results__history-declarer';
+    declarerTd.textContent = round.declarerNickname;
+
+    const bidTd = document.createElement('td');
+    bidTd.className = 'final-results__history-bid';
+    bidTd.textContent = round.bid;
+
+    row.appendChild(roundNumTd);
+    row.appendChild(declarerTd);
+    row.appendChild(bidTd);
+
+    const awardSeat = round.fourNinesAward?.seat;
+    for (const [seatKey, playerData] of Object.entries(round.perPlayer)) {
+      const deltaTd = document.createElement('td');
+      deltaTd.className = 'final-results__history-delta';
+      deltaTd.textContent = playerData.delta;
+
+      const cumTd = document.createElement('td');
+      cumTd.className = 'final-results__history-cumulative';
+      cumTd.textContent = playerData.cumulativeAfter;
+      // FR-009: mark the running cumulative that includes the four-nines bonus.
+      if (awardSeat != null && Number(seatKey) === awardSeat) {
+        cumTd.classList.add('final-results__history-cumulative--four-nines');
+        cumTd.title = `Includes four-nines bonus +${round.fourNinesAward.amount}`;
+      }
+
+      row.appendChild(deltaTd);
+      row.appendChild(cumTd);
+    }
+    return row;
   }
 
   _fourNinesAnnotationRow(round, awardSeat) {

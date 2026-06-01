@@ -1,14 +1,13 @@
 'use strict';
 
 const RateLimiter = require('../utils/RateLimiter');
-const { roundScores, roundDeltas, buildFinalResults } = require('../services/Scoring');
-const { VICTORY_THRESHOLD } = require('../services/GameRules');
-const RoundSnapshot = require('../services/RoundSnapshot');
-const { seatRange } = require('../services/Seats');
+const RoundActionBroadcaster = require('../services/RoundActionBroadcaster');
+const TrickPlayActionHandler = require('./TrickPlayActionHandler');
 
 class RoundActionHandler {
   constructor({ store }) {
     this._store = store;
+    this._broadcaster = new RoundActionBroadcaster({ store });
     this._rateLimiter = new RateLimiter(250, 1);
     // Snapshot needs its own bucket: the rejection-recovery path fires
     // request_snapshot immediately after a rejected action, which would
@@ -16,6 +15,9 @@ class RoundActionHandler {
     // client stuck in a divergent state. 50 ms × 1 = 20 snapshots/sec/player,
     // far above any natural recovery rate but bounded against flooding.
     this._snapshotLimiter = new RateLimiter(50, 1);
+    // Bypass-the-limiter trick-play actions; borrows the plumbing above, so it
+    // must be constructed after store / rate limiter / broadcaster are set.
+    this._trickPlay = new TrickPlayActionHandler(this);
   }
 
   // Called by the periodic cleanup cron; without this, the rate-limiter Maps
@@ -39,10 +41,6 @@ class RoundActionHandler {
   }
 
   _reject(playerId, reason) {
-    const game = this._gameOf(playerId);
-    const phase = game?.round?.phase ?? '?';
-    const seat = this._seatOf(playerId);
-    console.log(`[reject] pid=${playerId} seat=${seat} phase=${phase} reason="${reason}"`);
     this._store.sendToPlayer(playerId, { type: 'action_rejected', reason });
   }
 
@@ -215,298 +213,27 @@ class RoundActionHandler {
     );
   }
 
+  // Trick-play actions (start-game, exchange pass, four-nines ack, play card,
+  // crawl commit) are delegated to TrickPlayActionHandler. They stay on this
+  // class's surface because ConnectionManager's dispatch table targets it.
   handleStartGame(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {
-      return;
-    }
-    const game = this._gameOf(playerId);
-    if (!game?.round) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    if (seat === null || seat === undefined) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    const result = round.startGame(seat);
-    if (result.noop) {
-      return;
-    }
-    if (result.rejected) {
-      this._reject(playerId, result.reason);
-      return;
-    }
-    const { declarerId, finalBid } = result;
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, { type: 'card_exchange_started', declarerId, finalBid, gameStatus });
-    }
+    this._trickPlay.handleStartGame(playerId);
   }
 
-  // Bypasses _runRoundAction: two passes arrive in quick succession and the shared
-  // per-player rate limiter (250 ms / 1) would silently drop the second.
   handleExchangePass(playerId, cardId, toSeat) {
-    const game = this._gameOf(playerId);
-    if (!game?.round) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    if (seat === null || seat === undefined) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    const result = round.submitExchangePass(seat, cardId, toSeat);
-    if (!result || result.noop) {
-      return;
-    }
-    if (result.rejected) {
-      this._reject(playerId, result.reason);
-      return;
-    }
-    // FR-002: bank the four-nines bonus before building any view-model so the
-    // broadcast cumulative scores reflect the +100 immediately (FR-018).
-    const award = result.transitionedToTrickPlay ? result.fourNinesAward : null;
-    if (award && game.session) {
-      game.session.applyFourNinesBonus(award.seat);
-    }
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      const msg = { type: 'card_passed', gameStatus };
-      if (pSeat === toSeat) {
-        const cardObj = round.deck[cardId];
-        if (cardObj) {
-          msg.passedCard = { id: cardObj.id, rank: cardObj.rank, suit: cardObj.suit };
-        }
-      }
-      this._store.sendToPlayer(pid, msg);
-      if (!result.transitionedToTrickPlay) { continue; }
-      if (award) {
-        // FR-003: announce the award and gate the first lead — trick_play_started
-        // is withheld until all three acknowledge_four_nines arrive.
-        this._store.sendToPlayer(pid, this._fourNinesAwardedMsg(round, game, award));
-      } else {
-        this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
-      }
-    }
+    this._trickPlay.handleExchangePass(playerId, cardId, toSeat);
   }
 
-  _fourNinesAwardedMsg(round, game, award) {
-    const nickname = this._store.players.get(round.seatOrder[award.seat])?.nickname ?? null;
-    const cumulativeScores = game.session
-      ? { ...game.session.cumulativeScores }
-      : round.getViewModelFor(award.seat).cumulativeScores;
-    return { type: 'four_nines_awarded', seat: award.seat, nickname, amount: award.amount, cumulativeScores };
-  }
-
-  // FR-003/FR-027: each player acknowledges the four-nines modal. Sticky and
-  // idempotent. When all three have acknowledged, release the held-back
-  // trick_play_started so the declarer's first lead becomes operable.
   handleAcknowledgeFourNines(playerId) {
-    if (!this._rateLimiter.isAllowed(playerId)) {
-      return;
-    }
-    const game = this._gameOf(playerId);
-    if (!game?.round) {
-      return;
-    }
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    if (seat === null || seat === undefined) {
-      return;
-    }
-    // No open gate → nothing to acknowledge; ignore silently (no toast).
-    if (!round.fourNinesAckPending) {
-      return;
-    }
-    const ack = round.recordFourNinesAck(seat);
-    const acknowledgedSeats = ack.acknowledgedSeats ?? [...round.fourNinesAcks];
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      this._store.sendToPlayer(pid, {
-        type: 'four_nines_ack_progress',
-        acknowledgedSeats,
-        remaining: 3 - acknowledgedSeats.length,
-        gameStatus,
-      });
-      if (ack.gateClosed) {
-        this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
-      }
-    }
+    this._trickPlay.handleAcknowledgeFourNines(playerId);
   }
 
-  _broadcastMarriage(pid, gameStatus, marriageResult, trickNumber, playerId) {
-    const playerNickname = this._store.players.get(playerId)?.nickname ?? null;
-    const seat = this._seatOf(playerId);
-    this._store.sendToPlayer(pid, {
-      type: 'marriage_declared',
-      playerSeat: seat,
-      playerNickname,
-      suit: marriageResult.suit,
-      bonus: marriageResult.bonus,
-      trickNumber,
-      newTrumpSuit: marriageResult.newTrumpSuit,
-      gameStatus,
-    });
-    this._store.sendToPlayer(pid, {
-      type: 'trump_changed',
-      newTrumpSuit: marriageResult.newTrumpSuit,
-      gameStatus,
-    });
-  }
-
-  _broadcastRoundSummary(pid, gameStatus, summary) {
-    this._store.sendToPlayer(pid, { type: 'round_summary', summary, gameStatus });
-  }
-
-  // Bypasses _runRoundAction for the same rate-limiter reason as handleExchangePass.
   handlePlayCard(playerId, cardId, declareMarriage = false) {
-    const game = this._gameOf(playerId);
-    if (!game?.round) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    if (seat === null || seat === undefined) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    // T045: If the client set declareMarriage, process it atomically before playCard.
-    // declareMarriage mutates currentTrumpSuit which affects follow-suit validation in playCard.
-    let marriageResult = null;
-    if (declareMarriage) {
-      marriageResult = round.declareMarriage(seat, cardId);
-      if (marriageResult.rejected) {
-        this._reject(playerId, marriageResult.reason);
-        return;
-      }
-    }
-    const result = round.playCard(seat, cardId);
-    if (!result || result.noop) { return; }
-    if (result.rejected) {
-      this._reject(playerId, result.reason);
-      return;
-    }
-    const isRoundComplete = result.trickResolved && result.roundComplete;
-    const { victoryReached, finalResults } = isRoundComplete
-      ? this._computeRoundEnd(game, round)
-      : { victoryReached: false, finalResults: null };
-    this._broadcastPlayCardResults(game, round, playerId, cardId, marriageResult, isRoundComplete, victoryReached, finalResults);
-    if (isRoundComplete && victoryReached) {
-      this._store._cleanupRound(game.id);
-    }
+    this._trickPlay.handlePlayCard(playerId, cardId, declareMarriage);
   }
 
-  // FR-003/FR-004/FR-006/FR-007: a single crawl_commit serves the declarer's
-  // initiating commit and each opponent's response (disambiguated by turn order).
-  // Bypasses _runRoundAction's shared limiter — commits arrive in quick
-  // succession, like play_card/exchange_pass.
   handleCrawlCommit(playerId, cardId) {
-    const game = this._gameOf(playerId);
-    if (!game?.round) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    const round = game.round;
-    const seat = this._seatOf(playerId);
-    if (seat === null || seat === undefined) {
-      this._reject(playerId, 'Not in a round');
-      return;
-    }
-    const result = round.commitCrawlCard(seat, cardId);
-    if (!result || result.noop) { return; }
-    if (result.rejected) {
-      this._reject(playerId, result.reason);
-      return;
-    }
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      if (result.crawlResolved) {
-        // FR-005/FR-006: all three faces are disclosed exactly once, here.
-        const commits = result.commits.map(({ seat: s, cardId: id }) => {
-          const card = round.deck[id];
-          return { seat: s, cardId: id, rank: card.rank, suit: card.suit };
-        });
-        this._store.sendToPlayer(pid, { type: 'crawl_revealed', commits, winnerSeat: result.winnerSeat, gameStatus });
-      } else {
-        // FR-005: progress only — no card identity.
-        this._store.sendToPlayer(pid, { type: 'crawl_committed', seat, committedSeats: result.committedSeats, gameStatus });
-      }
-    }
-  }
-
-  _computeRoundEnd(game, round) {
-    round.roundScores = roundScores(round);
-    round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid, round.playerCount);
-    round.buildSummary(game);
-    const session = game.session;
-    if (!session) { return { victoryReached: false, finalResults: null }; }
-
-    const declarerPid = round.seatOrder[round.declarerSeat];
-    const summaryEntry = {
-      roundNumber: session.currentRoundNumber,
-      declarerSeat: round.declarerSeat,
-      declarerNickname: this._store.players.get(declarerPid)?.nickname ?? null,
-      bid: round.currentHighBid,
-      perPlayer: Object.fromEntries(
-        seatRange(round.playerCount).map((s) => [s, { ...round.summary.perPlayer[s] }])
-      ),
-    };
-    session.applyRoundEnd(round.roundDeltas, summaryEntry);
-    // cumulativeAfter must be read after applyRoundEnd so barrel/zero penalties are reflected
-    for (const s of seatRange(round.playerCount)) {
-      round.summary.perPlayer[s].cumulativeAfter = session.cumulativeScores[s];
-      summaryEntry.perPlayer[s].cumulativeAfter = session.cumulativeScores[s];
-      summaryEntry.perPlayer[s].penalties = round.summary.perPlayer[s].penalties;
-    }
-    round.summary.roundNumber = session.currentRoundNumber;
-    const victoryReached = seatRange(round.playerCount).some((s) => session.cumulativeScores[s] >= VICTORY_THRESHOLD);
-    round.summary.victoryReached = victoryReached;
-    if (victoryReached) { session.gameStatus = 'game-over'; }
-    return { victoryReached, finalResults: victoryReached ? buildFinalResults(session) : null };
-  }
-
-  _broadcastPlayCardResults(game, round, playerId, cardId, marriageResult, isRoundComplete, victoryReached, finalResults) {
-    const trickNumber = round.trickNumber;
-    const playerSeat = this._seatOf(playerId);
-    // Why: when the 3rd (trick-resolving) card is played, _resolveTrick clears
-    // currentTrick before broadcast — and the collected pile belongs to the
-    // *winner*, not necessarily the player who just played. Deriving from round
-    // state therefore mis-identified the card for a 3rd-card non-winner. The
-    // play_card handler already has the authoritative cardId; thread it through.
-    const playedCardId = cardId;
-    for (const pid of game.players) {
-      const pSeat = round.seatByPlayer.get(pid);
-      const gameStatus = round.getViewModelFor(pSeat);
-      if (marriageResult) {
-        this._broadcastMarriage(pid, gameStatus, marriageResult, trickNumber, playerId);
-      }
-      const cardPlayedMsg = { type: 'card_played', gameStatus };
-      if (playerSeat !== null && playedCardId !== null) {
-        cardPlayedMsg.playerSeat = playerSeat;
-        cardPlayedMsg.cardId = playedCardId;
-        // Centre-card identity travels with every card_played so the centre-flight
-        // animation can render the 3rd (trick-resolving) card even though the
-        // post-resolve snapshot has already cleared currentTrick.
-        const cardObj = round.deck[playedCardId];
-        if (cardObj) { cardPlayedMsg.card = { rank: cardObj.rank, suit: cardObj.suit }; }
-      }
-      this._store.sendToPlayer(pid, cardPlayedMsg);
-      if (isRoundComplete) {
-        this._broadcastRoundSummary(pid, gameStatus, round.summary);
-        if (victoryReached) {
-          this._store.sendToPlayer(pid, { type: 'final_results', finalResults, gameStatus });
-        }
-      }
-    }
+    this._trickPlay.handleCrawlCommit(playerId, cardId);
   }
 
   // T069 — FR-016: continue to next round
@@ -548,7 +275,7 @@ class RoundActionHandler {
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
     if (session.continuePresses.size === round.playerCount) {
-      this._startAndBroadcastNextRound(game);
+      this._broadcaster.startAndBroadcastNextRound(game);
     }
   }
 
@@ -571,20 +298,6 @@ class RoundActionHandler {
     const snapshot = game.round.getSnapshotFor(seat);
     if (snapshot) {
       this._store.sendToPlayer(playerId, snapshot);
-    }
-  }
-
-  _startAndBroadcastNextRound(game) {
-    const session = game.session;
-    session.startNextRound();
-    const newRound = this._store.buildRound(game);
-    const roundNumber = session.currentRoundNumber;
-    for (const pid of game.players) {
-      const selfSeat = newRound.seatByPlayer.get(pid);
-      const gameStatus = newRound.getViewModelFor(selfSeat);
-      const seats = RoundSnapshot.buildSeatLayout(newRound, selfSeat);
-      const dealSequence = RoundSnapshot.buildDealSequenceFor(newRound, selfSeat);
-      this._store.sendToPlayer(pid, { type: 'next_round_started', roundNumber, seats, dealSequence, gameStatus });
     }
   }
 }

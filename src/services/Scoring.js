@@ -163,4 +163,7 @@ function applyPenaltyAnnotations(session, perPlayer, deltas) {
   }
 }
 
-module.exports = { CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, findFourNinesSeat, handHasAce, roundScores, roundDeltas, determineWinner, buildFinalResults, applyPenaltyAnnotations };
+module.exports = {
+  CARD_POINT_VALUE, MARRIAGE_BONUS, RANK_ORDER, cardPoints, findFourNinesSeat, handHasAce,
+  roundScores, roundDeltas, determineWinner, buildFinalResults, applyPenaltyAnnotations,
+};

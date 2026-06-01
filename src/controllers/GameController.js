@@ -257,22 +257,11 @@ class GameController {
       return;
     }
 
-    if (!/^[A-F0-9]{6}$/.test(code)) {
-      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
+    const resolved = this._resolveInviteGame(res, code);
+    if (!resolved) {
       return;
     }
-
-    const gameId = this.store.inviteCodes.get(code);
-    if (!gameId) {
-      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
-      return;
-    }
-
-    const game = this.store.games.get(gameId);
-    if (!game || game.status !== 'waiting') {
-      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
-      return;
-    }
+    const { game, gameId } = resolved;
 
     // T040 – race-condition guard. Critical section starts here — see
     // _validateJoinPreconditions for why no `await` may slip in below.
@@ -288,6 +277,21 @@ class GameController {
     this._admitPlayerToGame(game, gameId, player.id);
 
     HttpUtil.sendJSON(res, 200, { gameId });
+  }
+
+  // Resolves an invite code to a joinable game, or sends a 404 and returns null.
+  _resolveInviteGame(res, code) {
+    if (!/^[A-F0-9]{6}$/.test(code)) {
+      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
+      return null;
+    }
+    const gameId = this.store.inviteCodes.get(code);
+    const game = gameId ? this.store.games.get(gameId) : null;
+    if (!game || game.status !== 'waiting') {
+      HttpUtil.sendError(res, 404, 'not_found', 'Invalid invite code');
+      return null;
+    }
+    return { game, gameId };
   }
 
   // POST /api/games/:id/leave

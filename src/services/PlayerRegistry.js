@@ -43,7 +43,10 @@ class PlayerRegistry {
       && playerId.length === UUID_LENGTH && sessionToken.length === UUID_LENGTH;
     if (!isValidShape) {
       const result = this.create(ws, clientIp);
-      return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
+      return {
+        playerId: result.playerId, sessionToken: result.sessionToken,
+        restored: false, nickname: null, gameId: null,
+      };
     }
     const player = this.players.get(playerId);
     if (player && safeTokenEqual(player.sessionToken, sessionToken)) {
@@ -55,7 +58,10 @@ class PlayerRegistry {
       return { playerId, sessionToken, restored: true, nickname: player.nickname, gameId: player.gameId };
     }
     const result = this.create(ws, clientIp);
-    return { playerId: result.playerId, sessionToken: result.sessionToken, restored: false, nickname: null, gameId: null };
+    return {
+      playerId: result.playerId, sessionToken: result.sessionToken,
+      restored: false, nickname: null, gameId: null,
+    };
   }
 
   findBySessionToken(token) {

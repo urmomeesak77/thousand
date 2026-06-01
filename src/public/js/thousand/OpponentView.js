@@ -51,27 +51,7 @@ class OpponentView {
     nick.textContent = this._nickname;
     this._container.appendChild(nick);
 
-    const stackEl = document.createElement('div');
-    stackEl.className = 'opponent-view__stack';
-    const OFFSET = 14;
-    const count = this._cardCount;
-    stackEl.style.width = count > 0
-      ? `calc(var(--card-width) + ${(count - 1) * OFFSET}px)`
-      : `var(--card-width)`;
-    for (let i = 0; i < count; i++) {
-      const card = document.createElement('div');
-      card.className = 'opponent-view__stack-card';
-      card.style.left = `${i * OFFSET}px`;
-      card.style.zIndex = i + 1;
-      if (i === count - 1) {
-        const badge = document.createElement('span');
-        badge.className = 'opponent-view__count';
-        badge.textContent = String(count);
-        card.appendChild(badge);
-      }
-      stackEl.appendChild(card);
-    }
-    this._container.appendChild(stackEl);
+    this._container.appendChild(this._buildCardStack());
 
     // points presence is the authoritative signal that round stats exist (server
     // sends roundPoints only during trick-play/round-summary); tricks tag along.
@@ -95,6 +75,30 @@ class OpponentView {
       lost.textContent = 'Connection lost…';
       this._container.appendChild(lost);
     }
+  }
+
+  _buildCardStack() {
+    const stackEl = document.createElement('div');
+    stackEl.className = 'opponent-view__stack';
+    const OFFSET = 14;
+    const count = this._cardCount;
+    stackEl.style.width = count > 0
+      ? `calc(var(--card-width) + ${(count - 1) * OFFSET}px)`
+      : `var(--card-width)`;
+    for (let i = 0; i < count; i++) {
+      const card = document.createElement('div');
+      card.className = 'opponent-view__stack-card';
+      card.style.left = `${i * OFFSET}px`;
+      card.style.zIndex = i + 1;
+      if (i === count - 1) {
+        const badge = document.createElement('span');
+        badge.className = 'opponent-view__count';
+        badge.textContent = String(count);
+        card.appendChild(badge);
+      }
+      stackEl.appendChild(card);
+    }
+    return stackEl;
   }
 }
 

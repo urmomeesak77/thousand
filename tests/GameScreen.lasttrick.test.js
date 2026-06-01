@@ -42,6 +42,7 @@ before(() => {
     'thousand/CollectedTricksStack.js',
     'thousand/MarriageDeclarationPrompt.js',
     'thousand/CrawlControls.js',
+    'thousand/CardFlightAnimator.js',
     'thousand/TrickPlayView.js',
     'thousand/RoundSummaryScreen.js',
     'thousand/GameScreenControls.js',

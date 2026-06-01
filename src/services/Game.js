@@ -1,6 +1,8 @@
 'use strict';
 
-const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT, FOUR_NINES_BONUS } = require('./GameRules');
+const {
+  BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT, FOUR_NINES_BONUS,
+} = require('./GameRules');
 const { initSeatMap } = require('./Seats');
 
 class Game {
