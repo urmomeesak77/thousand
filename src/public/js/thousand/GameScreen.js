@@ -59,6 +59,7 @@ class GameScreen {
     const tableEl = document.createElement('div');
     tableEl.className = 'game-table';
     const leftEl = document.createElement('div');
+    const acrossEl = document.createElement('div');
     const centerColEl = document.createElement('div');
     centerColEl.className = 'talon-col';
     const statusBoxEl = document.createElement('div');
@@ -75,7 +76,7 @@ class GameScreen {
     lastActionEl.className = 'last-action-box hidden';
     this._lastActionEl = lastActionEl;
 
-    tableEl.append(leftEl, centerColEl, rightEl, lastActionEl, selfStatsEl, handEl);
+    tableEl.append(leftEl, acrossEl, centerColEl, rightEl, lastActionEl, selfStatsEl, handEl);
     const scoreboardEl = document.createElement('div');
     const fourNinesEl = document.createElement('div');
     fourNinesEl.style.display = 'none';
@@ -85,6 +86,7 @@ class GameScreen {
 
     this._tableEl = tableEl;
     this._leftEl = leftEl;
+    this._acrossEl = acrossEl;
     this._rightEl = rightEl;
     this._handEl = handEl;
     this._selfStatsEl = selfStatsEl;
@@ -94,9 +96,26 @@ class GameScreen {
     this._statusBox = new GameStatusBox(statusBoxEl);
     this._cardTable = new CardTable(antlion, tableEl);
     this._handView = new HandView(handEl, antlion);
+    // Three opponent views keyed by clockwise position. The 'across' view only
+    // maps to a seat in 4-player rooms (seats.across is undefined for 3-player),
+    // so it stays empty and hidden otherwise.
     this._leftOpponent = new OpponentView(leftEl);
+    this._acrossOpponent = new OpponentView(acrossEl);
     this._rightOpponent = new OpponentView(rightEl);
     this._talonView = new TalonView(talonEl);
+  }
+
+  // Maps each opponent OpponentView to its current seat via this._seats. Returns
+  // [{ position, view, seat }] for every opponent whose seat is present (across
+  // is absent in 3-player). Drives all per-opponent fan-outs below.
+  _opponents() {
+    const s = this._seats;
+    if (!s) { return []; }
+    return [
+      { position: 'left', view: this._leftOpponent, seat: s.left },
+      { position: 'across', view: this._acrossOpponent, seat: s.across },
+      { position: 'right', view: this._rightOpponent, seat: s.right },
+    ].filter((o) => o.seat != null);
   }
 
   // Exposed to TrickPlayView so it can mount its centre cards into the talon area
@@ -109,16 +128,15 @@ class GameScreen {
   }
 
   _opponentForSeat(seat) {
-    if (!this._seats || seat == null) {return null;}
-    if (seat === this._seats.left) {return this._leftOpponent;}
-    if (seat === this._seats.right) {return this._rightOpponent;}
-    return null;
+    if (seat == null) {return null;}
+    return this._opponents().find((o) => o.seat === seat)?.view ?? null;
   }
 
   _elForSeat(seat) {
     if (!this._seats || seat == null) {return null;}
     if (seat === this._seats.self) {return this._handEl;}
     if (seat === this._seats.left) {return this._leftEl;}
+    if (seat === this._seats.across) {return this._acrossEl;}
     if (seat === this._seats.right) {return this._rightEl;}
     return null;
   }
@@ -143,8 +161,7 @@ class GameScreen {
     this._clearLastAction();
     this._handView.setHand([]);
     this._talonView.clear();
-    this._leftOpponent.setCardCount(0);
-    this._rightOpponent.setCardCount(0);
+    for (const o of this._opponents()) { o.view.setCardCount(0); }
 
     this._tableEl.classList.remove('hidden');
     this._controlsEl.classList.remove('hidden');
@@ -155,10 +172,7 @@ class GameScreen {
       }
     }
 
-    const leftPlayer = msg.seats.players.find((p) => p.seat === msg.seats.left);
-    const rightPlayer = msg.seats.players.find((p) => p.seat === msg.seats.right);
-    if (leftPlayer) {this._leftOpponent.setNickname(leftPlayer.nickname);}
-    if (rightPlayer) {this._rightOpponent.setNickname(rightPlayer.nickname);}
+    this._setOpponentNicknames(msg.seats);
 
     this._lastGameStatus = msg.gameStatus;
     this._startDealAnimation(msg.dealSequence);
@@ -193,8 +207,9 @@ class GameScreen {
       return;
     }
 
-    this._leftOpponent.setCardCount(msg.opponentHandSizes[msg.seats.left] ?? 0);
-    this._rightOpponent.setCardCount(msg.opponentHandSizes[msg.seats.right] ?? 0);
+    for (const o of this._opponents()) {
+      o.view.setCardCount(msg.opponentHandSizes[o.seat] ?? 0);
+    }
     this._handView.setHand(msg.myHand);
     this._renderSnapshotTalon(msg);
     this.sellPhase.initFromSnapshot(msg);
@@ -235,13 +250,9 @@ class GameScreen {
   }
 
   _setOpponentNicknames(seats) {
-    const left = seats.players.find((p) => p.seat === seats.left);
-    const right = seats.players.find((p) => p.seat === seats.right);
-    if (left) {
-      this._leftOpponent.setNickname(left.nickname);
-    }
-    if (right) {
-      this._rightOpponent.setNickname(right.nickname);
+    for (const o of this._opponents()) {
+      const player = seats.players.find((p) => p.seat === o.seat);
+      if (player) { o.view.setNickname(player.nickname); }
     }
   }
 
@@ -289,10 +300,10 @@ class GameScreen {
 
   _applyOpponentHandSizes(sizes) {
     if (!sizes || !this._seats) { return; }
-    const left = sizes[this._seats.left];
-    const right = sizes[this._seats.right];
-    if (typeof left === 'number') { this._leftOpponent.setCardCount(left); }
-    if (typeof right === 'number') { this._rightOpponent.setCardCount(right); }
+    for (const o of this._opponents()) {
+      const size = sizes[o.seat];
+      if (typeof size === 'number') { o.view.setCardCount(size); }
+    }
   }
 
   // Why: the controls-lock is only meant to defer phase TRANSITIONS until the
@@ -424,8 +435,7 @@ class GameScreen {
   _clearLastAction() {
     this._lastActionEl.textContent = '';
     this._lastActionEl.classList.add('hidden');
-    this._leftOpponent.setLastAction('');
-    this._rightOpponent.setLastAction('');
+    for (const o of this._opponents()) { o.view.setLastAction(''); }
   }
 
   _startDealAnimation(sequence, opponentHandSizes = {}) {
@@ -452,8 +462,9 @@ class GameScreen {
         this._handView.setHand(Object.values(this._cardsById));
         // Talon stays face-down during bidding; declarer reveals it on take
         this._talonView.setFaceDownCount(this._talonCardIds.length);
-        this._leftOpponent.setCardCount(opponentHandSizes[this._seats.left] ?? OPPONENT_DEFAULT_HAND);
-        this._rightOpponent.setCardCount(opponentHandSizes[this._seats.right] ?? OPPONENT_DEFAULT_HAND);
+        for (const o of this._opponents()) {
+          o.view.setCardCount(opponentHandSizes[o.seat] ?? OPPONENT_DEFAULT_HAND);
+        }
         this.setControlsLocked(false);
         if (this._lastGameStatus && this._pendingMountStatus !== this._lastGameStatus) {
           this._controls.mountForPhase(this._lastGameStatus);
@@ -466,22 +477,23 @@ class GameScreen {
   }
 
   // Why: round stats only exist during trick-play/round-summary (roundPoints is
-  // null otherwise). Driving self + both opponents from the same view-model keeps
-  // the three seat displays consistent on every render.
+  // null otherwise). Driving self + every present opponent from the same
+  // view-model keeps all seat displays consistent on every render.
   _renderRoundStats(gameStatus) {
     const points = gameStatus.roundPoints;
     if (points == null || !this._seats) {
       this._selfStatsEl.classList.add('hidden');
-      this._leftOpponent.setRoundStats(null, null);
-      this._rightOpponent.setRoundStats(null, null);
+      for (const o of this._opponents()) { o.view.setRoundStats(null, null); }
       return;
     }
-    const counts = gameStatus.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 };
-    const { self, left, right } = this._seats;
-    this._selfStatsEl.textContent = formatRoundStats(counts[self], points[self]);
+    const counts = gameStatus.collectedTrickCounts ?? {};
+    this._selfStatsEl.textContent = formatRoundStats(
+      counts[this._seats.self] ?? 0, points[this._seats.self] ?? 0,
+    );
     this._selfStatsEl.classList.remove('hidden');
-    this._leftOpponent.setRoundStats(counts[left] ?? 0, points[left] ?? 0);
-    this._rightOpponent.setRoundStats(counts[right] ?? 0, points[right] ?? 0);
+    for (const o of this._opponents()) {
+      o.view.setRoundStats(counts[o.seat] ?? 0, points[o.seat] ?? 0);
+    }
   }
 
   _renderStatus(gameStatus) {
