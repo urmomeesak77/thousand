@@ -1,14 +1,19 @@
 /**
- * Smart live 3-browser end-to-end test: Chrome + Firefox + Chromium
+ * Smart live multi-browser end-to-end test: Chrome + Firefox + Chromium(+Chromium)
  *
  * Unlike tests/e2e-live.js (everyone passes & plays the first legal card), this
  * test plays with intent: Alice is the designated declarer/aggressor who bids a
  * marriage-backed max-makeable contract and wins the point-rich tricks, while
- * Bob & Charlie pass and dump their lowest cards toward her. Points funnel onto
- * one seat, so victory (1000+) is reached in ~5–6 rounds instead of ~10.
+ * the other players pass and dump their lowest cards toward her. Points funnel
+ * onto one seat, so victory (1000+) is reached in ~5–6 rounds instead of ~10.
+ *
+ * Player count is env-driven: 3 (default, 24-card deck) or 4 (E2E_PLAYERS=4,
+ * 32-card deck with 7s/8s). Force a deal with THOUSAND_STACK_DECK (four-nines,
+ * four-nines-2, no-ace-declarer) — the env is inherited by the spawned server.
  *
  * Design: docs/superpowers/specs/2026-05-21-smart-e2e-test-design.md
- * Usage:  node tests/e2e-live-smart.js
+ * Usage:  node tests/e2e-live-smart.js          (3 players)
+ *         E2E_PLAYERS=4 node tests/e2e-live-smart.js   (4 players)
  */
 
 const { chromium, firefox } = require('playwright');
@@ -26,12 +31,23 @@ const SLOW_MO = HEADLESS ? 0 : 80;   // no inter-action delay needed when headle
 // race in the sell-resolve flow) and the game stalls. Off by default so a normal
 // run completes; the declarer just plays every hand instead of selling.
 const SELL_ENABLED = process.env.E2E_SELL === '1';
+// Player count: 3 (default, 24-card deck) or 4 (E2E_PLAYERS=4, 32-card deck).
+// Default MUST stay 3 so the existing 3-player run is unchanged. The 4-player
+// path adds a fourth seat (Dave, a second Chromium window) and creates the game
+// with requiredPlayers=4 via the new-game modal's player-count radio.
+const PLAYER_COUNT = process.env.E2E_PLAYERS === '4' ? 4 : 3;
+// Seat names in join order; sliced to PLAYER_COUNT. Alice is always the
+// aggressor declarer; the rest pass and dump their lowest cards toward her.
+const PLAYER_NAMES = ['Alice', 'Bob', 'Charlie', 'Dave'].slice(0, PLAYER_COUNT);
 
 // Card point values — used for valuing a card (what it's worth to capture/save).
-const RANK_VALUE = { A: 11, '10': 10, K: 4, Q: 3, J: 2, '9': 0 };
-// Trick-winning order, high→low: A,10,K,Q,J,9. Distinct from point value
-// (e.g. K outranks 10 in capture order, but 10 is worth more points).
-const RANK_STRENGTH = { A: 6, '10': 5, K: 4, Q: 3, J: 2, '9': 1 };
+// 7 and 8 (4-player 32-card deck only) are worth 0; inert for 24-card decks.
+const RANK_VALUE = { A: 11, '10': 10, K: 4, Q: 3, J: 2, '9': 0, '8': 0, '7': 0 };
+// Trick-winning order, high→low: A,10,K,Q,J,9,8,7. Distinct from point value
+// (e.g. K outranks 10 in capture order, but 10 is worth more points). 7 and 8
+// rank BELOW the 9 (they never win over a 9+), mirroring RANK_ORDER in
+// src/public/js/thousand/constants.js; inert for 24-card (3-player) decks.
+const RANK_STRENGTH = { A: 8, '10': 7, K: 6, Q: 5, J: 4, '9': 3, '8': 2, '7': 1 };
 // Marriage bonus by suit letter (♣100 / ♠80 / ♥60 / ♦40).
 const MARRIAGE_BONUS = { C: 100, S: 80, H: 60, D: 40 };
 // Maps the trump-suit glyph shown in the status bar to our suit letters.
@@ -137,7 +153,7 @@ async function readHand(page) {
   try {
     return await page.$$eval('.hand-view__card[data-card-id]', (els) =>
       els.map((el) => {
-        const m = el.className.match(/card--(10|[AKQJ9])([CSHD])/);
+        const m = el.className.match(/card--(10|[AKQJ987])([CSHD])/);
         return {
           cardId: el.dataset.cardId,
           rank: m ? m[1] : null,
@@ -201,7 +217,7 @@ async function readCenter(page) {
   try {
     return await page.$$eval('.trick-center__slot .card-sprite:not(.crawl-placeholder)', (els) =>
       els.map((el) => {
-        const m = el.className.match(/card--(10|[AKQJ9])([CSHD])/);
+        const m = el.className.match(/card--(10|[AKQJ987])([CSHD])/);
         return m ? { rank: m[1], suit: m[2] } : null;
       }).filter(Boolean));
   } catch {
@@ -495,14 +511,17 @@ async function declarerSellSelect(page, name) {
 }
 
 // Sell-auction: a designated opponent buys the exposed hand (becoming declarer);
-// the other opponent passes. The buyer is Charlie (a Chromium window) rather
-// than Bob (Firefox): the post-sale resolve animation is requestAnimationFrame-
-// driven, and only the Chromium windows launch with the occlusion/rAF
-// anti-throttle flags, so the buyer's controls actually re-mount while occluded.
-// If Charlie is somehow the seller, fall back to Bob.
+// everyone else passes. The buyer is a Chromium window (Charlie, or Dave in the
+// 4-player run) rather than Bob (Firefox): the post-sale resolve animation is
+// requestAnimationFrame-driven, and only the Chromium windows launch with the
+// occlusion/rAF anti-throttle flags, so the buyer's controls actually re-mount
+// while occluded. If the preferred buyer is the seller, fall back to the next
+// Chromium window, then to Bob.
 async function sellAuctionAction(page, name) {
   const declarerNick = await readDeclarer(page);
-  const buyer = declarerNick === 'Charlie' ? 'Bob' : 'Charlie';
+  // Chromium-backed seats, in preference order; first one that isn't the seller.
+  const chromiumSeats = ['Charlie', 'Dave'].filter((n) => PLAYER_NAMES.includes(n));
+  const buyer = chromiumSeats.find((n) => n !== declarerNick) || 'Bob';
   if (name === buyer
     && await tryClick(page, '.sell-bid-controls:not(.hidden) .bid-controls__bid:not(:disabled)')) {
     log(name, '💰 buys the exposed hand (becomes declarer)');
@@ -538,7 +557,7 @@ async function mainBidAction(page, name) {
 // hand is sold), and strategy keys off whether *this* player is that declarer.
 async function takeAction(page, name, result) {
   // Four-nines bonus (feature 006): a blocking modal that gates trick play until
-  // ALL THREE players acknowledge. Whoever sees it must clear it first, or the
+  // ALL players acknowledge. Whoever sees it must clear it first, or the
   // ack-gate keeps every hand disabled and trick 1 never starts (the round-10/11
   // STUCK hang). The button self-disables after the click, so guard on :enabled.
   if (await tryClick(page, '.four-nines-modal button[data-action="acknowledge"]:not(:disabled)')) {
@@ -640,6 +659,11 @@ function attachConsoleWatchers(page, name, errors) {
 // Lobby / setup (identical flow to e2e-live.js)
 // ──────────────────────────────────────────────────────────────────────────────
 
+// Launch one browser per seat, returned in seat order (matches PLAYER_NAMES).
+// Engine assignment: Alice=Chrome, Bob=Firefox, Charlie=Chromium, and (4-player
+// only) Dave=a second Chromium. Only Chrome/Chromium take the rAF anti-throttle
+// flags; Firefox uses the equivalent timer-budget prefs. There is no fourth
+// distinct engine available, so the 4th seat reuses Chromium.
 async function launchBrowsers() {
   const chromiumArgs = [
     '--disable-background-timer-throttling',
@@ -652,36 +676,47 @@ async function launchBrowsers() {
     'dom.timeout.background_throttling_max_budget': -1,
     'dom.timeout.foreground_throttling_max_budget': -1,
   };
-  const chromeBrowser = await chromium.launch({ channel: 'chrome', headless: HEADLESS, slowMo: SLOW_MO, args: chromiumArgs });
-  const firefoxBrowser = await firefox.launch({ headless: HEADLESS, slowMo: SLOW_MO, firefoxUserPrefs: firefoxPrefs });
-  const chromiumBrowser = await chromium.launch({ headless: HEADLESS, slowMo: SLOW_MO, args: chromiumArgs });
-  return { chromeBrowser, firefoxBrowser, chromiumBrowser };
+  const launchers = [
+    () => chromium.launch({ channel: 'chrome', headless: HEADLESS, slowMo: SLOW_MO, args: chromiumArgs }),
+    () => firefox.launch({ headless: HEADLESS, slowMo: SLOW_MO, firefoxUserPrefs: firefoxPrefs }),
+    () => chromium.launch({ headless: HEADLESS, slowMo: SLOW_MO, args: chromiumArgs }),
+    () => chromium.launch({ headless: HEADLESS, slowMo: SLOW_MO, args: chromiumArgs }),
+  ];
+  const browsers = [];
+  for (let i = 0; i < PLAYER_COUNT; i++) {
+    browsers.push(await launchers[i]());
+  }
+  return browsers;
 }
 
-async function setupLobby(alice, bob, charlie) {
-  await Promise.all([alice, bob, charlie].map((p) => p.goto(BASE_URL)));
-  console.log('All three browsers at', BASE_URL, '\n');
+// Alice creates the game (selecting the PLAYER_COUNT radio in the new-game
+// modal); the remaining seats join from the lobby. `players` is in seat order.
+async function setupLobby(players) {
+  await Promise.all(players.map(({ page }) => page.goto(BASE_URL)));
+  console.log(`All ${PLAYER_COUNT} browsers at`, BASE_URL, '\n');
 
-  await alice.fill('#nickname-input', 'Alice');
-  await alice.click('#nickname-form button[type="submit"]');
-  await bob.fill('#nickname-input', 'Bob');
-  await bob.click('#nickname-form button[type="submit"]');
-  await charlie.fill('#nickname-input', 'Charlie');
-  await charlie.click('#nickname-form button[type="submit"]');
+  for (const { page, name } of players) {
+    await page.fill('#nickname-input', name);
+    await page.click('#nickname-form button[type="submit"]');
+  }
 
+  const alice = players[0].page;
   await alice.waitForSelector('#lobby-screen:not(.hidden)', { timeout: 8000 });
   await alice.click('#new-game-btn');
   await alice.waitForSelector('#new-game-modal:not(.hidden)', { timeout: 3000 });
+  // FR-001: pick the 3-or-4 player-count radio before submitting (the value "3"
+  // radio is checked by default, so the 3-player path is unaffected).
+  await alice.check(`input[name="player-count"][value="${PLAYER_COUNT}"]`);
   await alice.click('#new-game-form button[type="submit"]');
   await alice.waitForSelector('#game-screen:not(.hidden)', { timeout: 8000 });
   log('Alice', 'created game & in waiting room');
 
-  for (const [page, who] of [[bob, 'Bob'], [charlie, 'Charlie']]) {
+  for (const { page, name } of players.slice(1)) {
     await page.waitForSelector('#lobby-screen:not(.hidden)', { timeout: 8000 });
     await page.waitForSelector('#game-list li[data-id]', { timeout: 10000 });
     await page.click('#game-list li[data-id]');
     await page.click('#join-selected-btn');
-    log(who, 'joined');
+    log(name, 'joined');
   }
 }
 
@@ -698,27 +733,21 @@ async function main() {
     server = await startServer();
     console.log('Server ready.\n');
 
-    console.log('Launching Chrome, Firefox, Chromium…');
-    const { chromeBrowser, firefoxBrowser, chromiumBrowser } = await launchBrowsers();
-    browsers.push(chromeBrowser, firefoxBrowser, chromiumBrowser);
-
-    const alice = await chromeBrowser.newPage();
-    const bob = await firefoxBrowser.newPage();
-    const charlie = await chromiumBrowser.newPage();
-    for (const p of [alice, bob, charlie]) {
-      await p.setViewportSize({ width: 1280, height: 800 });
-    }
-
-    await setupLobby(alice, bob, charlie);
-    console.log('\n— All three joined. Waiting for round to start… —\n');
+    console.log(`Launching ${PLAYER_COUNT} browsers (${PLAYER_NAMES.join(', ')})…`);
+    const launched = await launchBrowsers();
+    browsers.push(...launched);
 
     // Roles are dynamic: Alice wins the main auction, but a sold hand makes the
     // buyer the declarer, so each player's role is read from the status bar.
-    const players = [
-      { page: alice, name: 'Alice' },
-      { page: bob, name: 'Bob' },
-      { page: charlie, name: 'Charlie' },
-    ];
+    const players = [];
+    for (let i = 0; i < PLAYER_COUNT; i++) {
+      const page = await launched[i].newPage();
+      await page.setViewportSize({ width: 1280, height: 800 });
+      players.push({ page, name: PLAYER_NAMES[i] });
+    }
+
+    await setupLobby(players);
+    console.log(`\n— All ${PLAYER_COUNT} joined. Waiting for round to start… —\n`);
 
     const errors = [];
     for (const { page, name } of players) {
@@ -726,7 +755,7 @@ async function main() {
     }
 
     const result = { winnerScore: null, winnerText: null };
-    const done = [false, false, false];
+    const done = new Array(PLAYER_COUNT).fill(false);
     let doneCnt = 0;
     let iter = 0;
     const MAX_ITER = 6000;
@@ -737,11 +766,11 @@ async function main() {
     let consecutiveNoActor = 0;
     const NO_ACTOR_STUCK_THRESHOLD = 60;
 
-    while (doneCnt < 3 && iter < MAX_ITER) {
+    while (doneCnt < PLAYER_COUNT && iter < MAX_ITER) {
       iter++;
       let anyActorThisIter = -1;
 
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < PLAYER_COUNT; i++) {
         if (done[i]) { continue; }
         const { page, name } = players[i];
 
@@ -794,7 +823,7 @@ async function main() {
             const state = await page.evaluate(() => {
               const handCards = Array.from(document.querySelectorAll('.hand-view__card[data-card-id]'))
                 .map((el) => {
-                  const m = el.className.match(/card--(10|[AKQJ9])([CSHD])/);
+                  const m = el.className.match(/card--(10|[AKQJ987])([CSHD])/);
                   return { id: el.dataset.cardId, disabled: el.classList.contains('card--disabled'),
                            rank: m?.[1] ?? null, suit: m?.[2] ?? null };
                 });
@@ -802,7 +831,7 @@ async function main() {
               const turnText = document.querySelector('.status-bar__turn')?.textContent ?? null;
               const centerCards = Array.from(document.querySelectorAll('.trick-center__slot .card-sprite'))
                 .map((el) => {
-                  const m = el.className.match(/card--(10|[AKQJ9])([CSHD])/);
+                  const m = el.className.match(/card--(10|[AKQJ987])([CSHD])/);
                   return { rank: m?.[1] ?? null, suit: m?.[2] ?? null, cardId: el.dataset.cardId };
                 });
               const declarerCtl = document.querySelector('.declarer-controls');
@@ -828,8 +857,8 @@ async function main() {
     }
 
     // ── Result reporting + victory assertion ───────────────────────────────────
-    if (doneCnt === 3) {
-      console.log('\n✅  FULL GAME COMPLETE — all 3 players back in lobby!');
+    if (doneCnt === PLAYER_COUNT) {
+      console.log(`\n✅  FULL GAME COMPLETE — all ${PLAYER_COUNT} players back in lobby!`);
       if (Number.isFinite(result.winnerScore)) {
         console.log(`   Winner: ${result.winnerText} (score ${result.winnerScore})`);
         if (result.winnerScore >= VICTORY_SCORE) {
@@ -843,7 +872,7 @@ async function main() {
         process.exitCode = 1;
       }
     } else {
-      console.log(`\n⚠️  Loop exited after ${iter} iterations. ${doneCnt}/3 players finished.\n`);
+      console.log(`\n⚠️  Loop exited after ${iter} iterations. ${doneCnt}/${PLAYER_COUNT} players finished.\n`);
       for (const { page, name } of players) {
         await page.screenshot({ path: `${name.toLowerCase()}-smart-final.png` });
         log(name, `screenshot saved → ${name.toLowerCase()}-smart-final.png`);
