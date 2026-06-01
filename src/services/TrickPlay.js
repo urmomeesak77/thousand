@@ -1,14 +1,16 @@
 'use strict';
 
 const { RANK_ORDER, MARRIAGE_BONUS } = require('./Scoring');
+const { initSeatMap } = require('./Seats');
 
 const MARRIAGE_FIRST_TRICK = 2;
 const MARRIAGE_LAST_TRICK  = 6;
 
 class TrickPlay {
-  constructor(declarerSeat, deck) {
+  constructor(declarerSeat, deck, playerCount = 3) {
     this.declarerSeat = declarerSeat;
     this.deck = deck;
+    this.playerCount = playerCount;
 
     this.trickNumber = 1;
     this.currentTrickLeaderSeat = declarerSeat;
@@ -16,8 +18,8 @@ class TrickPlay {
     this.currentTrick = [];
     this.currentTrumpSuit = null;
     this.declaredMarriages = [];
-    this.collectedTricks = { 0: [], 1: [], 2: [] };
-    this.collectedTrickCounts = { 0: 0, 1: 0, 2: 0 };
+    this.collectedTricks = initSeatMap(playerCount, () => []);
+    this.collectedTrickCounts = initSeatMap(playerCount, 0);
 
     // Crawl sub-state (feature 007). Only ever active during trick 1 when an
     // ace-less declarer crawls. Commits accumulate here — never in the
@@ -60,14 +62,14 @@ class TrickPlay {
 
     hands[seat] = hands[seat].filter(id => id !== cardId);
     this.crawlCommits.push({ seat, cardId });
-    this.currentTurnSeat = (seat + 1) % 3;
+    this.currentTurnSeat = (seat + 1) % this.playerCount;
     const committedSeats = this.crawlCommits.map(c => c.seat);
 
-    if (this.crawlCommits.length < 3) {
+    if (this.crawlCommits.length < this.playerCount) {
       return { rejected: false, crawlResolved: false, committedSeats, commits: this.crawlCommits.slice() };
     }
 
-    // Third commit: the declarer's commit (index 0) sets the led suit.
+    // Final commit: the declarer's commit (index 0) sets the led suit.
     this.currentTrick = this.crawlCommits.map(({ seat: s, cardId: id }) => ({ seat: s, cardId: id }));
     const commits = this.crawlCommits.slice();
     const resolve = this._resolveTrick();
@@ -89,9 +91,9 @@ class TrickPlay {
 
     hands[seat] = hands[seat].filter(id => id !== cardId);
     this.currentTrick.push({ seat, cardId });
-    this.currentTurnSeat = (seat + 1) % 3;
+    this.currentTurnSeat = (seat + 1) % this.playerCount;
 
-    if (this.currentTrick.length === 3) {
+    if (this.currentTrick.length === this.playerCount) {
       return this._resolveTrick();
     }
 

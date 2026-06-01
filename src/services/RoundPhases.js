@@ -1,5 +1,7 @@
 'use strict';
 
+const { seatRange } = require('./Seats');
+
 // Move talon cards into the declarer's hand; returns { talonIds, identities } for the talon_absorbed broadcast.
 // Caller must set round.talon = [] after calling.
 function absorbTalon({ hands, talon, deck, declarerSeat }) {
@@ -16,14 +18,14 @@ function absorbTalon({ hands, talon, deck, declarerSeat }) {
 }
 
 // Opponents eligible to bid in the sell auction (neither the declarer nor already passed)
-function activeSellOpponents(declarerSeat, passedSellOpponents) {
-  return [0, 1, 2].filter(s => s !== declarerSeat && !passedSellOpponents.has(s));
+function activeSellOpponents(declarerSeat, passedSellOpponents, playerCount = 3) {
+  return seatRange(playerCount).filter(s => s !== declarerSeat && !passedSellOpponents.has(s));
 }
 
 // Next sell opponent in clockwise order from fromSeat (skipping declarer and already-passed opponents)
-function nextSellOpponent(fromSeat, declarerSeat, passedSellOpponents) {
-  for (let i = 1; i <= 2; i++) {
-    const candidate = (fromSeat + i) % 3;
+function nextSellOpponent(fromSeat, declarerSeat, passedSellOpponents, playerCount = 3) {
+  for (let i = 1; i <= playerCount - 1; i++) {
+    const candidate = (fromSeat + i) % playerCount;
     if (candidate !== declarerSeat && !passedSellOpponents.has(candidate)) {
       return candidate;
     }

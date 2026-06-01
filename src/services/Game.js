@@ -1,20 +1,18 @@
 'use strict';
 
 const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT, FOUR_NINES_BONUS } = require('./GameRules');
+const { initSeatMap } = require('./Seats');
 
 class Game {
-  constructor({ gameId, seatOrder, dealerSeat }) {
+  constructor({ gameId, seatOrder, dealerSeat, playerCount = 3 }) {
     this.gameId = gameId;
+    this.playerCount = playerCount;
     this.seatOrder = seatOrder;
     this.dealerSeat = dealerSeat;
     this.currentRoundNumber = 1;
-    this.cumulativeScores = { 0: 0, 1: 0, 2: 0 };
-    this.barrelState = {
-      0: { onBarrel: false, barrelRoundsUsed: 0 },
-      1: { onBarrel: false, barrelRoundsUsed: 0 },
-      2: { onBarrel: false, barrelRoundsUsed: 0 },
-    };
-    this.consecutiveZeros = { 0: 0, 1: 0, 2: 0 };
+    this.cumulativeScores = initSeatMap(playerCount, 0);
+    this.barrelState = initSeatMap(playerCount, () => ({ onBarrel: false, barrelRoundsUsed: 0 }));
+    this.consecutiveZeros = initSeatMap(playerCount, 0);
     this.continuePresses = new Set();
     this.history = [];
     this.gameStatus = 'in-progress';
@@ -97,7 +95,7 @@ class Game {
 
   startNextRound() {
     this.currentRoundNumber++;
-    this.dealerSeat = (this.dealerSeat + 1) % 3;
+    this.dealerSeat = (this.dealerSeat + 1) % this.playerCount;
     this.continuePresses = new Set();
     this.pendingFourNinesAward = null;
   }

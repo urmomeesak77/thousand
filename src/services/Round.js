@@ -3,7 +3,7 @@
 // Deal sequencing → DealSequencer.js; phase-transition helpers → RoundPhases.js;
 // snapshot/view-model serialization → RoundSnapshot.js
 const { makeDeck, shuffle } = require('./Deck');
-const { buildDealDistribution } = require('./DealSequencer');
+const { buildDealDistribution, stepDest } = require('./DealSequencer');
 const { MARRIAGE_BONUS, applyPenaltyAnnotations, findFourNinesSeat, handHasAce } = require('./Scoring');
 const { FOUR_NINES_BONUS } = require('./GameRules');
 const {
@@ -11,18 +11,24 @@ const {
 } = require('./RoundPhases');
 const RoundSnapshot = require('./RoundSnapshot');
 const TrickPlay = require('./TrickPlay');
+const { seatRange, initSeatMap } = require('./Seats');
 
 const MIN_BID = 100;
 const MAX_BID = 300;
 const BID_STEP = 5;
 const BARREL_BID_FLOOR = 120;
-const SELL_SELECTION_SIZE = 3;
 const MAX_SELL_ATTEMPTS = 3;
 
 class Round {
   constructor({ game, store }) {
     this._game = game;
     this._store = store;
+
+    // playerCount (3 or 4) drives every seat range, rotation modulus, deck/talon size,
+    // exchange-pass count, trick width, and sell-selection size. Source of truth is the
+    // game record's requiredPlayers (mirrored onto the Game session). Defaults to 3 for
+    // tests that build Round without a session/record so 3-player behavior is unchanged.
+    this.playerCount = game.session?.playerCount ?? game.requiredPlayers ?? 3;
 
     // seat 0 = Dealer = 1st joiner (host), seat 1 = P1 = 2nd joiner, seat 2 = P2 = 3rd joiner.
     // After round 1, session.dealerSeat is rotated clockwise (FR-016); inherit it so every
@@ -36,7 +42,7 @@ class Round {
     //           'round-summary' | 'aborted' }
     this.phase = 'dealing';
     this.deck = null;
-    this.hands = { 0: [], 1: [], 2: [] };
+    this.hands = initSeatMap(this.playerCount, () => []);
     this.talon = [];
     this.exposedSellCards = [];
     this.currentTurnSeat = null;
@@ -57,8 +63,8 @@ class Round {
     this.currentTrick = [];
     this.currentTrumpSuit = null;
     this.declaredMarriages = [];
-    this.collectedTricks = { 0: [], 1: [], 2: [] };
-    this.collectedTrickCounts = { 0: 0, 1: 0, 2: 0 };
+    this.collectedTricks = initSeatMap(this.playerCount, () => []);
+    this.collectedTrickCounts = initSeatMap(this.playerCount, 0);
     this.exchangePassesCommitted = 0;
     this._usedExchangeDestSeats = new Set();
     this.roundScores = null;
@@ -79,9 +85,9 @@ class Round {
   }
 
   start() {
-    const ordered = this._stackedDeckForTest() ?? shuffle(makeDeck());
+    const ordered = this._stackedDeckForTest() ?? shuffle(makeDeck(this.playerCount));
     this.deck = ordered.map((card, i) => ({ id: i, rank: card.rank, suit: card.suit }));
-    const dist = buildDealDistribution();
+    const dist = buildDealDistribution(this.playerCount);
     this.hands = dist.hands;
     this.talon = dist.talon;
     this.phase = 'dealing';
@@ -99,23 +105,40 @@ class Round {
   _stackedDeckForTest() {
     const mode = process.env.THOUSAND_STACK_DECK;
     if (!mode) { return null; }
-    if (mode.startsWith('four-nines')) { return this._stackRankOnSlots('9', mode === 'four-nines-2' ? [1, 5, 9, 13] : [0, 4, 8, 12]); }
-    if (mode === 'no-ace-declarer') { return this._stackRankOnSlots('A', [0, 4, 1, 5]); }
+    if (mode.startsWith('four-nines')) {
+      const targetSeat = mode === 'four-nines-2' ? 2 : 1;
+      return this._stackRankOnSlots('9', this._slotsForSeat(targetSeat, 4));
+    }
+    if (mode === 'no-ace-declarer') {
+      // Split the four aces across seats 1 and 2 (never seat 0 or the talon) so the
+      // intended declarer (seat 0) holds no ace through pickup and exchange.
+      return this._stackRankOnSlots('A', [...this._slotsForSeat(1, 2), ...this._slotsForSeat(2, 2)]);
+    }
     return null;
   }
 
-  // Build a deck where the four cards of `rank` occupy `slots` (deck indices),
-  // with the remaining 20 cards filling the rest in order. Deck index → seat is
-  // fixed by DealSequencer.stepDest, so callers pick slots that land the cards
-  // on the intended seats.
+  // First `count` deck indices that the deal sequence routes to `seat`, for the
+  // active deck length (24 or 32). Lets the seam target seats regardless of count.
+  _slotsForSeat(seat, count) {
+    const slots = [];
+    const deckSize = 8 * this.playerCount;
+    for (let i = 0; i < deckSize && slots.length < count; i++) {
+      if (stepDest(i, this.playerCount) === `seat${seat}`) { slots.push(i); }
+    }
+    return slots;
+  }
+
+  // Build a deck where the four cards of `rank` occupy `slots` (deck indices), with
+  // the remaining cards filling the rest in order. Deck index → seat is fixed by
+  // DealSequencer.stepDest, so callers pick slots that land the cards on the intended seats.
   _stackRankOnSlots(rank, slots) {
-    const full = makeDeck();
+    const full = makeDeck(this.playerCount);
     const picked = full.filter((c) => c.rank === rank);
     const rest = full.filter((c) => c.rank !== rank);
-    const ordered = new Array(24);
+    const ordered = new Array(full.length);
     slots.forEach((pos, idx) => { ordered[pos] = picked[idx]; });
     let r = 0;
-    for (let i = 0; i < 24; i++) { if (!ordered[i]) { ordered[i] = rest[r++]; } }
+    for (let i = 0; i < full.length; i++) { if (!ordered[i]) { ordered[i] = rest[r++]; } }
     return ordered;
   }
 
@@ -132,7 +155,7 @@ class Round {
   advanceFromDealingToBidding() {
     if (this.phase !== 'dealing') {return;}
     this.phase = 'bidding';
-    this.currentTurnSeat = (this.dealerSeat + 1) % 3; // P1 (clockwise-left of Dealer) bids first per FR-004
+    this.currentTurnSeat = (this.dealerSeat + 1) % this.playerCount; // P1 (clockwise-left of Dealer) bids first per FR-004
   }
 
   submitBid(seat, amount) {
@@ -151,9 +174,9 @@ class Round {
     this.bidHistory.push({ seat, amount });
     this.currentHighBid = amount;
 
-    // If both other seats have already passed, this bid resolves the auction:
+    // If every other seat has already passed, this bid resolves the auction:
     // the bidder is the declarer (this is the forced-last-bidder take/raise path).
-    const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
+    const remaining = seatRange(this.playerCount).filter(s => !this.passedBidders.has(s));
     if (remaining.length === 1) {
       this.declarerSeat = seat;
       this.phase = 'post-bid-decision';
@@ -171,10 +194,10 @@ class Round {
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
     if (seat !== this.currentTurnSeat) {return { rejected: true, reason: 'Not your turn' };}
 
-    // Forced last bidder: if both others have already passed and no bid was
+    // Forced last bidder: if every other seat has already passed and no bid was
     // placed, this seat must take the contract. They cannot pass. The floor is
     // MIN_BID, or BARREL_BID_FLOOR when this seat is on barrel (FR-022).
-    if (this.currentHighBid === null && this.passedBidders.size === 2) {
+    if (this.currentHighBid === null && this.passedBidders.size === this.playerCount - 1) {
       const floor = this._game.session?.barrelState?.[seat]?.onBarrel ? BARREL_BID_FLOOR : MIN_BID;
       return { rejected: true, reason: `You must bid at least ${floor}; you cannot pass.` };
     }
@@ -182,7 +205,7 @@ class Round {
     this.passedBidders.add(seat);
     this.bidHistory.push({ seat, amount: null });
 
-    const remaining = [0, 1, 2].filter(s => !this.passedBidders.has(s));
+    const remaining = seatRange(this.playerCount).filter(s => !this.passedBidders.has(s));
     if (remaining.length === 1 && this.currentHighBid !== null) {
       // A real bid exists and the last opponent just passed — resolve to that sole survivor.
       this.declarerSeat = remaining[0];
@@ -200,12 +223,12 @@ class Round {
   }
 
   // Bounded version of "advance until non-passed seat" — `bidding` is unreachable
-  // when all three seats have passed (submitPass would have resolved to declarer
-  // at length-1), but a bounded loop documents the invariant and prevents future
+  // when all seats have passed (submitPass would have resolved to declarer at
+  // length-1), but a bounded loop documents the invariant and prevents future
   // changes to the resolution logic from creating an infinite loop here.
   _nextActiveBidder(fromSeat) {
-    for (let i = 1; i <= 3; i++) {
-      const candidate = (fromSeat + i) % 3;
+    for (let i = 1; i <= this.playerCount; i++) {
+      const candidate = (fromSeat + i) % this.playerCount;
       if (!this.passedBidders.has(candidate)) {return candidate;}
     }
     return fromSeat;
@@ -253,7 +276,7 @@ class Round {
     if (!this.hands[seat].includes(cardId)) {return { rejected: true, reason: 'Card not in hand' };}
     // Reject before the `hands[destSeat].push` below — an out-of-range key (e.g. 99,
     // null, "foo") makes `this.hands[destSeat]` undefined and crashes the WS handler.
-    if (destSeat !== 0 && destSeat !== 1 && destSeat !== 2) {
+    if (!Number.isInteger(destSeat) || destSeat < 0 || destSeat >= this.playerCount) {
       return { rejected: true, reason: 'Invalid destination seat' };
     }
     if (destSeat === this.declarerSeat) {return { rejected: true, reason: 'Cannot pass to yourself' };}
@@ -266,13 +289,13 @@ class Round {
     this._usedExchangeDestSeats.add(destSeat);
     this.exchangePassesCommitted += 1;
 
-    // On second pass: transition to trick-play
-    if (this.exchangePassesCommitted === 2) {
+    // After the declarer has passed one card to each opponent: transition to trick-play.
+    if (this.exchangePassesCommitted === this.playerCount - 1) {
       this.phase = 'trick-play';
       this.trickNumber = 1;
       this.currentTrickLeaderSeat = this.declarerSeat;
       this.currentTurnSeat = this.declarerSeat;
-      this._trickPlay = new TrickPlay(this.declarerSeat, this.deck);
+      this._trickPlay = new TrickPlay(this.declarerSeat, this.deck, this.playerCount);
       this._detectFourNines();
       return { rejected: false, transitionedToTrickPlay: true, cardId, destSeat, fourNinesAward: this.fourNinesAward };
     }
@@ -285,7 +308,7 @@ class Round {
   // Idempotent: only fires when no award has been recorded yet.
   _detectFourNines() {
     if (this.fourNinesAward) {return;}
-    const seat = findFourNinesSeat(this.hands, this.deck);
+    const seat = findFourNinesSeat(this.hands, this.deck, this.playerCount);
     if (seat === null) {return;}
     this.fourNinesAward = { seat, amount: FOUR_NINES_BONUS };
     this.fourNinesAckPending = true;
@@ -293,13 +316,13 @@ class Round {
   }
 
   // FR-003: record a player's acknowledgment (sticky/idempotent). Closes the gate
-  // once all three seats have acknowledged. Returns whether the gate just closed.
+  // once every seat has acknowledged. Returns whether the gate just closed.
   recordFourNinesAck(seat) {
     if (!this.fourNinesAckPending) {return { changed: false, gateClosed: false };}
     const sizeBefore = this.fourNinesAcks.size;
     this.fourNinesAcks.add(seat);
     const changed = this.fourNinesAcks.size !== sizeBefore;
-    if (this.fourNinesAcks.size === 3) {this.fourNinesAckPending = false;}
+    if (this.fourNinesAcks.size === this.playerCount) {this.fourNinesAckPending = false;}
     return { changed, gateClosed: !this.fourNinesAckPending, acknowledgedSeats: [...this.fourNinesAcks] };
   }
 
@@ -308,7 +331,7 @@ class Round {
   // fields into it. Idempotent: a no-op once _trickPlay exists.
   _ensureTrickPlay() {
     if (this._trickPlay) {return;}
-    this._trickPlay = new TrickPlay(this.currentTrickLeaderSeat ?? this.declarerSeat, this.deck);
+    this._trickPlay = new TrickPlay(this.currentTrickLeaderSeat ?? this.declarerSeat, this.deck, this.playerCount);
     this._trickPlay.trickNumber = this.trickNumber;
     this._trickPlay.currentTrickLeaderSeat = this.currentTrickLeaderSeat;
     this._trickPlay.currentTurnSeat = this.currentTurnSeat;
@@ -419,13 +442,13 @@ class Round {
   buildSummary(_game) {
     const { roundScores: scores, roundDeltas: deltas } = this;
 
-    const marriageBonusBySeat = { 0: 0, 1: 0, 2: 0 };
+    const marriageBonusBySeat = initSeatMap(this.playerCount, 0);
     for (const m of this.declaredMarriages) {
       marriageBonusBySeat[m.playerSeat] += MARRIAGE_BONUS[m.suit] ?? 0;
     }
 
     const perPlayer = {};
-    for (const seat of [0, 1, 2]) {
+    for (const seat of seatRange(this.playerCount)) {
       const pid = this.seatOrder[seat];
       const player = this._store.players.get(pid);
       const marriageBonus = marriageBonusBySeat[seat];
@@ -488,10 +511,10 @@ class Round {
     if (this.phase !== 'selling-selection') {return { rejected: true, reason: 'Not in selling-selection phase' };}
     if (seat !== this.declarerSeat) {return { rejected: true, reason: 'Only the declarer can select cards' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
-    if (!Array.isArray(cardIds) || cardIds.length !== SELL_SELECTION_SIZE) {
-      return { rejected: true, reason: `Exactly ${SELL_SELECTION_SIZE} cards must be selected` };
+    if (!Array.isArray(cardIds) || cardIds.length !== this.playerCount) {
+      return { rejected: true, reason: `Exactly ${this.playerCount} cards must be selected` };
     }
-    if (new Set(cardIds).size !== SELL_SELECTION_SIZE) {
+    if (new Set(cardIds).size !== this.playerCount) {
       return { rejected: true, reason: 'Cards must be distinct' };
     }
     const hand = this.hands[this.declarerSeat];
@@ -510,7 +533,7 @@ class Round {
     this.exposedSellCards = [...cardIds];
     this.phase = 'selling-bidding';
     // clockwise-left of declarer bids first (FR-015, parallels FR-004)
-    this.currentTurnSeat = (this.declarerSeat + 1) % 3;
+    this.currentTurnSeat = (this.declarerSeat + 1) % this.playerCount;
     this.passedSellOpponents = new Set();
     this._lastSellBidderSeat = null;
     return { rejected: false };
@@ -569,11 +592,11 @@ class Round {
   }
 
   _nextSellOpponent(fromSeat) {
-    return nextSellOpponent(fromSeat, this.declarerSeat, this.passedSellOpponents);
+    return nextSellOpponent(fromSeat, this.declarerSeat, this.passedSellOpponents, this.playerCount);
   }
 
   _activeSellOpponents() {
-    return activeSellOpponents(this.declarerSeat, this.passedSellOpponents);
+    return activeSellOpponents(this.declarerSeat, this.passedSellOpponents, this.playerCount);
   }
 
   _resolveSellSold() {

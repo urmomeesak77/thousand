@@ -39,10 +39,10 @@ function validateCrawlCommit(msg) {
 
 function validateRequiredPlayers(v) {
   const n = Number(v);
-  // Only 3-player rooms are supported today. The Round state machine is hardcoded
-  // for 3 seats (modulo-3 turn rotation, `[0,1,2]` filters in submitPass) and would
-  // hang in bidding with any other count. Spec 004 §"Scale/Scope" pins this to 3.
-  if (n !== 3) {return 'Player count must be 3';}
+  // The engine is generalized over playerCount (feature 008): 3 seats (24-card deck,
+  // 3-card talon, 2 exchange passes) or 4 seats (32-card deck with 7s/8s, 4-card talon,
+  // 3 exchange passes). Any other count is rejected (FR-002).
+  if (n !== 3 && n !== 4) {return 'Player count must be 3 or 4';}
   return null;
 }
 

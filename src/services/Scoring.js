@@ -1,15 +1,19 @@
 'use strict';
 
 const { BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT } = require('./GameRules');
+const { seatRange, initSeatMap } = require('./Seats');
 
-// FR-013: card point values for trick scoring
-const CARD_POINT_VALUE = { A: 11, '10': 10, K: 4, Q: 3, J: 2, '9': 0 };
+// FR-013/FR-007: card point values for trick scoring. 7 and 8 (4-player deck only)
+// are worth 0, so total trick points stay 120 in both decks. Inert for 24-card decks.
+const CARD_POINT_VALUE = { A: 11, '10': 10, K: 4, Q: 3, J: 2, '9': 0, '8': 0, '7': 0 };
 
 // FR-009: marriage bonus per suit (♣=100, ♠=80, ♥=60, ♦=40)
 const MARRIAGE_BONUS = { '♣': 100, '♠': 80, '♥': 60, '♦': 40 };
 
-// FR-008: trick-winner rank ordering (Ten outranks K and Q; Ace is highest)
-const RANK_ORDER = { '9': 0, 'J': 1, 'Q': 2, 'K': 3, '10': 4, 'A': 5 };
+// FR-008: trick-winner rank ordering (Ten outranks K and Q; Ace is highest). 7 and 8
+// (4-player deck only) rank below the 9; the 9→A relative order is preserved so every
+// existing 3-player trick-winner result is unchanged (a 24-card deck never holds 7/8).
+const RANK_ORDER = { '7': 0, '8': 1, '9': 2, 'J': 3, 'Q': 4, 'K': 5, '10': 6, 'A': 7 };
 
 function cardPoints(cards) {
   return cards.reduce((sum, { rank }) => sum + CARD_POINT_VALUE[rank], 0);
@@ -18,8 +22,8 @@ function cardPoints(cards) {
 // FR-001: At trick-play start, return the seat whose hand holds all four 9s
 // (one per suit), or null if the 9s are split, sit in the talon, or were passed
 // away in the exchange. `hands` maps seat → card-id list; `deck[id]` is the card.
-function findFourNinesSeat(hands, deck) {
-  for (const seat of [0, 1, 2]) {
+function findFourNinesSeat(hands, deck, playerCount = 3) {
+  for (const seat of seatRange(playerCount)) {
     const nineCount = hands[seat].filter(id => deck[id]?.rank === '9').length;
     if (nineCount === 4) { return seat; }
   }
@@ -35,8 +39,8 @@ function handHasAce(handCardIds, deck) {
 }
 
 function roundScores(round) {
-  const scores = { 0: 0, 1: 0, 2: 0 };
-  for (const seat of [0, 1, 2]) {
+  const scores = initSeatMap(round.playerCount ?? 3, 0);
+  for (const seat of seatRange(round.playerCount ?? 3)) {
     const ids = round.collectedTricks[seat] ?? [];
     scores[seat] += cardPoints(ids.map(id => round.deck[id]));
   }
@@ -47,9 +51,12 @@ function roundScores(round) {
   return scores;
 }
 
-function roundDeltas(roundScoresMap, declarerSeat, bid) {
-  const deltas = { 0: 0, 1: 0, 2: 0 };
-  for (const seat of [0, 1, 2]) {
+function roundDeltas(roundScoresMap, declarerSeat, bid, playerCount = 3) {
+  // The 4th positional arg was historically an (ignored) `penalties` array in
+  // feature 005; tolerate a non-integer here so those legacy callers default to 3.
+  const n = Number.isInteger(playerCount) ? playerCount : 3;
+  const deltas = initSeatMap(n, 0);
+  for (const seat of seatRange(n)) {
     if (seat === declarerSeat) {
       deltas[seat] = roundScoresMap[seat] >= bid ? bid : -bid;
     } else {
@@ -59,22 +66,16 @@ function roundDeltas(roundScoresMap, declarerSeat, bid) {
   return deltas;
 }
 
-// FR-017: Determines the winner when at least one player reaches >= 1000
+// FR-017/FR-016: Determines the winner when at least one player reaches >= 1000
 function determineWinner(game) {
+  const n = game.playerCount ?? 3;
+  const seats = seatRange(n);
+
   // Step 1: Find the maximum cumulativeScore
-  const maxScore = Math.max(
-    game.cumulativeScores[0],
-    game.cumulativeScores[1],
-    game.cumulativeScores[2]
-  );
+  const maxScore = Math.max(...seats.map((seat) => game.cumulativeScores[seat]));
 
   // Step 2: Find all seats at that maximum (the tied set)
-  const tied = [];
-  for (const seat of [0, 1, 2]) {
-    if (game.cumulativeScores[seat] === maxScore) {
-      tied.push(seat);
-    }
-  }
+  const tied = seats.filter((seat) => game.cumulativeScores[seat] === maxScore);
 
   // Step 3: If only one seat at max, they win
   if (tied.length === 1) {
@@ -89,23 +90,17 @@ function determineWinner(game) {
     return { winnerSeat: declarerSeat };
   }
 
-  // Step 4(b): Seat-order fallback
-  // P1 = (dealerSeat + 1) % 3   (highest priority)
-  // P2 = (dealerSeat + 2) % 3   (middle priority)
-  // Dealer = dealerSeat         (lowest priority)
-  const P1 = (game.dealerSeat + 1) % 3;
-  const P2 = (game.dealerSeat + 2) % 3;
-  const Dealer = game.dealerSeat;
-
-  // Return the first of [P1, P2, Dealer] that is in the tied set
-  for (const seat of [P1, P2, Dealer]) {
+  // Step 4(b): Seat-order fallback, clockwise from the dealer (FR-016):
+  // P1 = (dealer+1) % n (highest priority) … P(n-1), then the Dealer (lowest).
+  const priority = seats.map((i) => (game.dealerSeat + 1 + i) % n);
+  for (const seat of priority) {
     if (tied.includes(seat)) {
       return { winnerSeat: seat };
     }
   }
-  // Unreachable: {P1, P2, Dealer} is a permutation of {0,1,2} and `tied` is a
-  // non-empty subset, so the loop above must return. Fall back to the first tied
-  // seat so a future refactor that breaks the invariant doesn't yield `undefined`.
+  // Unreachable: `priority` is a permutation of all seats and `tied` is a non-empty
+  // subset, so the loop above must return. Fall back to the first tied seat so a
+  // future refactor that breaks the invariant doesn't yield `undefined`.
   return { winnerSeat: tied[0] };
 }
 
@@ -114,9 +109,9 @@ function buildFinalResults(game) {
   // Step 1: Determine the winner
   const { winnerSeat } = determineWinner(game);
 
-  // Step 2: Build finalRanking as an array of all 3 seats sorted descending by cumulativeScore
+  // Step 2: Build finalRanking over all seats sorted descending by cumulativeScore
   const finalRanking = [];
-  for (const seat of [0, 1, 2]) {
+  for (const seat of seatRange(game.playerCount ?? 3)) {
     finalRanking.push({
       seat,
       nickname: game.nicknames[seat],
@@ -138,7 +133,7 @@ function buildFinalResults(game) {
 
 // FR-023/FR-024: pre-compute which penalties will fire this round when session state is available.
 function applyPenaltyAnnotations(session, perPlayer, deltas) {
-  for (const seat of [0, 1, 2]) {
+  for (const seat of seatRange(session.playerCount ?? 3)) {
     const row = perPlayer[seat];
     const { trickPoints, marriageBonus } = row;
 

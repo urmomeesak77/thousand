@@ -289,7 +289,9 @@ class ThousandStore {
       // Round 1: create the Game session instance
       const seatOrder = [...game.players];
       const dealerSeat = 0;
-      game.session = new Game({ gameId, seatOrder, dealerSeat });
+      // requiredPlayers (3 or 4) is the source of truth for player count (FR-001);
+      // seatOrder preserves join order so seat 0 = host/dealer … seat N-1 (R-306).
+      game.session = new Game({ gameId, seatOrder, dealerSeat, playerCount: game.requiredPlayers });
       // Populate nicknames: seatOrder[i] is the playerId for seat i
       for (let seat = 0; seat < seatOrder.length; seat++) {
         const pid = seatOrder[seat];

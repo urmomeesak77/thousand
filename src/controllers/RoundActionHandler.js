@@ -4,6 +4,7 @@ const RateLimiter = require('../utils/RateLimiter');
 const { roundScores, roundDeltas, buildFinalResults } = require('../services/Scoring');
 const { VICTORY_THRESHOLD } = require('../services/GameRules');
 const RoundSnapshot = require('../services/RoundSnapshot');
+const { seatRange } = require('../services/Seats');
 
 class RoundActionHandler {
   constructor({ store }) {
@@ -444,7 +445,7 @@ class RoundActionHandler {
 
   _computeRoundEnd(game, round) {
     round.roundScores = roundScores(round);
-    round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid);
+    round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid, round.playerCount);
     round.buildSummary(game);
     const session = game.session;
     if (!session) { return { victoryReached: false, finalResults: null }; }
@@ -456,18 +457,18 @@ class RoundActionHandler {
       declarerNickname: this._store.players.get(declarerPid)?.nickname ?? null,
       bid: round.currentHighBid,
       perPlayer: Object.fromEntries(
-        [0, 1, 2].map((s) => [s, { ...round.summary.perPlayer[s] }])
+        seatRange(round.playerCount).map((s) => [s, { ...round.summary.perPlayer[s] }])
       ),
     };
     session.applyRoundEnd(round.roundDeltas, summaryEntry);
     // cumulativeAfter must be read after applyRoundEnd so barrel/zero penalties are reflected
-    for (const s of [0, 1, 2]) {
+    for (const s of seatRange(round.playerCount)) {
       round.summary.perPlayer[s].cumulativeAfter = session.cumulativeScores[s];
       summaryEntry.perPlayer[s].cumulativeAfter = session.cumulativeScores[s];
       summaryEntry.perPlayer[s].penalties = round.summary.perPlayer[s].penalties;
     }
     round.summary.roundNumber = session.currentRoundNumber;
-    const victoryReached = [0, 1, 2].some((s) => session.cumulativeScores[s] >= VICTORY_THRESHOLD);
+    const victoryReached = seatRange(round.playerCount).some((s) => session.cumulativeScores[s] >= VICTORY_THRESHOLD);
     round.summary.victoryReached = victoryReached;
     if (victoryReached) { session.gameStatus = 'game-over'; }
     return { victoryReached, finalResults: victoryReached ? buildFinalResults(session) : null };
@@ -546,7 +547,7 @@ class RoundActionHandler {
       this._store.sendToPlayer(pid, { type: 'continue_press_recorded', seat, continuePressedSeats, gameStatus });
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
-    if (session.continuePresses.size === 3) {
+    if (session.continuePresses.size === round.playerCount) {
       this._startAndBroadcastNextRound(game);
     }
   }

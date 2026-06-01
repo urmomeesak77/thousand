@@ -27,7 +27,7 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 
 **Purpose**: Establish a known-green baseline before any generalization.
 
-- [ ] T001 Establish baseline: run `npm test && npm run lint` from repo root and confirm all existing tests and lint pass before any change (records the regression bar for R-303).
+- [x] T001 Establish baseline: run `npm test && npm run lint` from repo root and confirm all existing tests and lint pass before any change (records the regression bar for R-303).
 
 ---
 
@@ -37,16 +37,16 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete and the existing suite passes unmodified.
 
-- [ ] T002 [P] Create seat helpers `seatRange(playerCount)` → `[0…n-1]` and `initSeatMap(playerCount, fill)` → `{0:…, n-1:…}` as a pure stateless module in `src/services/Seats.js` (Decision 2; §VII carve-out).
-- [ ] T003 [P] Add `'7': 0, '8': 0` to `CARD_POINT_VALUE` and renumber `RANK_ORDER` to `{ '7':0,'8':1,'9':2,'J':3,'Q':4,'K':5,'10':6,'A':7 }` (7,8 below 9; 9–A relative order preserved) in `src/services/Scoring.js` (FR-007, FR-008; Decision 4).
-- [ ] T004 [P] Mirror the same 7/8 additions into `CARD_POINT_VALUE` and `RANK_ORDER` in `src/public/js/thousand/constants.js` (keep frontend tables in sync; inert for 24-card decks).
-- [ ] T005 Accept/store `playerCount` and generalize seat maps in `src/services/Game.js`: store `playerCount`; init `cumulativeScores`/`barrelState`/`consecutiveZeros` over `seatRange`; `startNextRound()` dealer rotation `(dealerSeat+1) % playerCount` (FR-012, FR-015).
-- [ ] T006 Generalize the trick state machine over `playerCount` in `src/services/TrickPlay.js`: constructor `(declarerSeat, deck, playerCount)`; `collectedTricks`/`collectedTrickCounts` over `seatRange`; turn advance `(seat+1) % playerCount`; trick resolves at `currentTrick.length === playerCount`; crawl resolves at `crawlCommits.length === playerCount` (FR-013, FR-017).
-- [ ] T007 Generalize `activeSellOpponents` / `nextSellOpponent` over `seatRange` excluding declarer with `% playerCount` rotation in `src/services/RoundPhases.js` (FR-012; Decision 7).
-- [ ] T008 Generalize seat iteration and winner/tiebreak over `seatRange` in `src/services/Scoring.js`: `roundScores`/`roundDeltas`/`buildFinalResults`/`applyPenaltyAnnotations`/`findFourNinesSeat` iterate `seatRange`; `determineWinner` max over `seatRange` with tiebreak declarer-first then `P1 → … → P(n-1) → Dealer` (FR-016; Decision 8). (Depends on T002, T003)
-- [ ] T009 Generalize per-viewer view-model maps over `seatRange` in `src/services/RoundSnapshot.js`: `buildOpponentHandSizesFor`, `barrelMarkers`, `cumulativeScores` default, `compactScoreHistory`, round-stats maps (still `playerCount === 3`; no `across` key yet) (FR-019). (Depends on T002)
-- [ ] T010 Thread `playerCount` and generalize rotations/thresholds in `src/services/Round.js`: `this.playerCount = game.playerCount`; all `% 3 → % playerCount`; `hands`/`collectedTricks` over `seatRange`; `passedBidders.size === playerCount - 1`; `_nextActiveBidder` loop bound `playerCount`; exchange transition `=== playerCount - 1`; `SELL_SELECTION_SIZE = playerCount`; first bidder `(dealerSeat+1) % playerCount`; first sell bidder `(declarerSeat+1) % playerCount`; four-nines ack gate `=== playerCount` (FR-009…FR-017). (Depends on T002, T006, T007)
-- [ ] T011 Regression gate: run `npm test` and confirm the **entire pre-existing 3-player suite passes unmodified** (no test expectation edits). This proves the generalization reduces exactly to today at `playerCount === 3` (R-303).
+- [x] T002 [P] Create seat helpers `seatRange(playerCount)` → `[0…n-1]` and `initSeatMap(playerCount, fill)` → `{0:…, n-1:…}` as a pure stateless module in `src/services/Seats.js` (Decision 2; §VII carve-out).
+- [x] T003 [P] Add `'7': 0, '8': 0` to `CARD_POINT_VALUE` and renumber `RANK_ORDER` to `{ '7':0,'8':1,'9':2,'J':3,'Q':4,'K':5,'10':6,'A':7 }` (7,8 below 9; 9–A relative order preserved) in `src/services/Scoring.js` (FR-007, FR-008; Decision 4).
+- [x] T004 [P] Mirror the same 7/8 additions into `CARD_POINT_VALUE` and `RANK_ORDER` in `src/public/js/thousand/constants.js` (keep frontend tables in sync; inert for 24-card decks).
+- [x] T005 Accept/store `playerCount` and generalize seat maps in `src/services/Game.js`: store `playerCount`; init `cumulativeScores`/`barrelState`/`consecutiveZeros` over `seatRange`; `startNextRound()` dealer rotation `(dealerSeat+1) % playerCount` (FR-012, FR-015).
+- [x] T006 Generalize the trick state machine over `playerCount` in `src/services/TrickPlay.js`: constructor `(declarerSeat, deck, playerCount)`; `collectedTricks`/`collectedTrickCounts` over `seatRange`; turn advance `(seat+1) % playerCount`; trick resolves at `currentTrick.length === playerCount`; crawl resolves at `crawlCommits.length === playerCount` (FR-013, FR-017).
+- [x] T007 Generalize `activeSellOpponents` / `nextSellOpponent` over `seatRange` excluding declarer with `% playerCount` rotation in `src/services/RoundPhases.js` (FR-012; Decision 7).
+- [x] T008 Generalize seat iteration and winner/tiebreak over `seatRange` in `src/services/Scoring.js`: `roundScores`/`roundDeltas`/`buildFinalResults`/`applyPenaltyAnnotations`/`findFourNinesSeat` iterate `seatRange`; `determineWinner` max over `seatRange` with tiebreak declarer-first then `P1 → … → P(n-1) → Dealer` (FR-016; Decision 8). (Depends on T002, T003)
+- [x] T009 Generalize per-viewer view-model maps over `seatRange` in `src/services/RoundSnapshot.js`: `buildOpponentHandSizesFor`, `barrelMarkers`, `cumulativeScores` default, `compactScoreHistory`, round-stats maps (still `playerCount === 3`; no `across` key yet) (FR-019). (Depends on T002)
+- [x] T010 Thread `playerCount` and generalize rotations/thresholds in `src/services/Round.js`: `this.playerCount = game.playerCount`; all `% 3 → % playerCount`; `hands`/`collectedTricks` over `seatRange`; `passedBidders.size === playerCount - 1`; `_nextActiveBidder` loop bound `playerCount`; exchange transition `=== playerCount - 1`; `SELL_SELECTION_SIZE = playerCount`; first bidder `(dealerSeat+1) % playerCount`; first sell bidder `(declarerSeat+1) % playerCount`; four-nines ack gate `=== playerCount` (FR-009…FR-017). (Depends on T002, T006, T007)
+- [x] T011 Regression gate: run `npm test` and confirm the **entire pre-existing 3-player suite passes unmodified** (no test expectation edits). This proves the generalization reduces exactly to today at `playerCount === 3` (R-303).
 
 **Checkpoint**: Engine fully generalized; 3-player behavior byte-for-byte identical. User story phases can now begin.
 
@@ -60,23 +60,23 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 
 ### Tests for User Story 1 ⚠️ (write first, ensure they FAIL before implementation)
 
-- [ ] T012 [P] [US1] `tests/Deck.fourplayer.test.js`: `makeDeck(4)` = 32 cards incl. 7/8 in all four suits; `makeDeck(3)` = 24 unchanged (FR-005, FR-006).
-- [ ] T013 [P] [US1] `tests/DealSequencer.fourplayer.test.js`: `buildDealDistribution(4)` = 7 per seat + 4 talon = 32, deterministic; 3-player path unchanged (FR-009).
-- [ ] T014 [P] [US1] `tests/Scoring.fourplayer.test.js`: 7/8 = 0 points and never beat a 9+ of the same suit; `roundScores`/`roundDeltas` over 4 seats; 32-card-deck total trick points = 120; 4-player tiebreak order declarer-first then P1→P2→P3→Dealer (FR-007, FR-008, FR-015, FR-016).
-- [ ] T015 [P] [US1] `tests/Game.fourplayer.test.js`: cumulative/barrel/consecutive-zero state over 4 seats; dealer rotation `% 4` (FR-012, FR-015).
-- [ ] T016 [P] [US1] `tests/Round.fourplayer.test.js`: 4-player deal → bid → forced-declarer (3 passes) → talon pickup (11) → exchange 3 passes → 8 each → 8 tricks of 4; sell with 3 opponents; four-nines ack requires all 4 (FR-009…FR-017). MUST include individually-annotated assertions, not just the range: (a) `// per FR-010` declarer holds exactly 11 after picking up the full 4-card talon; (b) `// per FR-011` declarer holds 8 after exactly 3 exchange passes and each opponent gained 1; (c) `// per FR-014` a marriage declared in a 4-player round switches trump and awards the bonus, and follow-suit/trump beat resolution is unchanged across all 4 seats.
-- [ ] T017 [P] [US1] `tests/round-messages.fourplayer.test.js`: via `ConnectionManager`, create a 4-player game, four joiners, full round; `seats.players.length === 4`, `seats` includes `across`, `currentTrick` reaches length 4; 3-player payload remains free of `across`. Also assert the negative gate `// per FR-003, SC-005`: a 4-player room with only **three** joiners does NOT emit `round_started` (stays in waiting room) and starts only when the 4th joins.
-- [ ] T018 [P] [US1] Extend `tests/validators.test.js`: `requiredPlayers` accepts 3 and 4, rejects 2/5/"x" → `400` "Player count must be 3 or 4" (FR-002).
+- [x] T012 [P] [US1] `tests/Deck.fourplayer.test.js`: `makeDeck(4)` = 32 cards incl. 7/8 in all four suits; `makeDeck(3)` = 24 unchanged (FR-005, FR-006).
+- [x] T013 [P] [US1] `tests/DealSequencer.fourplayer.test.js`: `buildDealDistribution(4)` = 7 per seat + 4 talon = 32, deterministic; 3-player path unchanged (FR-009).
+- [x] T014 [P] [US1] `tests/Scoring.fourplayer.test.js`: 7/8 = 0 points and never beat a 9+ of the same suit; `roundScores`/`roundDeltas` over 4 seats; 32-card-deck total trick points = 120; 4-player tiebreak order declarer-first then P1→P2→P3→Dealer (FR-007, FR-008, FR-015, FR-016).
+- [x] T015 [P] [US1] `tests/Game.fourplayer.test.js`: cumulative/barrel/consecutive-zero state over 4 seats; dealer rotation `% 4` (FR-012, FR-015).
+- [x] T016 [P] [US1] `tests/Round.fourplayer.test.js`: 4-player deal → bid → forced-declarer (3 passes) → talon pickup (11) → exchange 3 passes → 8 each → 8 tricks of 4; sell with 3 opponents; four-nines ack requires all 4 (FR-009…FR-017). MUST include individually-annotated assertions, not just the range: (a) `// per FR-010` declarer holds exactly 11 after picking up the full 4-card talon; (b) `// per FR-011` declarer holds 8 after exactly 3 exchange passes and each opponent gained 1; (c) `// per FR-014` a marriage declared in a 4-player round switches trump and awards the bonus, and follow-suit/trump beat resolution is unchanged across all 4 seats.
+- [x] T017 [P] [US1] `tests/round-messages.fourplayer.test.js`: via `ConnectionManager`, create a 4-player game, four joiners, full round; `seats.players.length === 4`, `seats` includes `across`, `currentTrick` reaches length 4; 3-player payload remains free of `across`. Also assert the negative gate `// per FR-003, SC-005`: a 4-player room with only **three** joiners does NOT emit `round_started` (stays in waiting room) and starts only when the 4th joins.
+- [x] T018 [P] [US1] Extend `tests/validators.test.js`: `requiredPlayers` accepts 3 and 4, rejects 2/5/"x" → `400` "Player count must be 3 or 4" (FR-002).
 
 ### Implementation for User Story 1
 
-- [ ] T019 [P] [US1] `makeDeck(playerCount)` selects `RANKS_4P = ['7','8','9','10','J','Q','K','A']` (32 cards) for 4-player, `RANKS_3P` (24, 9–A) for 3-player, suits unchanged, in `src/services/Deck.js` (FR-005, FR-006; Decision 3).
-- [ ] T020 [US1] Generalize `stepDest(i, playerCount)` and `buildDealDistribution(playerCount)` for the 4-player cadence (7/seat + 4 talon over 32 deterministic steps), 3-player path identical, in `src/services/DealSequencer.js` (FR-009; Decision 6). (Depends on T002)
-- [ ] T021 [US1] Accept 3 or 4 (reject all else) in `validateRequiredPlayers` in `src/controllers/validators.js` (FR-002).
-- [ ] T022 [US1] Thread `playerCount` from the create body into the game record (default 3 when omitted) in `src/controllers/GameController.js` (FR-001). (Depends on T021)
-- [ ] T023 [US1] `startRound` passes `game.requiredPlayers` as `playerCount` into `Game`/`Round`; verify `seatOrder = [...game.players]` seats N joiners in join order in `src/services/ThousandStore.js` (FR-001, R-306). (Depends on T005, T010)
-- [ ] T024 [US1] Generalize the test deck seam `_stackedDeckForTest`/`_stackRankOnSlots` to the active deck length (24 or 32) and recompute four-nines / no-ace slot indices from `stepDest(_, playerCount)` in `src/services/Round.js` (R-304). (Depends on T010, T020)
-- [ ] T025 [US1] Add `across` opponent ordering (clockwise `left, across, right`) to `buildSeatLayout` for `playerCount === 4`; omit `across` for 3-player in `src/services/RoundSnapshot.js` (FR-018; contract delta). (Depends on T009)
+- [x] T019 [P] [US1] `makeDeck(playerCount)` selects `RANKS_4P = ['7','8','9','10','J','Q','K','A']` (32 cards) for 4-player, `RANKS_3P` (24, 9–A) for 3-player, suits unchanged, in `src/services/Deck.js` (FR-005, FR-006; Decision 3).
+- [x] T020 [US1] Generalize `stepDest(i, playerCount)` and `buildDealDistribution(playerCount)` for the 4-player cadence (7/seat + 4 talon over 32 deterministic steps), 3-player path identical, in `src/services/DealSequencer.js` (FR-009; Decision 6). (Depends on T002)
+- [x] T021 [US1] Accept 3 or 4 (reject all else) in `validateRequiredPlayers` in `src/controllers/validators.js` (FR-002).
+- [x] T022 [US1] Thread `playerCount` from the create body into the game record (default 3 when omitted) in `src/controllers/GameController.js` (FR-001). (Depends on T021)
+- [x] T023 [US1] `startRound` passes `game.requiredPlayers` as `playerCount` into `Game`/`Round`; verify `seatOrder = [...game.players]` seats N joiners in join order in `src/services/ThousandStore.js` (FR-001, R-306). (Depends on T005, T010)
+- [x] T024 [US1] Generalize the test deck seam `_stackedDeckForTest`/`_stackRankOnSlots` to the active deck length (24 or 32) and recompute four-nines / no-ace slot indices from `stepDest(_, playerCount)` in `src/services/Round.js` (R-304). (Depends on T010, T020)
+- [x] T025 [US1] Add `across` opponent ordering (clockwise `left, across, right`) to `buildSeatLayout` for `playerCount === 4`; omit `across` for 3-player in `src/services/RoundSnapshot.js` (FR-018; contract delta). (Depends on T009)
 
 **Checkpoint**: 4-player game fully playable headless; T012–T018 pass; existing suite still green. This is the MVP (server-side complete).
 
@@ -88,8 +88,8 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 
 **Independent Test**: Run the full existing 3-player suite unmodified; create and play a 3-player game end-to-end and confirm deck (24), talon (3), trick width (3), and scoring match current behavior.
 
-- [ ] T026 [US2] Regression gate: run `npm test`; confirm the full existing 3-player suite passes with **no edits to existing test expectations** (FR-006, SC-004).
-- [ ] T027 [P] [US2] Add a dedicated `tests/threeplayer-regression.test.js` asserting, via a headless round, that a 3-player game yields a 24-card deck, 3-card talon, exactly 2 exchange passes, 3-card tricks, and that the 24-card deck contains no 7/8 while `RANK_ORDER` preserves the 9→A relative trick-winner order (FR-006).
+- [x] T026 [US2] Regression gate: run `npm test`; confirm the full existing 3-player suite passes with **no edits to existing test expectations** (FR-006, SC-004).
+- [x] T027 [P] [US2] Add a dedicated `tests/threeplayer-regression.test.js` asserting, via a headless round, that a 3-player game yields a 24-card deck, 3-card talon, exactly 2 exchange passes, 3-card tricks, and that the 24-card deck contains no 7/8 while `RANK_ORDER` preserves the 9→A relative trick-winner order (FR-006).
 - [ ] T028 [US2] Manual 3-player regression walkthrough per `specs/008-four-player-variant/quickstart.md` §"3-player regression" (deal 7 + 3 talon, declarer 10→8 after 2 passes, 3-card tricks identical to today).
 
 **Checkpoint**: 3-player parity proven both automatically and manually.

@@ -2,6 +2,7 @@
 
 const { stepDest } = require('./DealSequencer');
 const Scoring = require('./Scoring');
+const { seatRange, initSeatMap } = require('./Seats');
 
 const PHASE_LABELS = {
   'dealing': 'Dealing',
@@ -67,7 +68,7 @@ function compactScoreHistory(session) {
   return session.history.map((entry) => ({
     roundNumber: entry.roundNumber,
     perPlayer: Object.fromEntries(
-      [0, 1, 2].map((s) => [s, {
+      seatRange(session.playerCount ?? 3).map((s) => [s, {
         delta: entry.perPlayer[s].delta,
         cumulativeAfter: entry.perPlayer[s].cumulativeAfter,
       }]),
@@ -92,6 +93,7 @@ function crawlAvailableFor(round, seat) {
 
 function buildViewModel(round, seat) {
   const session = round._game?.session;
+  const n = round.playerCount ?? 3;
   const isPhaseFinal = round.phase === 'round-summary' || session?.gameStatus === 'game-over';
   return {
     phase: PHASE_LABELS[round.phase] ?? round.phase,
@@ -100,7 +102,7 @@ function buildViewModel(round, seat) {
     viewerMustBid: round.phase === 'bidding'
       && round.currentTurnSeat === seat
       && round.currentHighBid === null
-      && round.passedBidders.size === 2,
+      && round.passedBidders.size === n - 1,
     currentHighBid: round.currentHighBid,
     declarer: seatInfo(round, round.declarerSeat),
     passedPlayers: passedNicknamesForCurrentPhase(round),
@@ -115,9 +117,9 @@ function buildViewModel(round, seat) {
       return { seat: s, cardId, rank: card?.rank ?? null, suit: card?.suit ?? null };
     }),
     currentTrumpSuit: round.currentTrumpSuit ?? null,
-    cumulativeScores: session ? session.cumulativeScores : { 0: 0, 1: 0, 2: 0 },
+    cumulativeScores: session ? session.cumulativeScores : initSeatMap(n, 0),
     scoreHistory: compactScoreHistory(session),
-    collectedTrickCounts: round.collectedTrickCounts ?? { 0: 0, 1: 0, 2: 0 },
+    collectedTrickCounts: round.collectedTrickCounts ?? initSeatMap(n, 0),
     roundPoints: (round.phase === 'trick-play' || round.phase === 'round-summary')
       ? Scoring.roundScores(round)
       : null,
@@ -131,7 +133,7 @@ function buildViewModel(round, seat) {
     roundNumber: session ? session.currentRoundNumber : 1,
     // Absent when no player is on barrel (null entry per seat when onBarrel === false)
     barrelMarkers: session
-      ? Object.fromEntries([0, 1, 2].map(s => [s, session.barrelState[s].onBarrel
+      ? Object.fromEntries(seatRange(n).map(s => [s, session.barrelState[s].onBarrel
         ? { onBarrel: true, barrelRoundsUsed: session.barrelState[s].barrelRoundsUsed }
         : null]))
       : null,
@@ -156,18 +158,24 @@ function viewerCrawlCommitFor(round, seat) {
 }
 
 function buildSeatLayout(round, seat) {
+  const n = round.playerCount ?? 3;
   const players = round.seatOrder.map((pid, s) => ({
     seat: s,
     playerId: pid,
     nickname: round._store.players.get(pid)?.nickname ?? null,
   }));
-  return {
+  // Opponents are ordered clockwise from self: left, (across for 4p), right.
+  const layout = {
     self: seat,
-    left: (seat + 1) % 3,
-    right: (seat + 2) % 3,
+    left: (seat + 1) % n,
+    right: (seat + (n - 1)) % n,
     dealer: round.dealerSeat,
     players,
   };
+  if (n === 4) {
+    layout.across = (seat + 2) % n;
+  }
+  return layout;
 }
 
 function buildHandIdentitiesFor(round, seat) {
@@ -179,7 +187,7 @@ function buildHandIdentitiesFor(round, seat) {
 
 function buildOpponentHandSizesFor(round, seat) {
   const sizes = {};
-  for (const s of [0, 1, 2]) {
+  for (const s of seatRange(round.playerCount ?? 3)) {
     if (s !== seat) {
       sizes[s] = round.hands[s].length;
     }
