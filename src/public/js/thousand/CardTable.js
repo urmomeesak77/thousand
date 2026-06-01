@@ -1,5 +1,5 @@
 // ============================================================
-// CardTable — viewport-relative slot coordinates for the 3-player table
+// CardTable — viewport-relative slot coordinates for the 3- and 4-player table
 // ============================================================
 
 class CardTable {
@@ -22,17 +22,27 @@ class CardTable {
     return this._slots[name];
   }
 
-  // Returns { [seatIdx]: { x, y } } using the FR-005 clockwise layout rule:
+  // Returns { [seatIdx]: { x, y } } using the FR-005/FR-018 clockwise layout rule:
   //   - viewer's own seat → 'self' (bottom center)
   //   - next-clockwise opponent → 'left' (left side)
-  //   - remaining opponent    → 'right' (right side)
-  slotsForSeat(viewerSeat) {
-    const leftSeat = (viewerSeat + 1) % 3;
-    const rightSeat = (viewerSeat + 2) % 3;
+  //   - (4-player only) opposite opponent → 'across' (top center)
+  //   - remaining opponent → 'right' (right side)
+  // For 4 players the clockwise step spans seats (+1, +2, +3); for 3 players the
+  // fourth slot is absent so the second opponent lands directly at 'right'.
+  slotsForSeat(viewerSeat, playerCount = 3) {
+    const n = playerCount;
+    if (n === 4) {
+      return {
+        [viewerSeat]: this._slots.self,
+        [(viewerSeat + 1) % n]: this._slots.left,
+        [(viewerSeat + 2) % n]: this._slots.across,
+        [(viewerSeat + 3) % n]: this._slots.right,
+      };
+    }
     return {
       [viewerSeat]: this._slots.self,
-      [leftSeat]: this._slots.left,
-      [rightSeat]: this._slots.right,
+      [(viewerSeat + 1) % 3]: this._slots.left,
+      [(viewerSeat + 2) % 3]: this._slots.right,
     };
   }
 
@@ -48,6 +58,7 @@ class CardTable {
 
     this._slots = {
       self:       { x: cx - Math.round(cardW / 2), y: h - 120 },
+      across:     { x: cx - Math.round(cardW / 2), y: 24 },
       left:       { x: 24,                          y: cy - Math.round(cardH / 2) },
       right:      { x: w - 24 - cardW,              y: cy - Math.round(cardH / 2) },
       talon:      { x: cx - Math.round(cardW / 2),  y: cy - Math.round(cardH / 2) },
