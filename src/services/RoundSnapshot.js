@@ -197,7 +197,7 @@ function buildOpponentHandSizesFor(round, seat) {
 
 function buildDealSequenceFor(round, seat) {
   return round.deck.map((card, i) => {
-    const to = stepDest(i);
+    const to = stepDest(i, round.playerCount ?? 3);
     const step = { id: i, to };
     if (to === `seat${seat}`) {
       step.rank = card.rank;
