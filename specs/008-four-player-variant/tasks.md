@@ -135,7 +135,7 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 - [x] T045 Generalize the live-e2e deck seam to the 32-card deck and add a 4-player variant (and `THOUSAND_STACK_DECK` four-nines / no-ace forcing) to `tests/e2e-live-smart.js` (R-304; quickstart §four-nines/crawl).
 - [x] T046 Update `CLAUDE.md` Project Structure to note `src/services/Seats.js` and the `playerCount` parameter threaded through the engine.
 - [x] T047 Run the FR-coverage check: confirm every FR-001…FR-020 has a matching `// per FR-NNN` test annotation (use the `fr-coverage-checker` agent).
-- [ ] T048 Final verification: `npm test && npm run lint`; confirm coverage stays ≥90% (SC-001…SC-005).
+- [x] T048 Final verification: `npm test && npm run lint`; confirm coverage stays ≥90% (SC-001…SC-005).
 - [ ] T049 Manual quickstart.md validation: 4-player happy path, four-nines/crawl via deck seam, and the responsive narrow-viewport check of all four seats + 4-card trick-centre (SC-002, SC-003, §VI).
 
 ---
