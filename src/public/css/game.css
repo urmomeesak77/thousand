@@ -112,6 +112,49 @@
   min-height: 0;
 }
 
+/* 3-player default: the 4th (across) seat is unused, so take it out of flow
+   entirely. This keeps auto-placement at the documented "left | talon | right"
+   row and prevents the empty seat from reserving a column. */
+.game-table > .across-zone {
+  display: none;
+}
+
+/* ------------------------------------------------------------
+   4-player layout (FR-018, R-302): a top/across seat is added.
+   A dedicated top row hosts the across seat (centred); the middle
+   row carries left | talon | right; hand + stats span the bottom.
+   Scoped under .game-table--four so 3-player is untouched.
+   ------------------------------------------------------------ */
+.game-table--four {
+  grid-template-rows: auto 1fr auto auto;
+}
+
+.game-table--four > .across-zone {
+  display: flex;
+  grid-row: 1;
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+.game-table--four > .opponent-view:not(.across-zone) {
+  grid-row: 2;
+}
+
+/* left seat → middle-left, talon → middle-centre, right seat → middle-right.
+   The talon-col already centres its contents; pin each to an explicit column. */
+.game-table--four > .opponent-view:not(.across-zone):first-child {
+  grid-column: 1;
+}
+
+.game-table--four > .talon-col {
+  grid-row: 2;
+  grid-column: 2;
+}
+
+.game-table--four > .opponent-view:not(.across-zone):nth-child(4) {
+  grid-column: 3;
+}
+
 /* Controls bar at the bottom of the round screen */
 .game-controls {
   display: flex;
@@ -608,6 +651,21 @@
 .trick-center__slot--right {
   top: 0;
   right: 0;
+}
+
+/* 4th (across) seat plays into the top-centre slot (FR-018). Only present in
+   4-player; the centre is widened below so left/across/right don't overlap. */
+.trick-center__slot--across {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Four cards (self bottom-centre, left/across/right across the top) need more
+   horizontal room than the default 2.4× width. Scope the wider centre to
+   4-player so the 3-player trick-centre is unchanged. */
+.game-table--four .trick-center {
+  width: calc(var(--card-width) * 3.4);
 }
 
 .trick-center__slot .card-sprite {
@@ -1156,6 +1214,28 @@
 
   .talon-view .card-sprite + .card-sprite {
     margin-left: calc(-1 * var(--card-width) * 0.5);
+  }
+
+  /* 4-player: the top row carries three opponent stacks (left/across/right);
+     keep the across seat compact and let the centre overflow its narrow column
+     rather than forcing it to expand the grid. */
+  .game-table--four .trick-center {
+    width: calc(var(--card-width) * 3);
+    margin: 0 auto;
+  }
+
+  .game-table--four > .across-zone {
+    padding: 0.25rem;
+  }
+}
+
+/* 480px — small phones: with collapsed single-card opponent stacks the four
+   trick-centre cards still must not overlap. The slots are card-width wide and
+   anchored left / centre / right, so a 3× card-width centre fits them edge to
+   edge; allow overflow:visible (set on .trick-center) to handle any rounding. */
+@media (max-width: 480px) {
+  .game-table--four .trick-center {
+    width: calc(var(--card-width) * 3);
   }
 }
 

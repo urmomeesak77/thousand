@@ -102,7 +102,20 @@ class GameScreen {
     this._leftOpponent = new OpponentView(leftEl);
     this._acrossOpponent = new OpponentView(acrossEl);
     this._rightOpponent = new OpponentView(rightEl);
+    // Distinguishing hook so game.css can hide/place the 4th seat. Added AFTER
+    // OpponentView's constructor (which sets 'opponent-view' on this container,
+    // overwriting className) so the class survives; OpponentView only mutates
+    // textContent on later renders, never className again.
+    acrossEl.classList.add('across-zone');
     this._talonView = new TalonView(talonEl);
+  }
+
+  // Toggles the table's player-count modifier so game.css can place the 4th
+  // (across) seat and widen the trick-centre only in 4-player rooms; 3-player
+  // keeps the default layout untouched. Called wherever _seats is assigned.
+  _applyPlayerCountLayout() {
+    const isFour = this._seats?.across != null;
+    this._tableEl.classList.toggle('game-table--four', isFour);
   }
 
   // Drives every per-opponent fan-out below. Across is absent in 3-player, so
@@ -154,6 +167,7 @@ class GameScreen {
   init(msg) {
     this._cardTable.refresh();
     this._seats = msg.seats;
+    this._applyPlayerCountLayout();
     this._cardsById = {};
     this._viewerIsNewDeclarer = false;
     this._sellWinnerNickname = null;
@@ -183,6 +197,7 @@ class GameScreen {
   initFromSnapshot(msg) {
     this._cardTable.refresh();
     this._seats = msg.seats;
+    this._applyPlayerCountLayout();
     this._cardsById = {};
     this._isControlsLocked = false;
     this._lastMountedPhase = null;
