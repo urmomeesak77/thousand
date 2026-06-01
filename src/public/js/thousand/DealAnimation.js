@@ -10,11 +10,14 @@ const CARD_ANIM_MS = 200;
 const HAND_STACK_OFFSET_X = 18;
 
 class DealAnimation {
-  constructor(antlion, dealSequence, cardsById, viewerSeat, cardTable, onComplete) {
+  constructor(antlion, dealSequence, cardsById, viewerSeat, playerCount, cardTable, onComplete) {
     this._antlion = antlion;
     this._dealSequence = dealSequence;
     this._cardsById = cardsById;
     this._viewerSeat = viewerSeat;
+    // Player count selects the 3- vs 4-seat slot layout; without it a 4-player
+    // deal's across seat (seat3) resolves to no slot and stalls at the deck origin.
+    this._playerCount = playerCount;
     this._cardTable = cardTable;
     this._onComplete = onComplete;
 
@@ -106,7 +109,7 @@ class DealAnimation {
   _getDestSlot(to) {
     if (to === 'talon') {return this._cardTable.getSlot('talon');}
     const seatIdx = parseInt(to.replace('seat', ''), 10);
-    const slots = this._cardTable.slotsForSeat(this._viewerSeat);
+    const slots = this._cardTable.slotsForSeat(this._viewerSeat, this._playerCount);
     return slots[seatIdx] ?? null;
   }
 }

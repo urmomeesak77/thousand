@@ -463,7 +463,8 @@ class GameScreen {
     this._talonCardIds = sequence.filter(s => s.to === 'talon').map(s => s.id);
     this._isControlsLocked = true;
     const animation = new DealAnimation(
-      this._antlion, sequence, this._cardsById, this._seats.self, this._cardTable,
+      this._antlion, sequence, this._cardsById, this._seats.self,
+      this._seats.players.length, this._cardTable,
       () => {
         this._dealAnimation = null;
         this._tableEl.querySelectorAll('.card-sprite').forEach(el => el.remove());

@@ -64,7 +64,7 @@ class SellPhaseView {
       gs._opponentForSeat(declarerSeat)?.setCardCount(HAND_AFTER_EXPOSE);
     }
 
-    const slots = gs._cardTable.slotsForSeat(viewerSeat);
+    const slots = gs._cardTable.slotsForSeat(viewerSeat, gs._seats.players.length);
     const fromSlot = (declarerSeat != null ? slots[declarerSeat] : null) ?? gs._cardTable.getSlot('talon');
     const toSlot = gs._cardTable.getSlot('talon');
 
@@ -96,7 +96,7 @@ class SellPhaseView {
     const oldDeclarerSeat = gs._seatOf(oldDeclarerId);
     const newDeclarerSeat = newDeclarerId ? gs._seatOf(newDeclarerId) : null;
 
-    const slots = gs._cardTable.slotsForSeat(viewerSeat);
+    const slots = gs._cardTable.slotsForSeat(viewerSeat, gs._seats.players.length);
     const talonSlot = gs._cardTable.getSlot('talon');
     const destSeat = outcome === 'sold' ? newDeclarerSeat : oldDeclarerSeat;
     const destSlot = (destSeat != null ? slots[destSeat] : null) ?? talonSlot;
@@ -158,7 +158,7 @@ class SellPhaseView {
     gs._talonView.clear();
 
     const talonSlot = gs._cardTable.getSlot('talon');
-    const slots = gs._cardTable.slotsForSeat(viewerSeat);
+    const slots = gs._cardTable.slotsForSeat(viewerSeat, gs._seats.players.length);
     const destSlot = slots[declarerSeat] ?? talonSlot;
 
     this._animateSprites(talonIds, talonSlot, destSlot, () => {
