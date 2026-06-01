@@ -105,16 +105,15 @@ class GameScreen {
     this._talonView = new TalonView(talonEl);
   }
 
-  // Maps each opponent OpponentView to its current seat via this._seats. Returns
-  // [{ position, view, seat }] for every opponent whose seat is present (across
-  // is absent in 3-player). Drives all per-opponent fan-outs below.
+  // Drives every per-opponent fan-out below. Across is absent in 3-player, so
+  // filtering on a present seat collapses cleanly to two opponents.
   _opponents() {
     const s = this._seats;
     if (!s) { return []; }
     return [
-      { position: 'left', view: this._leftOpponent, seat: s.left },
-      { position: 'across', view: this._acrossOpponent, seat: s.across },
-      { position: 'right', view: this._rightOpponent, seat: s.right },
+      { view: this._leftOpponent, seat: s.left },
+      { view: this._acrossOpponent, seat: s.across },
+      { view: this._rightOpponent, seat: s.right },
     ].filter((o) => o.seat != null);
   }
 

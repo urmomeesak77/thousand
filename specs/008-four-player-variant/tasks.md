@@ -104,7 +104,7 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 
 ### Tests for User Story 3 ⚠️ (write first, ensure they FAIL before implementation)
 
-- [ ] T029 [P] [US3] `tests/CardTable.fourplayer.test.js`: `slotsForSeat(viewerSeat, playerCount)` returns 4 distinct slots for `playerCount 4`, 3 for `playerCount 3` (FR-018).
+- [x] T029 [P] [US3] `tests/CardTable.fourplayer.test.js`: `slotsForSeat(viewerSeat, playerCount)` returns 4 distinct slots for `playerCount 4`, 3 for `playerCount 3` (FR-018).
 - [ ] T030 [P] [US3] `tests/GameScreen.fourplayer.test.js`: three opponent views render for 4-player seats; hand sizes, nicknames, and round-stats map correctly to each opponent seat (FR-018, FR-019).
 
 ### Implementation for User Story 3
@@ -112,7 +112,7 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 - [ ] T031 [US3] Replace the hidden player-count input with a 3/4 selector and make the subtitle + waiting-hint text player-count-aware in `src/public/index.html` (FR-001, FR-020).
 - [ ] T032 [US3] Read the selected player count (3|4) from the new selector instead of a fixed hidden input in `src/public/js/overlays/NewGameModal.js` (FR-001). (Depends on T031)
 - [ ] T033 [P] [US3] Verify the server-provided `requiredPlayers` renders "(N needed to start)" for 4 **and** that current join progress (e.g. "2 / 4 joined") renders from the joined count vs `requiredPlayers` in `src/public/js/screens/WaitingRoom.js` (FR-003).
-- [ ] T034 [US3] `slotsForSeat(viewerSeat, playerCount)`: self + clockwise opponents, adding a top/across slot for the 4th seat in `src/public/js/thousand/CardTable.js` (FR-018; Decision 9).
+- [x] T034 [US3] `slotsForSeat(viewerSeat, playerCount)`: self + clockwise opponents, adding a top/across slot for the 4th seat in `src/public/js/thousand/CardTable.js` (FR-018; Decision 9).
 - [ ] T035 [US3] Replace fixed `_leftOpponent`/`_rightOpponent` with a `seat → OpponentView` map built from `seats`; generalize `_opponentForSeat`/`_elForSeat`/`_applyOpponentHandSizes`/`_renderRoundStats`/`_setOpponentNicknames` over all opponent seats in `src/public/js/thousand/GameScreen.js` (FR-018, FR-019). (Depends on T034)
 - [ ] T036 [US3] Centre slots self + opponent seats (add across); collected-count map over `playerCount` in `src/public/js/thousand/TrickPlayView.js` (FR-018). (Depends on T034)
 - [ ] T037 [US3] Dest buttons over all opponent seats (not just left/right); generalized direction label in `src/public/js/thousand/CardExchangeView.js` (FR-011, FR-018).
