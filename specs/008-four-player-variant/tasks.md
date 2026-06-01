@@ -136,7 +136,7 @@ Single project (web app): `src/` (backend services/controllers + `src/public/` f
 - [x] T046 Update `CLAUDE.md` Project Structure to note `src/services/Seats.js` and the `playerCount` parameter threaded through the engine.
 - [x] T047 Run the FR-coverage check: confirm every FR-001…FR-020 has a matching `// per FR-NNN` test annotation (use the `fr-coverage-checker` agent).
 - [x] T048 Final verification: `npm test && npm run lint`; confirm coverage stays ≥90% (SC-001…SC-005).
-- [ ] T049 Manual quickstart.md validation: 4-player happy path, four-nines/crawl via deck seam, and the responsive narrow-viewport check of all four seats + 4-card trick-centre (SC-002, SC-003, §VI).
+- [ ] T049 Manual quickstart.md validation: 4-player happy path, four-nines/crawl via deck seam, and the responsive narrow-viewport check of all four seats + 4-card trick-centre (SC-002, SC-003, §VI). NOTE: the **happy path is now verified end-to-end** by the live 4-player e2e (`E2E_HEADLESS=1 E2E_PLAYERS=4 node tests/e2e-live-smart.js` — full game to 1030) after fixing the `buildDealSequenceFor` deadlock (commit b9deb04). Remaining manual: four-nines/crawl via `THOUSAND_STACK_DECK` and the responsive narrow-viewport visual check.
 
 ---
 
