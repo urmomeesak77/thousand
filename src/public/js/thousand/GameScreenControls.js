@@ -68,9 +68,13 @@ class GameScreenControls {
       || this._cardExchangeView || this._trickPlayView || this._roundSummaryScreen
       || this._finalResultsScreen
       || this._controlsEl.querySelector('.waiting');
+    this._bidControls?.destroy?.();
     this._bidControls = null;
+    this._declarerControls?.destroy?.();
     this._declarerControls = null;
+    this._sellSelectionControls?.destroy?.();
     this._sellSelectionControls = null;
+    this._sellBidControls?.destroy?.();
     this._sellBidControls = null;
     this._cardExchangeView?.destroy();
     this._cardExchangeView = null;

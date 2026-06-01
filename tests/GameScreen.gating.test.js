@@ -201,6 +201,51 @@ describe('GameScreen.gating — Declarer deciding: 3 failed attempts disables Se
   });
 });
 
+describe('GameScreen.gating — returned sell auction re-attaches declarer controls', () => {
+  // Reproduces the message order the server emits when the declarer sells and both
+  // opponents pass (auction "returned"): pass_accepted → sell_resolved → phase_changed,
+  // all carrying the post-bid-decision view-model. The pass_accepted mounts the
+  // declarer controls; sell_resolved's exitSelling wipes _controlsEl; phase_changed
+  // must re-attach them. The defect detached the buttons and never re-created them.
+  it('Sell/Start buttons stay attached and visible after a returned sell auction', () => {
+    const { gs } = makeGameScreen();
+    gs._seats = {
+      self: 0, left: 1, right: 2,
+      players: [
+        { seat: 0, playerId: 'p0', nickname: 'Alice' },
+        { seat: 1, playerId: 'p1', nickname: 'Bob' },
+        { seat: 2, playerId: 'p2', nickname: 'Carol' },
+      ],
+    };
+    const status = () => declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: 2 });
+
+    // 1. Resolving pass_accepted mounts the declarer controls.
+    gs.updateStatus(status());
+    assert.ok(gs._controls._declarerControls, 'declarer controls created on resolving pass_accepted');
+
+    // 2. sell_resolved → exitSelling wipes _controlsEl (synchronous portion).
+    gs.sellPhase.exitSelling({
+      outcome: 'returned',
+      oldDeclarerId: 'p0',
+      exposedIds: [],
+      gameStatus: status(),
+    });
+
+    // 3. phase_changed re-mounts.
+    gs.updateStatus(status());
+
+    const controls = gs._controls._declarerControls;
+    assert.ok(controls, 'declarer controls must still exist after the returned sell');
+    assert.ok(
+      gs._controlsEl.contains(controls._el),
+      'declarer controls element must be re-attached to the controls container'
+    );
+    assert.ok(!controls._el.classList.contains('hidden'), 'declarer controls must be visible');
+    assert.equal(controls._sellBtn.disabled, false, 'Sell button must be operable');
+    assert.equal(controls._startBtn.disabled, false, 'Start button must be operable');
+  });
+});
+
 describe('GameScreen.gating — controls swap correctly across phase transitions', () => {
   it('switching from Bidding to Declarer deciding replaces BidControls with DeclarerDecisionControls', () => {
     const { gs } = makeGameScreen();

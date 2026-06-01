@@ -86,9 +86,12 @@ class SellPhaseView {
     gs._isControlsLocked = true;
 
     gs._handView.setSelectionMode(false);
-    gs._controls.clearSellBid();
-    gs._controls.clearSellSelection();
-    gs._controlsEl.textContent = '';
+    // Full teardown keeps GameScreenControls' widget references in lockstep with
+    // the DOM wipe. A resolving pass_accepted/bid_accepted can mount the declarer
+    // controls just before this; clearing only the sell controls would leave a
+    // stale _declarerControls pointing at a now-detached element, so the later
+    // mountForPhase('Declarer deciding') would short-circuit and never re-attach.
+    gs._controls.tearDownAll();
 
     const oldDeclarerSeat = gs._seatOf(oldDeclarerId);
     const newDeclarerSeat = newDeclarerId ? gs._seatOf(newDeclarerId) : null;
