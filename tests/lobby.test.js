@@ -108,6 +108,12 @@ function createLobbyDOM() {
     runScripts: 'dangerously',
     url: 'http://localhost:3000',
     beforeParse(window) {
+      // jsdom (no pretendToBeVisual) lacks requestAnimationFrame; the inlined
+      // app boots Antlion, whose tick loop calls it. Stub as a no-op so the
+      // loop neither throws an uncaught ReferenceError nor spins at ~60fps.
+      window.requestAnimationFrame = () => 0;
+      window.cancelAnimationFrame = () => {};
+
       // Mock WebSocket — deferred so DOMContentLoaded fires first
       window.WebSocket = class MockWebSocket {
         constructor(url) {
