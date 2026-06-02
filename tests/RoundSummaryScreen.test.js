@@ -282,3 +282,37 @@ describe('RoundSummaryScreen — Continue button disables itself on click (no do
     assert.equal(getCount(), 1, 'onContinue must fire exactly once for one user click');
   });
 });
+
+describe('RoundSummaryScreen — auto-continue timer', () => {
+  function makeContinueScreen({ viewerSeat = 0 } = {}) {
+    const doc = dom.window.document;
+    const el = doc.createElement('div');
+    doc.body.appendChild(el);
+    const antlion = makeMockAntlion();
+    let continueCount = 0;
+    const screen = new dom.window.RoundSummaryScreen(el, {
+      antlion,
+      viewerSeat,
+      onBackToLobby: () => {},
+      onContinue: () => { continueCount++; },
+    });
+    return { screen, el, antlion, getCount: () => continueCount };
+  }
+
+  it('Continue button label shows the starting countdown of 30', () => {
+    const { screen, el } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    const btn = el.querySelector('.round-summary__continue-btn');
+    assert.ok(btn.textContent.includes('30'),
+      `button label must show starting count 30, got "${btn.textContent}"`);
+  });
+
+  it('Continue button label decrements on each tick', () => {
+    const { screen, el, antlion } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(1);
+    const btn = el.querySelector('.round-summary__continue-btn');
+    assert.ok(btn.textContent.includes('29'),
+      `button label must show 29 after one tick, got "${btn.textContent}"`);
+  });
+});

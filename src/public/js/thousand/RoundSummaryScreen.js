@@ -5,6 +5,10 @@ const PENALTY_LABELS = {
   'three-zeros': `Zero-round penalty: −${SPECIAL_PENALTY}`,
 };
 
+const AUTO_CONTINUE_SECONDS = 30;
+const CONTINUE_LABEL = 'Continue to Next Round';
+const continueLabelWithCount = (seconds) => `${CONTINUE_LABEL} (${seconds})`;
+
 class RoundSummaryScreen {
   constructor(el, { antlion, viewerSeat, onBackToLobby, onContinue }) {
     this._el = el;
@@ -14,6 +18,8 @@ class RoundSummaryScreen {
     this._onContinue = onContinue;
     // Store continue-pressed seats for the update() method
     this._continuePressedSeats = new Set();
+    this._autoContinueIntervalId = null;
+    this._autoContinueRemaining = AUTO_CONTINUE_SECONDS;
     // Disposers: constructor-scoped onInput handlers vs per-render button binds.
     // The screen is rebuilt every round and its buttons are re-bound on each
     // render(), so both must be released on destroy() (and the button binds at
@@ -187,13 +193,42 @@ class RoundSummaryScreen {
   _renderContinueButton() {
     const btn = document.createElement('button');
     btn.className = 'round-summary__continue-btn';
-    btn.textContent = 'Continue to Next Round';
     // Check if this viewer has already pressed continue
     if (this._continuePressedSeats.has(this._viewerSeat)) {
       btn.disabled = true;
+      btn.textContent = CONTINUE_LABEL;
+    } else {
+      btn.textContent = continueLabelWithCount(this._autoContinueRemaining);
+      this._continueBtn = btn;
+      this._startAutoContinue();
     }
     this._buttonTeardowns.push(this._antlion.bindInput(btn, 'click', 'round-summary-continue-click'));
     this._cardEl.appendChild(btn);
+  }
+
+  _startAutoContinue() {
+    this._cancelAutoContinue();
+    this._autoContinueRemaining = AUTO_CONTINUE_SECONDS;
+    this._autoContinueIntervalId = this._antlion.scheduleInterval(1000, () => this._autoContinueTick());
+  }
+
+  _autoContinueTick() {
+    this._autoContinueRemaining -= 1;
+    if (this._autoContinueRemaining <= 0) {
+      this._cancelAutoContinue();
+      this._onContinueClick();
+      return;
+    }
+    if (this._continueBtn) {
+      this._continueBtn.textContent = continueLabelWithCount(this._autoContinueRemaining);
+    }
+  }
+
+  _cancelAutoContinue() {
+    if (this._autoContinueIntervalId !== null) {
+      this._antlion.cancelInterval(this._autoContinueIntervalId);
+      this._autoContinueIntervalId = null;
+    }
   }
 
   _onContinueClick() {
