@@ -106,17 +106,14 @@ describe('ScoreboardPanel render', () => {
     assert.deepEqual(headerTexts(el), ['Alice', 'Bob', 'Carol']);
   });
 
-  it('renders a cum and a rnd row per round with values in seat order', () => {
+  it('renders only a rnd row per round (no cumulative rows) with values in seat order', () => {
     const { panel, el } = makePanel();
     panel.render(history, { 0: 180, 1: -60, 2: 120 }, seats);
 
     const cumRows = el.querySelectorAll('.scoreboard__cum');
     const rndRows = el.querySelectorAll('.scoreboard__rnd');
-    assert.equal(cumRows.length, 2);
+    assert.equal(cumRows.length, 0, 'cumulative per-round rows must not be rendered');
     assert.equal(rndRows.length, 2);
-
-    const cum2 = [...cumRows[1].querySelectorAll('.scoreboard__val')].map((td) => td.textContent);
-    assert.deepEqual(cum2, ['180', '-60', '120']);
 
     const rnd2 = [...rndRows[1].querySelectorAll('.scoreboard__val')].map((td) => td.textContent);
     assert.deepEqual(rnd2, ['+60', '-60', '+60']);
@@ -138,7 +135,7 @@ describe('ScoreboardPanel render', () => {
     const { panel, el } = makePanel();
     panel.render([], { 0: 0, 1: 0, 2: 0 }, seats);
     assert.deepEqual(headerTexts(el), ['Alice', 'Bob', 'Carol']);
-    assert.equal(el.querySelectorAll('.scoreboard__cum').length, 0);
+    assert.equal(el.querySelectorAll('.scoreboard__rnd').length, 0);
     const vals = [...el.querySelector('.scoreboard__total').querySelectorAll('.scoreboard__val')].map((td) => td.textContent);
     assert.deepEqual(vals, ['0', '0', '0']);
   });
@@ -147,7 +144,7 @@ describe('ScoreboardPanel render', () => {
     const { panel, el } = makePanel();
     panel.render(history, { 0: 180, 1: -60, 2: 120 }, seats);
     panel.render(history, { 0: 180, 1: -60, 2: 120 }, seats);
-    assert.equal(el.querySelectorAll('.scoreboard__cum').length, 2);
+    assert.equal(el.querySelectorAll('.scoreboard__rnd').length, 2);
   });
 
   // per FR-019: scoreboard must render TOTAL across 4 seats (no 3-seat fallback).

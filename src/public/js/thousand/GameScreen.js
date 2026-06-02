@@ -165,6 +165,10 @@ class GameScreen {
 
   // Called on round_started; seeds cardsById, lays out seats, starts the deal animation.
   init(msg) {
+    // Close the previous round's summary (or any lingering controls) before the
+    // deal starts — otherwise the deal animation plays behind the still-visible
+    // round-summary overlay, which only clears once the deal completes.
+    this._controls.tearDownAll();
     this._cardTable.refresh();
     this._seats = msg.seats;
     this._applyPlayerCountLayout();

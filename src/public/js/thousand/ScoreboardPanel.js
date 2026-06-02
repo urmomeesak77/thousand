@@ -132,17 +132,9 @@ class ScoreboardPanel {
   _buildRoundsBody(scoreHistory, players) {
     const tbody = document.createElement('tbody');
     for (const entry of scoreHistory) {
-      const cumRow = document.createElement('tr');
-      cumRow.className = 'scoreboard__cum';
-      cumRow.appendChild(this._labelCell(`R${entry.roundNumber}`, 'scoreboard__round-num'));
-      for (const p of players) {
-        cumRow.appendChild(this._valCell(String(entry.perPlayer[p.seat]?.cumulativeAfter ?? 0)));
-      }
-      tbody.appendChild(cumRow);
-
       const rndRow = document.createElement('tr');
       rndRow.className = 'scoreboard__rnd';
-      rndRow.appendChild(this._labelCell('rnd', 'scoreboard__round-sub'));
+      rndRow.appendChild(this._labelCell(`R${entry.roundNumber}`, 'scoreboard__round-num'));
       for (const p of players) {
         rndRow.appendChild(this._valCell(this._formatDelta(entry.perPlayer[p.seat]?.delta ?? 0)));
       }
