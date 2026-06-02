@@ -46,6 +46,17 @@ class RoundSummaryScreen {
 
     const { declarerMadeBid, perPlayer, victoryReached } = summary;
 
+    // Centered overlay: the round summary is a blocking handoff (continue / back
+    // to lobby), so it reads as a modal card over a dimmed table rather than a
+    // full-width strip at the bottom of the screen.
+    const overlay = document.createElement('div');
+    overlay.className = 'round-summary';
+    const card = document.createElement('div');
+    card.className = 'round-summary__card';
+    overlay.appendChild(card);
+    this._el.appendChild(overlay);
+    this._cardEl = card;
+
     this._renderBidIndicator(declarerMadeBid);
     this._renderTable(perPlayer);
 
@@ -67,7 +78,7 @@ class RoundSummaryScreen {
       indicator.className = 'round-summary__missed-indicator';
       indicator.textContent = 'Missed';
     }
-    this._el.appendChild(indicator);
+    this._cardEl.appendChild(indicator);
   }
 
   _renderTable(perPlayer) {
@@ -76,7 +87,7 @@ class RoundSummaryScreen {
 
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    for (const col of ['Player', 'Tricks', 'Round Total', 'Delta', 'Cumulative']) {
+    for (const col of ['Player', 'Tricks', 'Total', 'Delta', 'Cumulative']) {
       const th = document.createElement('th');
       th.textContent = col;
       headerRow.appendChild(th);
@@ -96,8 +107,18 @@ class RoundSummaryScreen {
     }
     table.appendChild(tbody);
 
-    this._el.querySelector('.round-summary__table')?.remove();
-    this._el.appendChild(table);
+    // Wrap in a full-width row so the capped/centered table still claims its own
+    // line inside the flex .game-controls panel (instead of sharing a row with
+    // the made/missed label and the action button).
+    const wrap = document.createElement('div');
+    wrap.className = 'round-summary__table-wrap';
+    wrap.appendChild(table);
+
+    // update() re-renders just the table; keep it above the action button rather
+    // than appending after it.
+    this._cardEl.querySelector('.round-summary__table-wrap')?.remove();
+    const btn = this._cardEl.querySelector('.round-summary__continue-btn, .round-summary__back-btn');
+    this._cardEl.insertBefore(wrap, btn ?? null);
   }
 
   _makePlayerRow(data) {
@@ -108,18 +129,21 @@ class RoundSummaryScreen {
 
     const sign = delta >= 0 ? '+' : '';
     const cells = [nickname, trickPoints, roundTotal, `${sign}${delta}`, cumulativeAfter];
+    let nameCell = null;
     for (const val of cells) {
       const td = document.createElement('td');
       td.textContent = val;
       row.appendChild(td);
+      nameCell ??= td;
     }
 
-    // Add continued indicator if this seat has pressed continue
+    // Continued check-mark: live inside the name cell (a <div> directly under a
+    // <tr> is invalid and gets hoisted out of the table by the browser).
     if (this._continuePressedSeats.has(seat)) {
-      const continueIndicator = document.createElement('div');
+      const continueIndicator = document.createElement('span');
       continueIndicator.className = 'round-summary__continued-indicator';
-      continueIndicator.textContent = 'Continued ✓';
-      row.appendChild(continueIndicator);
+      continueIndicator.textContent = '✓';
+      nameCell.appendChild(continueIndicator);
     }
 
     return row;
@@ -157,7 +181,7 @@ class RoundSummaryScreen {
     btn.className = 'round-summary__back-btn';
     btn.textContent = 'Back to Lobby';
     this._buttonTeardowns.push(this._antlion.bindInput(btn, 'click', 'round-summary-back-click'));
-    this._el.appendChild(btn);
+    this._cardEl.appendChild(btn);
   }
 
   _renderContinueButton() {
@@ -169,7 +193,7 @@ class RoundSummaryScreen {
       btn.disabled = true;
     }
     this._buttonTeardowns.push(this._antlion.bindInput(btn, 'click', 'round-summary-continue-click'));
-    this._el.appendChild(btn);
+    this._cardEl.appendChild(btn);
   }
 
   _onContinueClick() {

@@ -157,3 +157,30 @@ describe('GameScreen — last-trick resolve must not wipe the RoundSummaryScreen
     assert.ok(btn, 'Continue to Next Round button must be present after the last trick resolves');
   });
 });
+
+// Regression: pressing Continue then refreshing dropped the ticks and re-enabled
+// the Continue button. The reconnect snapshot carries continuePressedSeats, but
+// _mountRoundSummary only rendered summary — it never seeded the fresh screen, so
+// it started with an empty set. See temp/view.png.
+describe('GameScreen — RoundSummaryScreen restores continue-press state on reconnect', () => {
+  it('seeds ticks + disables the viewer\'s Continue button from snapshot.continuePressedSeats', () => {
+    const { gs } = makeGameScreen();
+    // initFromSnapshot sets _lastSnapshot before the summary mounts; mirror that
+    // ordering so the snapshot (with prior presses) is known at creation time.
+    gs._lastSnapshot = { summary: summaryPayload(), continuePressedSeats: [0] };
+    gs.updateStatus({
+      phase: 'Round complete', viewerIsActive: false,
+      collectedTrickCounts: { 0: 8, 1: 0, 2: 0 },
+      opponentHandSizes: { 1: 0, 2: 0 }, trickNumber: 8, currentTrick: [],
+    });
+
+    const row0 = gs._controlsEl.querySelector('.round-summary__player-row[data-seat="0"]');
+    assert.ok(row0?.querySelector('.round-summary__continued-indicator'),
+      'tick must be restored for a seat that already pressed Continue');
+
+    const btn = gs._controlsEl.querySelector('.round-summary__continue-btn');
+    assert.ok(btn, 'precondition: continue button rendered');
+    assert.ok(btn.disabled,
+      'viewer who already pressed Continue must see a disabled button after reconnect');
+  });
+});

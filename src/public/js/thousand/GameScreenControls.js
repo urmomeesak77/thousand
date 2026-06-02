@@ -326,6 +326,10 @@ class GameScreenControls {
         onBackToLobby: () => this._gs._onBackToLobby(),
         onContinue: () => this._dispatcher.sendContinueToNextRound(),
       });
+      // Restore prior continue-presses so a refresh/reconnect keeps the ticks and
+      // a viewer who already pressed stays disabled. Seeds before the first
+      // render() below (safe no-op render until the summary exists).
+      this._roundSummaryScreen.update(this._gs._lastSnapshot?.continuePressedSeats);
     }
 
     const snapshot = this._gs._lastSnapshot;

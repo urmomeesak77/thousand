@@ -684,35 +684,82 @@
    Round summary (.round-summary__*)
    ============================================================ */
 
+/* Blocking centered overlay (continue / back-to-lobby handoff). Sits above the
+   table + scoreboard (z-index 50) but below the four-nines / reconnect overlays. */
+.round-summary {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  /* Slightly opaque so the table stays visible behind the blocking card. */
+  background: rgba(13, 20, 16, 0.5);
+}
+
+.round-summary__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 30rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.round-summary__made-indicator,
+.round-summary__missed-indicator {
+  width: 100%;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .round-summary__made-indicator {
   color: var(--color-success);
-  font-weight: 700;
 }
 
 .round-summary__missed-indicator {
   color: var(--color-error);
-  font-weight: 700;
 }
 
-/* Scoring results table */
-.round-summary__table {
+/* Full-width row that keeps the capped table centered on its own line. */
+.round-summary__table-wrap {
   width: 100%;
+}
+
+/* Scoring results table — capped + centered so columns stay tight instead of
+   spanning the full screen width (wastes space on large displays). */
+.round-summary__table {
+  width: auto;
+  max-width: 640px;
+  margin: 0.4rem auto;
   border-collapse: collapse;
-  font-size: 0.9rem;
-  margin: 0.75rem 0;
+  font-size: 0.85rem;
 }
 
 .round-summary__table th,
 .round-summary__table td {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
+  padding: 0.25rem 1rem;
+  text-align: right;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Player name column stays left-aligned; numbers read better right-aligned. */
+.round-summary__table th:first-child,
+.round-summary__table td:first-child {
+  text-align: left;
+  white-space: nowrap;
 }
 
 .round-summary__table th {
   color: var(--color-text-muted);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -745,7 +792,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: border-color var(--transition), color var(--transition);
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .round-summary__back-btn:hover {
@@ -924,7 +971,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background var(--transition);
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .round-summary__continue-btn:hover:not(:disabled) {
@@ -941,11 +988,10 @@
    ============================================================ */
 
 .round-summary__continued-indicator {
-  display: inline-block;
   color: var(--color-success);
   font-weight: 600;
-  font-size: 0.9rem;
-  margin-left: 0.5rem;
+  margin-left: 0.35rem;
+  white-space: nowrap;
 }
 
 /* ============================================================
