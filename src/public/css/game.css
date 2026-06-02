@@ -621,7 +621,9 @@
 }
 
 /* Cards just absorbed from the talon stay marked (declarer's view) with a gentle
-   gold pulse until the take/give decision clears them. */
+   gold pulse until the take/give decision clears them. The gold box-shadow does
+   not compose with the --selected ring (also box-shadow), but the two states are
+   mutually exclusive by phase, so they never apply to the same card at once. */
 .hand-view__card--from-talon {
   box-shadow: 0 0 10px 3px rgba(245, 197, 66, 0.7);
   animation: talon-pulse 1.6s ease-in-out infinite;
