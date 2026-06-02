@@ -18,6 +18,7 @@ class HandView {
     this._isSelectionEnabled = false;
     this._selectedIds = [];
     this._disabledIds = [];
+    this._talonIds = new Set();
     this._singleSelectedId = null;
     this._leavingIds = new Set();
     this._arrivingId = null;
@@ -109,6 +110,20 @@ class HandView {
     this._render();
   }
 
+  // Persistently marks cards as having come from the absorbed talon (declarer's
+  // own view). Keyed by id so the highlight survives setHand() re-sorts; cleared
+  // explicitly by clearTalonHighlight() on the take/give decision.
+  setTalonHighlight(ids) {
+    this._talonIds = new Set(ids);
+    this._render();
+  }
+
+  clearTalonHighlight() {
+    if (this._talonIds.size === 0) { return; }
+    this._talonIds.clear();
+    this._render();
+  }
+
   // Highlights a single card independently of multi-select mode; null clears.
   setSingleSelected(id) {
     this._singleSelectedId = id;
@@ -173,6 +188,9 @@ class HandView {
       }
       if (this._disabledIds.includes(card.id)) {
         el.classList.add('card--disabled');
+      }
+      if (this._talonIds.has(card.id)) {
+        el.classList.add('hand-view__card--from-talon');
       }
       el.dataset.cardId = card.id;
       this._container.appendChild(el);

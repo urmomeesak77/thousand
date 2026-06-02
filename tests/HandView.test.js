@@ -120,3 +120,43 @@ describe('HandView — addCard inserts a card at sorted position (recipient of e
     assert.equal(hv._container.querySelectorAll('[data-card-id]').length, 2);
   });
 });
+
+describe('HandView — talon highlight (absorbed talon cards)', () => {
+  const FROM_TALON = 'hand-view__card--from-talon';
+
+  function highlightedIds(hv) {
+    return [...hv._container.querySelectorAll(`.${FROM_TALON}`)].map((el) =>
+      Number(el.dataset.cardId)
+    );
+  }
+
+  it('setTalonHighlight marks exactly the given ids', () => {
+    const hv = makeHandView();
+    hv.setHand([
+      { id: 1, rank: '9', suit: '♣' },
+      { id: 2, rank: 'K', suit: '♠' },
+      { id: 3, rank: 'A', suit: '♦' },
+    ]);
+    hv.setTalonHighlight([2, 3]);
+    assert.deepEqual(highlightedIds(hv).sort((a, b) => a - b), [2, 3]);
+  });
+
+  it('highlight survives a subsequent setHand re-sort', () => {
+    const hv = makeHandView();
+    hv.setHand([{ id: 1, rank: '9', suit: '♣' }]);
+    hv.setTalonHighlight([1]);
+    hv.setHand([
+      { id: 1, rank: '9', suit: '♣' },
+      { id: 2, rank: 'K', suit: '♠' },
+    ]);
+    assert.deepEqual(highlightedIds(hv), [1]);
+  });
+
+  it('clearTalonHighlight removes the marker', () => {
+    const hv = makeHandView();
+    hv.setHand([{ id: 1, rank: '9', suit: '♣' }]);
+    hv.setTalonHighlight([1]);
+    hv.clearTalonHighlight();
+    assert.deepEqual(highlightedIds(hv), []);
+  });
+});
