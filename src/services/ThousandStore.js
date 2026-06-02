@@ -6,6 +6,7 @@ const Round = require('./Round');
 const Game = require('./Game');
 const PlayerRegistry = require('./PlayerRegistry');
 const ConnectionLifecycle = require('./ConnectionLifecycle');
+const { applySeededScores } = require('./testScoreSeeding');
 
 const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
 const DEFAULT_GRACE_PERIOD_MS = 30_000;
@@ -196,6 +197,9 @@ class ThousandStore {
           game.session.nicknames[seat] = player.nickname || '';
         }
       }
+      // Test-only: seed cumulative scores from THOUSAND_SEED_SCORES (inert in
+      // production) so end-game/barrel paths are reachable without ~10 rounds.
+      applySeededScores(game.session);
     } else {
       // Round 2+: rotate dealer and increment round number
       game.session.startNextRound();
