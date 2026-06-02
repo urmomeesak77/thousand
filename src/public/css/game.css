@@ -43,12 +43,6 @@
   display: contents;
 }
 
-/* Persistent rules icon, pushed to the right end of the bar. */
-.status-bar__rules {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
 .status-bar__phase {
   font-weight: 700;
   color: var(--color-primary-hover);
@@ -1343,6 +1337,17 @@
 
 .scoreboard__title {
   font-weight: 600;
+}
+
+.scoreboard__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.scoreboard__rules {
+  flex-shrink: 0;
+  color: inherit;
 }
 
 .scoreboard__toggle {

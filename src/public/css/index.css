@@ -289,9 +289,10 @@ input[type="text"]::placeholder {
   right: 1rem;
 }
 
-/* Rules modal: keep the long content readable on short viewports. */
-.rules-card {
-  max-width: 32rem;
+/* Rules modal: keep the long content readable on short viewports.
+   Double class to beat the later `.modal-card` max-width in the cascade. */
+.modal-card.rules-card {
+  max-width: 41.6rem;
   max-height: 85vh;
   display: flex;
   flex-direction: column;

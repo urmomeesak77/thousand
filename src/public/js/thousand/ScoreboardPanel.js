@@ -44,6 +44,13 @@ class ScoreboardPanel {
     title.className = 'scoreboard__title';
     title.textContent = 'Scoreboard';
 
+    const controls = document.createElement('div');
+    controls.className = 'scoreboard__controls';
+
+    // Rules icon sits to the left of the collapse toggle. The shared RulesModal
+    // (bound at app startup, after this chrome is built) wires every .rules-btn.
+    const rulesBtn = this._buildRulesBtn();
+
     this._toggleBtn = document.createElement('button');
     this._toggleBtn.type = 'button';
     this._toggleBtn.className = 'scoreboard__toggle';
@@ -51,12 +58,28 @@ class ScoreboardPanel {
     this._toggleBtn.setAttribute('aria-expanded', String(this._open));
     this._antlion.bindInput(this._toggleBtn, 'click', 'scoreboard-toggle');
 
-    header.append(title, this._toggleBtn);
+    controls.append(rulesBtn, this._toggleBtn);
+    header.append(title, controls);
 
     this._bodyEl = document.createElement('div');
     this._bodyEl.className = 'scoreboard__body';
 
     this._container.append(header, this._bodyEl);
+  }
+
+  _buildRulesBtn() {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'icon-btn rules-btn scoreboard__rules';
+    btn.setAttribute('aria-label', 'Game rules');
+    btn.title = 'Game rules';
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" '
+      + 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+      + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<circle cx="12" cy="12" r="10"/>'
+      + '<line x1="12" y1="8" x2="12" y2="12"/>'
+      + '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    return btn;
   }
 
   _toggle() {
