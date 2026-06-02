@@ -73,9 +73,12 @@ class PlayerRegistry {
     }
     // Fallback for code paths that mutate `players` directly without going
     // through create (tests, in-memory fixtures). Production traffic always
-    // hits the index above.
-    for (const [, player] of this.players) {
-      if (safeTokenEqual(player.sessionToken, token)) {return player;}
+    // hits the index above, so the O(n) timing-safe scan is skipped there —
+    // otherwise an unauthenticated bad token would force a full per-player scan.
+    if (process.env.NODE_ENV !== 'production') {
+      for (const [, player] of this.players) {
+        if (safeTokenEqual(player.sessionToken, token)) {return player;}
+      }
     }
     return null;
   }

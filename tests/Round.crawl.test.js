@@ -197,6 +197,39 @@ describe('Round crawl — reconnect snapshot (FR-005, FR-012)', () => {
   });
 });
 
+// Regression: while a crawl is active, cards are committed face-down via
+// crawl_commit. A play_card from any seat must be rejected — otherwise the card
+// lands face-up in an empty currentTrick (bypassing follow-suit), splitting state
+// across crawlCommits/currentTrick and orphaning the declarer's committed card.
+describe('Round crawl — play_card is blocked during an active crawl (FR-004)', () => {
+  it('rejects an opponent play_card mid-crawl and leaves crawl state intact', () => { // per FR-004
+    const round = makeTrickPlayRound();
+    const { s0 } = arrangeAcelessCrawl(round);
+    round.commitCrawlCard(0, s0); // declarer auto-arms + commits; seat 1 is up
+
+    const handBefore = [...round.hands[1]];
+    const r = round.playCard(1, round.hands[1][0]);
+
+    assert.equal(r.rejected, true, 'play_card must be rejected while a crawl is active');
+    assert.equal(round.crawlActive, true, 'crawl stays active');
+    assert.equal(round.currentTrick.length, 0, 'no face-up card leaks into currentTrick');
+    assert.equal(round.currentTurnSeat, 1, 'turn does not advance');
+    assert.deepEqual(round.hands[1], handBefore, 'the rejected card stays in hand');
+    assert.deepEqual(round.crawlCommits.map((c) => c.seat), [0], 'only the declarer is committed');
+  });
+
+  it('rejects the declarer play_card after they have armed the crawl', () => { // per FR-004
+    const round = makeTrickPlayRound();
+    const { s0 } = arrangeAcelessCrawl(round);
+    round.beginCrawl(0); // armed, but nobody has committed yet — still declarer's turn
+
+    const r = round.playCard(0, s0);
+    assert.equal(r.rejected, true, 'the declarer cannot switch to a face-up lead once armed');
+    assert.equal(round.currentTrick.length, 0);
+    assert.equal(round.crawlActive, true);
+  });
+});
+
 describe('Round crawl — decline path (FR-002)', () => {
   it('a normal first lead proceeds as an ordinary trick and leaves crawlAvailable false', () => { // per FR-002
     const round = makeTrickPlayRound();

@@ -35,10 +35,23 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
-function isOriginAllowed(origin) {
-  if (ALLOWED_ORIGINS.length === 0) {return true;}
-  if (!origin) {return false;}
-  return ALLOWED_ORIGINS.includes(origin);
+function isOriginAllowed(req) {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.length > 0) {
+    return !!origin && ALLOWED_ORIGINS.includes(origin);
+  }
+  // No explicit allowlist configured.
+  // Outside production, allow everything (tests / Postman / curl / dev).
+  if (process.env.NODE_ENV !== 'production') {return true;}
+  // Production hardening: default to same-origin so a misconfigured deployment
+  // still rejects foreign browser origins without any config. Non-browser
+  // clients (no Origin) and the app's own frontend (Origin host === Host) pass.
+  if (!origin) {return true;}
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
 }
 
 server.on('upgrade', (req, socket, head) => {
@@ -46,7 +59,7 @@ server.on('upgrade', (req, socket, head) => {
     socket.destroy();
     return;
   }
-  if (!isOriginAllowed(req.headers.origin)) {
+  if (!isOriginAllowed(req)) {
     socket.write('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
     socket.destroy();
     return;
@@ -69,4 +82,4 @@ if (require.main === module) {
   connectionManager.startHeartbeat();
 }
 
-module.exports = { server, wss, store, handler, connectionManager };
+module.exports = { server, wss, store, handler, connectionManager, isOriginAllowed };

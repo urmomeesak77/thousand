@@ -10,6 +10,9 @@ const { BARREL_MIN, BARREL_MAX } = require('./GameRules');
 // seat in seat order; the entry count must equal playerCount or the seam stays
 // inert (returns null), leaving the default 0,0,… start untouched.
 function seededScoresForTest(playerCount) {
+  // Hard-disabled in production: this seam would otherwise let a set env var
+  // start a game from arbitrary cumulative scores.
+  if (process.env.NODE_ENV === 'production') { return null; }
   const raw = process.env.THOUSAND_SEED_SCORES;
   if (!raw) { return null; }
   const values = raw.split(',').map((s) => Number.parseInt(s.trim(), 10));

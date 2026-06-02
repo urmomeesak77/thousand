@@ -54,6 +54,18 @@ describe('testScoreSeeding seam — parsing', () => {
     process.env.THOUSAND_SEED_SCORES = '700,abc,700';
     assert.equal(seededScoresForTest(3), null);
   });
+
+  it('stays inert in production even when the env var is set', () => {
+    const savedNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    process.env.THOUSAND_SEED_SCORES = '700,700,700';
+    try {
+      assert.equal(seededScoresForTest(3), null);
+    } finally {
+      if (savedNodeEnv === undefined) { delete process.env.NODE_ENV; }
+      else { process.env.NODE_ENV = savedNodeEnv; }
+    }
+  });
 });
 
 describe('testScoreSeeding seam — applySeededScores', () => {

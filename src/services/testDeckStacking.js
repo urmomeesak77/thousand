@@ -11,6 +11,9 @@ const { stepDest } = require('./DealSequencer');
 //                       or the talon), so seat 0 — the intended declarer —
 //                       holds no ace through talon pickup and the exchange.
 function stackedDeckForTest(playerCount) {
+  // Hard-disabled in production: this seam would otherwise let a set env var
+  // stack the deck (a card-cheat).
+  if (process.env.NODE_ENV === 'production') { return null; }
   const mode = process.env.THOUSAND_STACK_DECK;
   if (!mode) { return null; }
   if (mode.startsWith('four-nines')) {

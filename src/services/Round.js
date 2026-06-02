@@ -317,6 +317,13 @@ class Round {
     if (this.phase !== 'trick-play') {return { rejected: true, reason: 'Not in trick-play phase' };}
     if (this.isPausedByDisconnect) {return { rejected: true, reason: 'Round is paused' };}
     if (this.fourNinesAckPending) {return { rejected: true, reason: 'Acknowledge the four-nines bonus first' };}
+    // While a crawl is active every card is committed face-down via crawl_commit.
+    // A face-up play_card here would land in the (still-empty) currentTrick,
+    // bypass follow-suit, split state across crawlCommits/currentTrick, and
+    // orphan the declarer's committed card. Reject it.
+    if (this._trickPlay?.crawlActive) {
+      return { rejected: true, reason: 'Crawl in progress — commit your card face-down' };
+    }
 
     this._ensureTrickPlay();
 
