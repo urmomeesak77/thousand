@@ -315,4 +315,56 @@ describe('RoundSummaryScreen — auto-continue timer', () => {
     assert.ok(btn.textContent.includes('29'),
       `button label must show 29 after one tick, got "${btn.textContent}"`);
   });
+
+  it('fires onContinue once after 30 ticks with no click', () => {
+    const { screen, antlion, getCount } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(30);
+    assert.equal(getCount(), 1, 'onContinue must fire exactly once at zero');
+  });
+
+  it('disables the button after auto-firing', () => {
+    const { screen, el, antlion } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(30);
+    const btn = el.querySelector('.round-summary__continue-btn');
+    assert.ok(btn.disabled, 'button must be disabled after auto-continue fires');
+  });
+
+  it('does not fire again after auto-firing (interval cancelled)', () => {
+    const { screen, antlion, getCount } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(40);
+    assert.equal(getCount(), 1, 'onContinue must not fire again after the interval is cancelled');
+  });
+
+  it('cancels the timer on manual click (no later auto-fire)', () => {
+    const { screen, el, antlion, getCount } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    el.querySelector('.round-summary__continue-btn').click();
+    antlion._tick(30);
+    assert.equal(getCount(), 1, 'only the manual click counts; timer must not fire afterwards');
+    assert.equal(antlion._activeIntervalCount(), 0, 'no interval should remain active after a click');
+  });
+
+  it('does not start a timer when the viewer has already pressed', () => {
+    const { screen, antlion } = makeContinueScreen({ viewerSeat: 0 });
+    const summary = makeSummary({ victoryReached: false });
+    screen.update([0]); // seed continue-press for viewer seat 0 before render
+    screen.render(summary);
+    assert.equal(antlion._activeIntervalCount(), 0, 'no timer when viewer already pressed');
+  });
+
+  it('does not start a timer on the victory / back-to-lobby variant', () => {
+    const { screen, antlion } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: true }));
+    assert.equal(antlion._activeIntervalCount(), 0, 'no timer when no Continue button is shown');
+  });
+
+  it('clears the timer on destroy()', () => {
+    const { screen, antlion } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    screen.destroy();
+    assert.equal(antlion._activeIntervalCount(), 0, 'destroy() must cancel the auto-continue interval');
+  });
 });

@@ -43,6 +43,10 @@ class RoundSummaryScreen {
     // nodes, otherwise their listeners + _domListeners entries leak.
     for (const dispose of this._buttonTeardowns) { dispose(); }
     this._buttonTeardowns = [];
+    // Cancel any in-flight auto-continue timer before this render decides whether
+    // to start a fresh one — prevents stacked intervals across re-renders.
+    this._cancelAutoContinue();
+    this._continueBtn = null;
     this._el.innerHTML = '';
     this._summary = summary;
     // _continuePressedSeats is owned by _onContinueClick (local) and update()
@@ -252,6 +256,7 @@ class RoundSummaryScreen {
   }
 
   destroy() {
+    this._cancelAutoContinue();
     for (const dispose of this._buttonTeardowns) { dispose(); }
     this._buttonTeardowns = [];
     for (const dispose of this._teardowns) { dispose(); }
