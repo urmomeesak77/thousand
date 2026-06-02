@@ -170,6 +170,7 @@ class SellPhaseView {
           }
         }
         gs._handView.setHand(Object.values(gs._cardsById));
+        gs._handView.setTalonHighlight(talonIds);
       } else {
         for (const id of talonIds) {
           delete gs._cardsById[id];
