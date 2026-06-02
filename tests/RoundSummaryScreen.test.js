@@ -28,6 +28,8 @@ before(() => {
 
 function makeMockAntlion() {
   const handlers = {};
+  const intervals = new Map();
+  let nextId = 1;
   return {
     bindInput(el, event, type) {
       const fn = (e) => { if (handlers[type]) handlers[type](e); };
@@ -39,8 +41,17 @@ function makeMockAntlion() {
     onTick() {},
     schedule() { return 0; },
     cancelScheduled() {},
+    scheduleInterval(delay, cb) { const id = nextId++; intervals.set(id, cb); return id; },
+    cancelInterval(id) { intervals.delete(id); },
     emit() {},
     stop() {},
+    // test helpers (not part of the real Antlion API)
+    _tick(times = 1) {
+      for (let i = 0; i < times; i++) {
+        for (const cb of [...intervals.values()]) { cb(); }
+      }
+    },
+    _activeIntervalCount() { return intervals.size; },
   };
 }
 
@@ -240,7 +251,7 @@ describe('RoundSummaryScreen — Continue button disables itself on click (no do
       onBackToLobby: () => {},
       onContinue: () => { continueCount++; },
     });
-    return { screen, el, getCount: () => continueCount };
+    return { screen, el, antlion, getCount: () => continueCount };
   }
 
   it('Continue button has :disabled after a click, so :not(:disabled) selectors no longer match', () => {
