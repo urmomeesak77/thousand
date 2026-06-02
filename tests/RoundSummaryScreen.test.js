@@ -367,4 +367,17 @@ describe('RoundSummaryScreen — auto-continue timer', () => {
     screen.destroy();
     assert.equal(antlion._activeIntervalCount(), 0, 'destroy() must cancel the auto-continue interval');
   });
+
+  it('update() for another seat does not disturb the running countdown', () => {
+    const { screen, el, antlion, getCount } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(5); // countdown now at 25
+    screen.update([1]); // a different seat (not the viewer) pressed Continue
+    assert.equal(antlion._activeIntervalCount(), 1, 'timer must still be active after update() for another seat');
+    const btn = el.querySelector('.round-summary__continue-btn');
+    assert.ok(btn.textContent.includes('25'),
+      `countdown must continue from where it was, got "${btn.textContent}"`);
+    antlion._tick(25); // run out the remaining 25 seconds
+    assert.equal(getCount(), 1, 'timer must still fire onContinue after surviving update()');
+  });
 });
