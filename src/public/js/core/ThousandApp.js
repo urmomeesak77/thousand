@@ -9,6 +9,7 @@ import Toast from '../overlays/Toast.js';
 import ThousandSocket from '../network/ThousandSocket.js';
 import GameApi from '../network/GameApi.js';
 import NewGameModal from '../overlays/NewGameModal.js';
+import RulesModal from '../overlays/RulesModal.js';
 import GameScreen from '../thousand/GameScreen.js';
 import RoundActionDispatcher from '../thousand/RoundActionDispatcher.js';
 import ThousandMessageRouter from './ThousandMessageRouter.js';
@@ -115,6 +116,8 @@ class ThousandApp {
 
   _bindUI() {
     this._modal.bind();
+    this._rulesModal = new RulesModal(this._antlion);
+    this._rulesModal.bind();
     this._lobbyBinder.bind();
     this._bindLeaveGame();
   }
@@ -161,6 +164,13 @@ class ThousandApp {
 
   _handleLeaveGameKeydown(e) {
     if (e.key !== 'Escape') {
+      return;
+    }
+    // The rules modal owns Escape while it's open (closed via the separate
+    // rules-keydown handler); don't also pop the leave-confirm modal on the
+    // same keypress. This handler runs first because NewGameModal binds the
+    // document keydown before RulesModal does, so the modal is still visible.
+    if (!$('rules-modal').classList.contains('hidden')) {
       return;
     }
     const modal = $('leave-confirm-modal');

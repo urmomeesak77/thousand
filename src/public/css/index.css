@@ -277,6 +277,49 @@ input[type="text"]::placeholder {
   color: var(--color-text);
 }
 
+/* Nickname screen carries a single absolutely-positioned rules icon top-right.
+   #nickname-screen is a .screen (flex-centred); make it the positioning context. */
+#nickname-screen {
+  position: relative;
+}
+
+.nickname-rules-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+/* Rules modal: keep the long content readable on short viewports. */
+.rules-card {
+  max-width: 32rem;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rules-body {
+  overflow-y: auto;
+  margin: 0.5rem 0 1rem;
+}
+
+.rules-body h3 {
+  margin: 1rem 0 0.25rem;
+  color: var(--color-primary-hover);
+  font-size: 0.95rem;
+}
+
+.rules-body p {
+  margin: 0.25rem 0;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.rules-body ul {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  color: var(--color-text-muted);
+}
+
 .lobby-actions {
   width: 100%;
   max-width: 42rem;

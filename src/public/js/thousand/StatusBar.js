@@ -6,8 +6,15 @@ import { MIN_BID, MAX_SELL_ATTEMPTS } from './constants.js';
 
 class StatusBar {
   constructor(element) {
-    this._el = element;
-    this._el.className = 'status-bar';
+    // `element` is the sticky flex bar. Its dynamic spans render into an inner
+    // `display:contents` wrapper (`this._el`) that render() clears, so a
+    // persistent trailing child of the bar (the rules icon, appended by
+    // GameScreen) survives re-renders untouched.
+    this._bar = element;
+    this._bar.className = 'status-bar';
+    this._el = document.createElement('div');
+    this._el.className = 'status-bar__content';
+    this._bar.appendChild(this._el);
   }
 
   // Re-renders the bar from the GameStatus view-model.

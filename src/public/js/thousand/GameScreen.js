@@ -93,6 +93,7 @@ class GameScreen {
     this._talonEl = talonEl;
 
     this._statusBar = new StatusBar(statusBarEl);
+    this._appendStatusBarRulesIcon(statusBarEl);
     this._statusBox = new GameStatusBox(statusBoxEl);
     this._cardTable = new CardTable(antlion, tableEl);
     this._handView = new HandView(handEl, antlion);
@@ -108,6 +109,24 @@ class GameScreen {
     // textContent on later renders, never className again.
     acrossEl.classList.add('across-zone');
     this._talonView = new TalonView(talonEl);
+  }
+
+  // The shared RulesModal (bound at app startup) wires every .rules-btn — this
+  // one rides at the right end of the status bar and persists across re-renders
+  // because StatusBar clears only its inner content wrapper.
+  _appendStatusBarRulesIcon(statusBarEl) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'icon-btn rules-btn status-bar__rules';
+    btn.setAttribute('aria-label', 'Game rules');
+    btn.title = 'Game rules';
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" '
+      + 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+      + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<circle cx="12" cy="12" r="10"/>'
+      + '<line x1="12" y1="8" x2="12" y2="12"/>'
+      + '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    statusBarEl.appendChild(btn);
   }
 
   // Toggles the table's player-count modifier so game.css can place the 4th

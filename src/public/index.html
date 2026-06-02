@@ -48,6 +48,13 @@
        Nickname screen (shown before entering lobby)
   ======================================================= -->
   <section class="screen" id="nickname-screen">
+    <button class="icon-btn rules-btn nickname-rules-btn" aria-label="Game rules" title="Game rules">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </button>
     <div class="card">
       <h1>Thousand</h1>
       <p class="subtitle">Card Game for 3–4 players</p>
@@ -74,7 +81,7 @@
     <header class="lobby-header">
       <h2>Welcome to Thousand, <span id="player-name-display"></span></h2>
       <div class="lobby-header-actions">
-        <button class="icon-btn" id="rules-btn" aria-label="Game rules" title="Game rules">
+        <button class="icon-btn rules-btn" id="rules-btn" aria-label="Game rules" title="Game rules">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
@@ -168,6 +175,53 @@
           <button class="btn btn-ghost" id="modal-cancel-btn" type="button">Cancel</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       Game rules modal
+  ======================================================= -->
+  <div id="rules-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+    <div class="modal-card rules-card">
+      <h2 id="rules-modal-title">How to Play Thousand</h2>
+      <div class="rules-body">
+        <h3>Goal</h3>
+        <p>Be the first player to reach <strong>1000 points</strong>.</p>
+
+        <h3>Bidding</h3>
+        <p>Players bid the number of points they expect to score, from <strong>100 to 300</strong> in steps of 5. The highest bidder becomes the <em>declarer</em> and takes the face-down talon cards.</p>
+
+        <h3>Selling</h3>
+        <p>If the declarer can't or won't keep the contract, the hand may be sold to another player (minimum 105, up to 3 attempts).</p>
+
+        <h3>Card values</h3>
+        <ul>
+          <li>Ace — 11</li>
+          <li>Ten — 10</li>
+          <li>King — 4</li>
+          <li>Queen — 3</li>
+          <li>Jack — 2</li>
+          <li>Nine — 0</li>
+        </ul>
+
+        <h3>Trick ranking (high to low)</h3>
+        <p>Ace, Ten, King, Queen, Jack, Nine. The Ten beats the King and Queen; the Ace is highest.</p>
+
+        <h3>Marriages</h3>
+        <p>A King + Queen of the same suit, declared on your lead, sets the trump suit and scores a bonus: ♣ 100, ♠ 80, ♥ 60, ♦ 40.</p>
+
+        <h3>Trick play</h3>
+        <p>Follow the led suit if you can. If you can't follow, play a trump if you have one. The highest card wins the trick — trumps beat all plain suits.</p>
+
+        <h3>Scoring</h3>
+        <p>The declarer scores <strong>+bid</strong> if they make their contract and <strong>−bid</strong> if they miss it. Everyone else scores the points in the tricks they captured, rounded to the nearest 10.</p>
+
+        <h3>Barrel &amp; specials</h3>
+        <p>Between 880 and 1000 points you are "on the barrel". Holding all four nines in one hand awards +100. Three zero-scoring rounds in a row costs −120.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="rules-close-btn" type="button">Close</button>
+      </div>
     </div>
   </div>
 
