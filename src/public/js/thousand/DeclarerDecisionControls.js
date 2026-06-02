@@ -5,9 +5,10 @@
 import HtmlUtil from '../utils/HtmlUtil.js';
 
 class DeclarerDecisionControls {
-  constructor(container, antlion, dispatcher) {
+  constructor(container, antlion, dispatcher, onDecision = () => {}) {
     this._antlion = antlion;
     this._dispatcher = dispatcher;
+    this._onDecision = onDecision;
     this._mode = 'hidden'; // 'full' | 'sell-disabled' | 'sell-hidden' | 'hidden'
     this._teardowns = [];
 
@@ -52,6 +53,7 @@ class DeclarerDecisionControls {
   _bindEvents() {
     const sellHandler = () => {
       if (this._mode !== 'full') {return;}
+      this._onDecision();
       this._dispatcher.sendSellStart();
     };
     this._teardowns.push(this._antlion.bindInput(this._sellBtn, 'click', 'declarer-sell-click'));
@@ -60,6 +62,7 @@ class DeclarerDecisionControls {
 
     const startHandler = () => {
       if (this._mode === 'hidden') {return;}
+      this._onDecision();
       this._dispatcher.sendStartGame();
     };
     this._teardowns.push(this._antlion.bindInput(this._startBtn, 'click', 'declarer-start-click'));

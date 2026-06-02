@@ -171,6 +171,7 @@ class GameScreenControls {
         this._controlsEl.textContent = '';
         this._declarerControls = new DeclarerDecisionControls(
           this._controlsEl, this._antlion, this._dispatcher,
+          () => this._handView.clearTalonHighlight(),
         );
       }
       this._declarerControls.setMode(this._declarerMode(gameStatus));
