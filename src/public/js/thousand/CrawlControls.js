@@ -36,7 +36,7 @@ class CrawlControls {
 
   showDeclarerChoice() {
     this._chosen = false;
-    this._el.className = 'crawl-controls crawl-controls--declarer';
+    this._el.className = 'trick-play__crawl-controls crawl-controls crawl-controls--declarer';
     this._el.replaceChildren();
     this._el.style.display = 'flex';
 
@@ -51,7 +51,7 @@ class CrawlControls {
 
   showOpponentPrompt() {
     this._chosen = true; // opponents have no choice buttons to guard
-    this._el.className = 'crawl-controls crawl-controls--opponent';
+    this._el.className = 'trick-play__crawl-controls crawl-controls crawl-controls--opponent';
     this._el.replaceChildren();
     this._el.style.display = 'flex';
 
