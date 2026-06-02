@@ -210,9 +210,12 @@ class RoundSummaryScreen {
     this._cardEl.appendChild(btn);
   }
 
+  // Restart the per-second interval without resetting the remaining count:
+  // render() re-fires on every broadcast while the summary is up (e.g. each
+  // other-player Continue press), so the countdown must persist across renders
+  // and only initialise once, in the constructor.
   _startAutoContinue() {
     this._cancelAutoContinue();
-    this._autoContinueRemaining = AUTO_CONTINUE_SECONDS;
     this._autoContinueIntervalId = this._antlion.scheduleInterval(1000, () => this._autoContinueTick());
   }
 
@@ -236,7 +239,9 @@ class RoundSummaryScreen {
   }
 
   _onContinueClick() {
-    // Mark this viewer's seat as having pressed continue
+    // Must record the press BEFORE re-rendering: render() checks
+    // _continuePressedSeats to decide whether to start the auto-continue timer.
+    // If this ran after render(), the re-render would start a fresh countdown.
     this._continuePressedSeats.add(this._viewerSeat);
     // Re-render to disable the button and show the indicator
     if (this._summary) {

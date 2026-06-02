@@ -65,6 +65,21 @@ function makeRoundSummaryScreen(onBackToLobby) {
   return { screen, el };
 }
 
+function makeContinueScreen({ viewerSeat = 0 } = {}) {
+  const doc = dom.window.document;
+  const el = doc.createElement('div');
+  doc.body.appendChild(el);
+  const antlion = makeMockAntlion();
+  let continueCount = 0;
+  const screen = new dom.window.RoundSummaryScreen(el, {
+    antlion,
+    viewerSeat,
+    onBackToLobby: () => {},
+    onContinue: () => { continueCount++; },
+  });
+  return { screen, el, antlion, getCount: () => continueCount };
+}
+
 function makeSummary(overrides = {}) {
   return {
     roundNumber: 1,
@@ -239,21 +254,6 @@ describe('RoundSummaryScreen — clicking back btn calls onBackToLobby (FR-015)'
 });
 
 describe('RoundSummaryScreen — Continue button disables itself on click (no double-fire)', () => {
-  function makeContinueScreen({ viewerSeat = 0 } = {}) {
-    const doc = dom.window.document;
-    const el = doc.createElement('div');
-    doc.body.appendChild(el);
-    const antlion = makeMockAntlion();
-    let continueCount = 0;
-    const screen = new dom.window.RoundSummaryScreen(el, {
-      antlion,
-      viewerSeat,
-      onBackToLobby: () => {},
-      onContinue: () => { continueCount++; },
-    });
-    return { screen, el, antlion, getCount: () => continueCount };
-  }
-
   it('Continue button has :disabled after a click, so :not(:disabled) selectors no longer match', () => {
     const { screen, el } = makeContinueScreen({ viewerSeat: 0 });
     screen.render(makeSummary({ victoryReached: false }));
@@ -284,21 +284,6 @@ describe('RoundSummaryScreen — Continue button disables itself on click (no do
 });
 
 describe('RoundSummaryScreen — auto-continue timer', () => {
-  function makeContinueScreen({ viewerSeat = 0 } = {}) {
-    const doc = dom.window.document;
-    const el = doc.createElement('div');
-    doc.body.appendChild(el);
-    const antlion = makeMockAntlion();
-    let continueCount = 0;
-    const screen = new dom.window.RoundSummaryScreen(el, {
-      antlion,
-      viewerSeat,
-      onBackToLobby: () => {},
-      onContinue: () => { continueCount++; },
-    });
-    return { screen, el, antlion, getCount: () => continueCount };
-  }
-
   it('Continue button label shows the starting countdown of 30', () => {
     const { screen, el } = makeContinueScreen({ viewerSeat: 0 });
     screen.render(makeSummary({ victoryReached: false }));
@@ -379,5 +364,32 @@ describe('RoundSummaryScreen — auto-continue timer', () => {
       `countdown must continue from where it was, got "${btn.textContent}"`);
     antlion._tick(25); // run out the remaining 25 seconds
     assert.equal(getCount(), 1, 'timer must still fire onContinue after surviving update()');
+  });
+
+  it('re-render mid-countdown preserves the remaining time (does not reset to 30)', () => {
+    const { screen, el, antlion } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(5); // remaining now 25
+    screen.render(makeSummary({ victoryReached: false })); // e.g. another player's press re-mounts the view
+    const btn = el.querySelector('.round-summary__continue-btn');
+    assert.ok(btn.textContent.includes('25'),
+      `re-render must keep the countdown at 25, got "${btn.textContent}"`);
+  });
+
+  it('re-render does not stack intervals (only one active)', () => {
+    const { screen, antlion } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(5);
+    screen.render(makeSummary({ victoryReached: false }));
+    assert.equal(antlion._activeIntervalCount(), 1, 'exactly one interval after a re-render');
+  });
+
+  it('fires exactly once total even across re-renders', () => {
+    const { screen, antlion, getCount } = makeContinueScreen({ viewerSeat: 0 });
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(10); // remaining 20
+    screen.render(makeSummary({ victoryReached: false }));
+    antlion._tick(20); // run out remaining 20
+    assert.equal(getCount(), 1, 'auto-continue must fire exactly once despite re-renders');
   });
 });
