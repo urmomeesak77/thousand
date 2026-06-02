@@ -620,6 +620,18 @@
   box-shadow: 0 0 12px 4px rgba(110, 180, 255, 0.65);
 }
 
+/* Cards just absorbed from the talon stay marked (declarer's view) with a gentle
+   gold pulse until the take/give decision clears them. */
+.hand-view__card--from-talon {
+  box-shadow: 0 0 10px 3px rgba(245, 197, 66, 0.7);
+  animation: talon-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes talon-pulse {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(245, 197, 66, 0.5); }
+  50%      { box-shadow: 0 0 14px 5px rgba(245, 197, 66, 0.85); }
+}
+
 /* Trick centre — 3 absolutely-positioned slots inside the talon container
    during trick-play. Each slot holds one face-up card sprite mapped to the
    seat that played it (self at the bottom, left/right toward their players). */
