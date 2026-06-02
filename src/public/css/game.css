@@ -1384,10 +1384,15 @@
   padding: 0.15rem 0.4rem;
 }
 
-.scoreboard__col-head {
+/* Pin the entire header row — including the empty corner cell — so scrolled
+   round rows (R1, R2…) slide behind an opaque band instead of bleeding through. */
+.scoreboard__table thead th {
   position: sticky;
   top: 0;
   background: rgba(20, 18, 38, 0.98);
+}
+
+.scoreboard__col-head {
   font-weight: 600;
 }
 
