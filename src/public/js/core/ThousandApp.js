@@ -120,6 +120,7 @@ class ThousandApp {
     this._rulesModal.bind();
     this._lobbyBinder.bind();
     this._bindLeaveGame();
+    this._bindLogout();
   }
 
   _clearGameSelection() {
@@ -173,6 +174,10 @@ class ThousandApp {
     if (!$('rules-modal').classList.contains('hidden')) {
       return;
     }
+    if (!$('logout-confirm-modal').classList.contains('hidden')) {
+      this._closeLogoutModal();
+      return;
+    }
     const modal = $('leave-confirm-modal');
     if (!modal.classList.contains('hidden')) {
       this._closeLeaveModal();
@@ -194,6 +199,39 @@ class ThousandApp {
     this._waitingRoom.stopTimer();
     this._showScreen('lobby-screen');
     this._gameList.startElapsedTimer();
+  }
+
+  _bindLogout() {
+    this._antlion.bindInput($('logout-btn'), 'click', 'logout-click');
+    this._antlion.onInput('logout-click', () => this._openLogoutModal());
+
+    this._antlion.bindInput($('logout-cancel-btn'), 'click', 'logout-cancel-click');
+    this._antlion.onInput('logout-cancel-click', () => this._closeLogoutModal());
+
+    this._antlion.bindInput($('logout-confirm-modal'), 'click', 'logout-overlay-click');
+    this._antlion.onInput('logout-overlay-click', (e) => {
+      if (e.target === $('logout-confirm-modal')) {
+        this._closeLogoutModal();
+      }
+    });
+
+    this._antlion.bindInput($('logout-confirm-btn'), 'click', 'logout-confirm-click');
+    this._antlion.onInput('logout-confirm-click', () => this._confirmLogout());
+  }
+
+  _openLogoutModal() {
+    $('logout-confirm-modal').classList.remove('hidden');
+  }
+
+  _closeLogoutModal() {
+    $('logout-confirm-modal').classList.add('hidden');
+  }
+
+  _confirmLogout() {
+    IdentityStore.clear();
+    // Full reload guarantees a clean socket/app state; with the identity cleared,
+    // boot lands on the nickname (login) screen without a reconnect attempt.
+    location.reload();
   }
 
   async _joinGame(gameId) {
