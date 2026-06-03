@@ -2,6 +2,8 @@
 // GameApi — all HTTP calls to the game API
 // ============================================================
 
+import { BASE_PATH } from '../utils/basePath.js';
+
 class GameApi {
   constructor(onError) {
     this._onError = onError;
@@ -109,7 +111,7 @@ class GameApi {
     if (this._sessionToken) {
       headers['Authorization'] = `Bearer ${this._sessionToken}`;
     }
-    const res = await fetch(url, {
+    const res = await fetch(`${BASE_PATH}${url}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),

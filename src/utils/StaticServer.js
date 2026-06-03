@@ -47,6 +47,13 @@ class StaticServer {
         res.end('Not Found');
         return;
       }
+      // HTML carries a `<base href="__BASE_HREF__">` placeholder so the app can be
+      // served from a reverse-proxy subpath (BASE_PATH=/thousand) or the root (default).
+      let body = data;
+      if (contentType === 'text/html') {
+        const base = (process.env.BASE_PATH || '').replace(/\/+$/, '');
+        body = Buffer.from(data.toString('utf8').replace(/__BASE_HREF__/g, base ? `${base}/` : '/'));
+      }
       const headers = {
         'Content-Type': contentType,
         'X-Content-Type-Options': 'nosniff',
@@ -62,7 +69,7 @@ class StaticServer {
           + "form-action 'self'; frame-ancestors 'none'";
       }
       res.writeHead(200, headers);
-      res.end(data);
+      res.end(body);
     });
   }
 }

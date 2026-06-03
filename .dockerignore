@@ -1,0 +1,14 @@
+node_modules
+tests
+specs
+docs
+.specify
+.git
+.github
+*.md
+coverage
+.eslintrc*
+deploy
+Dockerfile
+docker-compose.yml
+.dockerignore

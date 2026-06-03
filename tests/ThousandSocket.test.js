@@ -58,6 +58,8 @@ function bootstrap() {
   });
   // Stub IdentityStore.load — invoked inside ws.onopen.
   dom.window.IdentityStore = { load: () => ({}) };
+  // Stub the stripped basePath import — root deploy (no subpath prefix).
+  dom.window.BASE_PATH = '';
 
   const wsInstances = [];
   dom.window.WebSocket = function FakeWS() {

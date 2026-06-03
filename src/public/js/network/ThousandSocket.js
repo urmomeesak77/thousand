@@ -3,6 +3,7 @@
 // ============================================================
 
 import { IdentityStore } from '../storage/IdentityStore.js';
+import { BASE_PATH } from '../utils/basePath.js';
 
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
@@ -31,7 +32,7 @@ class ThousandSocket {
       prev.close();
     }
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    const ws = new WebSocket(`${proto}://${location.host}${BASE_PATH}/ws`);
     this._ws = ws;
     this._connectTimeoutId = this._antlion.schedule(CONNECT_TIMEOUT_MS, () => {
       this._connectTimeoutId = null;

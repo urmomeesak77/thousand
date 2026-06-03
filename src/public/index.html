@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Injected by the server (StaticServer): '/thousand/' in production, '/' locally.
+       All relative asset URLs below resolve against this; basePath.js derives the
+       REST/WebSocket prefix from it too. -->
+  <base href="__BASE_HREF__" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" />
   <title>Thousand — Online Card Game for 3–4 Players</title>
@@ -26,12 +30,12 @@
   <meta name="twitter:description" content="The classic trick-taking card game for 3 or 4 players. Race to 1000 points with friends in your browser." />
   <meta name="twitter:image" content="https://games.online-trash.com/thousand/gfx/og-cover.png" />
 
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="icon" href="/favicon.ico" sizes="any" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="stylesheet" href="/css/index.css" />
-  <link rel="stylesheet" href="/css/game.css" />
-  <link rel="stylesheet" href="/css/cards.css" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="css/index.css" />
+  <link rel="stylesheet" href="css/game.css" />
+  <link rel="stylesheet" href="css/cards.css" />
 </head>
 <body>
 
@@ -265,6 +269,6 @@
   ======================================================= -->
   <div class="toast hidden" id="toast" role="alert" aria-live="assertive"></div>
 
-  <script type="module" src="/js/index.js"></script>
+  <script type="module" src="js/index.js"></script>
 </body>
 </html>

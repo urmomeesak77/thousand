@@ -1,0 +1,13 @@
+services:
+  thousand:
+    build: .
+    image: thousand:latest
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - BASE_PATH=/thousand
+      - ALLOWED_ORIGINS=https://games.online-trash.com
+    # Bind to loopback only: the host's nginx is the sole entry point.
+    ports:
+      - "127.0.0.1:3000:3000"

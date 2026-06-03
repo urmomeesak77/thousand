@@ -24,6 +24,7 @@ beforeEach(() => {
     runScripts: 'dangerously',
     url: 'http://localhost',
   });
+  dom.window.BASE_PATH = ''; // root deploy — no subpath prefix
   loadModule(dom, 'network/GameApi.js');
   GameApi = dom.window.GameApi;
   errors = [];
