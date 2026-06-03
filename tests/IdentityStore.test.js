@@ -34,13 +34,15 @@ function plain(obj) {
 }
 
 describe('IdentityStore', () => {
-  it('save() writes correct JSON to localStorage', () => {
+  it('save() writes playerId, sessionToken, and a lastSeen timestamp', () => {
     const { IS, ls } = makeStore();
+    const before = Date.now();
     IS.save('pid1', 'tok1');
-    assert.deepEqual(JSON.parse(ls.getItem('thousand_identity')), {
-      playerId: 'pid1',
-      sessionToken: 'tok1',
-    });
+    const stored = JSON.parse(ls.getItem('thousand_identity'));
+    assert.equal(stored.playerId, 'pid1');
+    assert.equal(stored.sessionToken, 'tok1');
+    assert.equal(typeof stored.lastSeen, 'number');
+    assert.ok(stored.lastSeen >= before && stored.lastSeen <= Date.now());
   });
 
   it('load() returns parsed object after save()', () => {
@@ -93,5 +95,36 @@ describe('IdentityStore', () => {
   it('save() returns true on success', () => {
     const { IS } = makeStore();
     assert.equal(IS.save('pidT', 'tokT'), true);
+  });
+
+  it('load() refreshes lastSeen on a valid read', () => {
+    const { IS, ls } = makeStore();
+    const stale = Date.now() - 60 * 60 * 1000; // 1h ago, still valid
+    ls.setItem('thousand_identity', JSON.stringify({
+      playerId: 'pidR', sessionToken: 'tokR', lastSeen: stale,
+    }));
+    const result = IS.load();
+    assert.deepEqual(plain(result), { playerId: 'pidR', sessionToken: 'tokR' });
+    const after = JSON.parse(ls.getItem('thousand_identity'));
+    assert.ok(after.lastSeen > stale);
+  });
+
+  it('load() clears and returns {} when lastSeen is older than 24h', () => {
+    const { IS, ls } = makeStore();
+    const expired = Date.now() - 25 * 60 * 60 * 1000; // 25h ago
+    ls.setItem('thousand_identity', JSON.stringify({
+      playerId: 'pidE', sessionToken: 'tokE', lastSeen: expired,
+    }));
+    assert.deepEqual(plain(IS.load()), {});
+    assert.equal(ls.getItem('thousand_identity'), null);
+  });
+
+  it('load() treats a legacy record with no lastSeen as expired', () => {
+    const { IS, ls } = makeStore();
+    ls.setItem('thousand_identity', JSON.stringify({
+      playerId: 'pidL', sessionToken: 'tokL',
+    }));
+    assert.deepEqual(plain(IS.load()), {});
+    assert.equal(ls.getItem('thousand_identity'), null);
   });
 });
