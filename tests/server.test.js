@@ -867,6 +867,51 @@ describe('POST /api/nickname', () => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/logout — releases the nickname so it can be reclaimed immediately
+// ---------------------------------------------------------------------------
+
+describe('POST /api/logout', () => {
+  it('frees the nickname so the same name can be claimed again after logout', async () => {
+    const ws1 = await connectWS();
+    const c1 = await waitForMessage(ws1, 'connected');
+    const token1 = c1.sessionToken;
+
+    const claim1 = await request('POST', '/api/nickname', { nickname: 'Alice' }, token1);
+    assert.equal(claim1.status, 200);
+
+    const logout = await request('POST', '/api/logout', {}, token1);
+    assert.equal(logout.status, 200);
+    assert.ok(!players.has(c1.playerId), 'logged-out player must be purged');
+
+    // A brand-new session must now be able to reclaim "Alice" — the bug was a 409.
+    const ws2 = await connectWS();
+    const c2 = await waitForMessage(ws2, 'connected');
+    const claim2 = await request('POST', '/api/nickname', { nickname: 'Alice' }, c2.sessionToken);
+    assert.equal(claim2.status, 200, 'nickname must be reclaimable right after logout');
+
+    ws1.close();
+    ws2.close();
+  });
+
+  it('invalidates the old session token (401 on subsequent authed calls)', async () => {
+    const ws = await connectWS();
+    const c = await waitForMessage(ws, 'connected');
+
+    await request('POST', '/api/logout', {}, c.sessionToken);
+    const after = await request('POST', '/api/nickname', { nickname: 'Bob' }, c.sessionToken);
+    assert.equal(after.status, 401, 'purged token must no longer authenticate');
+
+    ws.close();
+  });
+
+  it('returns 401 without a session token', async () => {
+    const res = await request('POST', '/api/logout', {});
+    assert.equal(res.status, 401);
+    assert.equal(res.body.error, 'unauthorized');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // HTTP server error handling
 // ---------------------------------------------------------------------------
 

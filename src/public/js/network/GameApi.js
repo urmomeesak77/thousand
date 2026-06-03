@@ -92,6 +92,18 @@ class GameApi {
     }
   }
 
+  async logout() {
+    // Best-effort: the server purges the player so the nickname frees up at
+    // once. Even if this call fails (network/offline), the caller still clears
+    // local identity and reloads — the orphaned record expires with the grace
+    // window — so a failure here must not block logout or surface an error.
+    try {
+      await this._post('/api/logout', {});
+    } catch {
+      // swallow — logout proceeds client-side regardless
+    }
+  }
+
   async _post(url, body) {
     const headers = { 'Content-Type': 'application/json' };
     if (this._sessionToken) {

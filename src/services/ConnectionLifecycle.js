@@ -82,6 +82,18 @@ class ConnectionLifecycle {
     }
   }
 
+  // Intentional logout: tear the player down right now (free the nickname,
+  // invalidate the session token, clean up any game) instead of waiting out the
+  // disconnect grace window the way a refresh/reconnect relies on.
+  logout(playerId) {
+    const player = this._store.players.get(playerId);
+    if (player && player.graceTimer) {
+      clearTimeout(player.graceTimer);
+      player.graceTimer = null;
+    }
+    this._purge(playerId);
+  }
+
   _purge(playerId) {
     const store = this._store;
     const player = store._registry.remove(playerId);

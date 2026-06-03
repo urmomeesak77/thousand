@@ -5,6 +5,7 @@ const StaticServer = require('../utils/StaticServer');
 const RateLimiter = require('../utils/RateLimiter');
 const GameController = require('./GameController');
 const NicknameController = require('./NicknameController');
+const SessionController = require('./SessionController');
 
 class RequestHandler {
   constructor(store) {
@@ -12,6 +13,7 @@ class RequestHandler {
     this._httpLimiter = new RateLimiter(60000, 60); // 60 requests per minute per IP
     this._games = new GameController(store);
     this._nicknames = new NicknameController(store);
+    this._session = new SessionController(store);
   }
 
   cleanupRateLimiters() {
@@ -48,6 +50,11 @@ class RequestHandler {
       const player = this._requireAuth(req, res);
       if (!player) {return;}
       return this._nicknames.handleClaimNickname(req, res, player);
+    }
+    if (req.method === 'POST' && pathname === '/api/logout') {
+      const player = this._requireAuth(req, res);
+      if (!player) {return;}
+      return this._session.handleLogout(req, res, player);
     }
     if (req.method === 'GET' && pathname === '/api/games') {
       return this._games.handleGetGames(req, res);

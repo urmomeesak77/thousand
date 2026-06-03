@@ -227,7 +227,11 @@ class ThousandApp {
     $('logout-confirm-modal').classList.add('hidden');
   }
 
-  _confirmLogout() {
+  async _confirmLogout() {
+    // Tell the server to purge us first so the nickname/session free up
+    // immediately; otherwise the disconnect grace window keeps the nickname
+    // reserved and re-login with the same name fails with "already taken".
+    await this._api.logout();
     IdentityStore.clear();
     // Full reload guarantees a clean socket/app state; with the identity cleared,
     // boot lands on the nickname (login) screen without a reconnect attempt.

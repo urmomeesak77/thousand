@@ -102,6 +102,13 @@ class ThousandStore {
     this._lifecycle.reconnect(playerId, ws);
   }
 
+  // Intentional logout — purge the player immediately so their nickname and
+  // session token free up at once (a refresh keeps them via the grace window;
+  // logout deliberately discards them).
+  logoutPlayer(playerId) {
+    this._lifecycle.logout(playerId);
+  }
+
   // T034 – broadcast lobby state to every client whose gameId is null
   broadcastLobbyUpdate() {
     const msg = JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() });
