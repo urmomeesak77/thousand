@@ -139,11 +139,22 @@ ceiling. Willingness (the aggressiveness gamble) is unchanged.
 
 ## 8. Backward compatibility
 
-- All existing feature-009 and feature-010 tests stay green. The boss-cashing path moves
-  into `trickPlanner.chooseLead` with identical behavior when memory is empty.
-- New decision kinds are additive; phases that previously had fixed responses
-  (`post-bid-decision`, `selling-bidding`) now branch but still return legal actions
-  validated by `RoundActionHandler`.
+- **Stay green (invariants):** every game-rule, legality, and snapshot test; the pure
+  card-memory **unit** tests (`BotMemory.test.js`, `botStrategyHelpers.boss.test.js`).
+  Boss-card cashing is preserved as a capability — it moves into `trickPlanner.chooseLead`.
+- **Intentionally updated (behavior change):**
+  - feature-009 `BotStrategy` strategy-preference tests that encode v1 *dumb* play —
+    "opponent dumps its lowest legal card" (now wins a point-rich trick with its ace),
+    "declarer follow wins a worthless trick" (now ducks to save the high card). Rewritten
+    to assert the competent behavior, each with a comment explaining the change.
+  - the **memory integration** tests (`BotStrategy.memory.test.js`): the new lead heuristic
+    changes the empty-memory baseline (it leads a low safe card and still cashes an
+    *inherent* boss like a bare ace), so these scenarios are refreshed to a hand where the
+    memory-enabled boss (e.g. `K♣` once `A♣/10♣` are recalled gone) differs from the
+    empty-memory lead — preserving the property "memory enables a boss-cash the bot would
+    otherwise miss."
+- We do **not** weaken legality — every returned action is still validated by
+  `RoundActionHandler`. New decision kinds are additive.
 
 ## 9. Testing strategy
 
