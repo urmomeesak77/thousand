@@ -6,6 +6,7 @@ const Round = require('./Round');
 const Game = require('./Game');
 const PlayerRegistry = require('./PlayerRegistry');
 const ConnectionLifecycle = require('./ConnectionLifecycle');
+const { pickBotName } = require('./bots/botNames');
 const { applySeededScores } = require('./testScoreSeeding');
 
 const WAITING_ROOM_TIMEOUT_MS = 10 * 60 * 1000;
@@ -129,6 +130,37 @@ class ThousandStore {
 
   serializePlayers(game) {
     return this._registry.serializePlayers(game);
+  }
+
+  // Seats a socketless bot in the given game. Host/waiting/not-full preconditions are
+  // enforced by the caller (GameController). Mirrors the human-join broadcast and reuses
+  // the existing auto-start-when-full path so bots start a game identically (FR-001, FR-004).
+  addBot(gameId) {
+    const game = this.games.get(gameId);
+    if (!game) {return null;}
+    const usedNames = [...game.players]
+      .map((pid) => this.players.get(pid)?.nickname)
+      .filter(Boolean);
+    const nickname = pickBotName(usedNames);
+    const { playerId: botId } = this._registry.createBot(nickname);
+    this.players.get(botId).gameId = gameId;
+    game.players.add(botId);
+
+    const allPlayers = this.serializePlayers(game);
+    for (const pid of game.players) {
+      if (pid === botId) {continue;}
+      this.sendToPlayer(pid, {
+        type: 'player_joined',
+        player: { nickname, isBot: true },
+        players: allPlayers,
+      });
+    }
+    this.broadcastLobbyUpdate();
+
+    if (game.players.size === game.requiredPlayers) {
+      this.startRound(gameId);
+    }
+    return { botId, nickname };
   }
 
   _resolveGameAfterExit(gameId, game, playerId, nickname) {

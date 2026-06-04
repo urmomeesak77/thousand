@@ -78,6 +78,13 @@ class RequestHandler {
       return this._games.handleLeaveGame(req, res, player, leaveMatch[1]);
     }
 
+    const addBotMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/bots$/);
+    if (req.method === 'POST' && addBotMatch) {
+      const player = this._requireAuth(req, res);
+      if (!player) {return;}
+      return this._games.handleAddBot(req, res, player, addBotMatch[1]);
+    }
+
     const joinMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/join$/);
     if (req.method === 'POST' && joinMatch) {
       const player = this._requireAuth(req, res);

@@ -10,14 +10,16 @@ class WaitingRoom extends HtmlContainer {
     this._inviteCode = null;
     this._players = [];
     this._requiredPlayers = null;
+    this._isHost = false;
     this._timerId = null;
   }
 
-  load(gameId, inviteCode, players, requiredPlayers) {
+  load(gameId, inviteCode, players, requiredPlayers, isHost) {
     this._gameId = gameId;
     this._inviteCode = inviteCode;
     this._players = players;
     this._requiredPlayers = requiredPlayers;
+    this._isHost = Boolean(isHost);
     this.renderContent();
   }
 
@@ -37,8 +39,17 @@ class WaitingRoom extends HtmlContainer {
     for (const p of this._players) {
       const li = document.createElement('li');
       li.textContent = p.nickname || p.id;
+      // FR-012/FR-013: bots carry a clear computer-opponent badge so no human
+      // mistakes a bot for another player.
+      if (p.isBot) {
+        const badge = document.createElement('span');
+        badge.className = 'bot-badge';
+        badge.textContent = 'BOT';
+        li.appendChild(badge);
+      }
       ul.appendChild(li);
     }
+    this._renderHostControls();
     const hint = document.querySelector('.waiting-hint');
     if (hint && this._requiredPlayers !== null) {
       // FR-003: surface join progress (joined / required) alongside the start threshold
@@ -47,6 +58,16 @@ class WaitingRoom extends HtmlContainer {
         `Waiting for players… ${joined} / ${this._requiredPlayers} joined ` +
         `(${this._requiredPlayers} needed to start)`;
     }
+  }
+
+  // The Add Bot button is host-only (FR-005) and only useful while an empty seat
+  // remains; hidden for everyone else and once the table is full.
+  _renderHostControls() {
+    const addBotBtn = document.getElementById('add-bot-btn');
+    if (!addBotBtn) {return;}
+    const seatsOpen = this._requiredPlayers !== null
+      && this._players.length < this._requiredPlayers;
+    addBotBtn.classList.toggle('hidden', !(this._isHost && seatsOpen));
   }
 
   startTimer(createdAt) {

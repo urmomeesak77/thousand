@@ -94,6 +94,20 @@ class GameApi {
     }
   }
 
+  async addBot(gameId) {
+    try {
+      const { res, data } = await this._post(`/api/games/${gameId}/bots`, {});
+      if (!res.ok) {
+        this._onError(data.message || 'Failed to add bot');
+        return null;
+      }
+      return data;
+    } catch {
+      this._onError('Network error. Please try again.');
+      return null;
+    }
+  }
+
   async logout() {
     // Best-effort: the server purges the player so the nickname frees up at
     // once. Even if this call fails (network/offline), the caller still clears

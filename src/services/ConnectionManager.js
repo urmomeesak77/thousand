@@ -189,6 +189,7 @@ class ConnectionManager {
         type: 'game_joined', gameId: result.gameId, players: this._store.serializePlayers(game),
         createdAt: game.createdAt, inviteCode: game.inviteCode ?? null,
         requiredPlayers: game.requiredPlayers,
+        isHost: result.playerId === game.hostId,
       }));
     }
   }

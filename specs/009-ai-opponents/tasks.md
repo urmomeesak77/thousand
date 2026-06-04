@@ -55,14 +55,14 @@ Web app (constitution layout): backend `src/`, frontend `src/public/js/`, tests 
 **Independent Test**: As the only human, create a 3-player game, add 2 bots, and confirm the
 game transitions to `in-progress` and the round is dealt (per spec US1 Independent Test).
 
-- [ ] T007 [P] [US1] Test add-bot guards in `tests/GameController.addbot.test.js`: 404 unknown game, 403 non-host, 409 already-started, 409 full; 201 `{botId,nickname}` on success (per FR-001, FR-003, FR-005)
-- [ ] T008 [P] [US1] Test auto-start in `tests/ThousandStore.addbot.test.js`: adding the bot that fills the table calls `startRound` and the game becomes `in-progress`; `player_joined` carries `isBot` (per FR-004)
-- [ ] T009 [US1] Implement `ThousandStore.addBot(gameId, requesterId)` in `src/services/ThousandStore.js`: create bot via `createBot`, set `gameId`, add to `game.players`, broadcast `player_joined` (refreshed `players` incl. `isBot`) to existing players, `broadcastLobbyUpdate()`, and call `startRound(gameId)` when `players.size === requiredPlayers` (per FR-001, FR-004)
-- [ ] T010 [US1] Implement `GameController.handleAddBot(req, res, player, gameId)` in `src/controllers/GameController.js`: host-only + waiting + not-full preconditions (statuses per `contracts/http-bot-management.md`), then delegate to `store.addBot`; respond `201 { botId, nickname }` (per FR-001, FR-003, FR-005)
-- [ ] T011 [US1] Add route `POST /api/games/:id/bots` → `handleAddBot` in `src/controllers/RequestHandler.js` (per FR-001)
-- [ ] T012 [P] [US1] Add `addBot(gameId)` to `src/public/js/network/GameApi.js` (per FR-001)
-- [ ] T013 [US1] Add a host-only **Add Bot** button to `src/public/js/screens/WaitingRoom.js`, bound via `Antlion.bindInput` (no raw DOM listener, per constitution §XI), and wire the action through `src/public/js/core/LobbyBinder.js` / `ThousandApp.js` to `GameApi.addBot` (per FR-001, FR-005)
-- [ ] T014 [P] [US1] Style the Add Bot button (responsive, finger-sized touch target) in `src/public/css/index.css` (per constitution §VI)
+- [x] T007 [P] [US1] Test add-bot guards in `tests/GameController.addbot.test.js`: 404 unknown game, 403 non-host, 409 already-started, 409 full; 201 `{botId,nickname}` on success (per FR-001, FR-003, FR-005)
+- [x] T008 [P] [US1] Test auto-start in `tests/ThousandStore.addbot.test.js`: adding the bot that fills the table calls `startRound` and the game becomes `in-progress`; `player_joined` carries `isBot` (per FR-004)
+- [x] T009 [US1] Implement `ThousandStore.addBot(gameId, requesterId)` in `src/services/ThousandStore.js`: create bot via `createBot`, set `gameId`, add to `game.players`, broadcast `player_joined` (refreshed `players` incl. `isBot`) to existing players, `broadcastLobbyUpdate()`, and call `startRound(gameId)` when `players.size === requiredPlayers` (per FR-001, FR-004)
+- [x] T010 [US1] Implement `GameController.handleAddBot(req, res, player, gameId)` in `src/controllers/GameController.js`: host-only + waiting + not-full preconditions (statuses per `contracts/http-bot-management.md`), then delegate to `store.addBot`; respond `201 { botId, nickname }` (per FR-001, FR-003, FR-005)
+- [x] T011 [US1] Add route `POST /api/games/:id/bots` → `handleAddBot` in `src/controllers/RequestHandler.js` (per FR-001)
+- [x] T012 [P] [US1] Add `addBot(gameId)` to `src/public/js/network/GameApi.js` (per FR-001)
+- [x] T013 [US1] Add a host-only **Add Bot** button to `src/public/js/screens/WaitingRoom.js`, bound via `Antlion.bindInput` (no raw DOM listener, per constitution §XI), and wire the action through `src/public/js/core/LobbyBinder.js` / `ThousandApp.js` to `GameApi.addBot` (per FR-001, FR-005)
+- [x] T014 [P] [US1] Style the Add Bot button (responsive, finger-sized touch target) in `src/public/css/index.css` (per constitution §VI)
 
 **Checkpoint**: A single human can fill a table with bots and the round starts & deals. (Bots
 do not yet act — that is US2.)

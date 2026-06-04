@@ -125,7 +125,18 @@ class ThousandApp {
     this._rulesModal.bind();
     this._lobbyBinder.bind();
     this._bindLeaveGame();
+    this._bindAddBot();
     this._bindLogout();
+  }
+
+  _bindAddBot() {
+    this._antlion.bindInput($('add-bot-btn'), 'click', 'add-bot-click');
+    this._antlion.onInput('add-bot-click', () => this._addBot());
+  }
+
+  async _addBot() {
+    if (!this._gameId) {return;}
+    await this._api.addBot(this._gameId);
   }
 
   _clearGameSelection() {

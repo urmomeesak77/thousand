@@ -72,6 +72,8 @@ class GameController {
       createdAt: game.createdAt,
       inviteCode: game.inviteCode ?? null,
       requiredPlayers: game.requiredPlayers,
+      // Drives the host-only waiting-room controls (e.g. Add Bot) — FR-005.
+      isHost: playerId === game.hostId,
     });
 
     // T042 – player_joined to existing players
@@ -320,6 +322,35 @@ class GameController {
       return;
     }
     HttpUtil.sendJSON(res, 200, {});
+  }
+
+  // POST /api/games/:id/bots — host adds a bot to an empty seat (FR-001, FR-003, FR-005)
+  async handleAddBot(req, res, player, gameId) {
+    try {
+      await HttpUtil.parseBody(req);
+    } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+      return;
+    }
+    const game = this.store.games.get(gameId);
+    if (!game) {
+      HttpUtil.sendError(res, 404, 'not_found', 'Game not found');
+      return;
+    }
+    if (game.hostId !== player.id) {
+      HttpUtil.sendError(res, 403, 'forbidden', 'Only the host can add bots');
+      return;
+    }
+    if (game.status !== 'waiting') {
+      HttpUtil.sendError(res, 409, 'game_already_started', 'Game has already started');
+      return;
+    }
+    if (game.players.size >= game.requiredPlayers) {
+      HttpUtil.sendError(res, 409, 'game_full', 'No empty seat for a bot');
+      return;
+    }
+    const { botId, nickname } = this.store.addBot(gameId);
+    HttpUtil.sendJSON(res, 201, { botId, nickname });
   }
 }
 

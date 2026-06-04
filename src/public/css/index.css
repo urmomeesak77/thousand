@@ -491,10 +491,31 @@ input[type="text"]::placeholder {
 }
 
 .player-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: var(--color-surface-alt);
   border-radius: var(--radius);
   font-size: 0.95rem;
+}
+
+/* FR-012/FR-013: clear computer-opponent badge so a bot is never mistaken for a human. */
+.bot-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+#add-bot-btn {
+  display: block;
+  /* Finger-sized touch target (constitution §VI). */
+  min-height: var(--touch-min);
+  margin: 0 auto 0.5rem;
 }
 
 .waiting-hint {

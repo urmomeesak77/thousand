@@ -211,7 +211,7 @@ class ThousandMessageRouter {
     app._inviteCode = msg.inviteCode ?? null;
     app._clearGameSelection();
     app._gameList.stopElapsedTimer();
-    app._waitingRoom.load(app._gameId, app._inviteCode, msg.players, msg.requiredPlayers);
+    app._waitingRoom.load(app._gameId, app._inviteCode, msg.players, msg.requiredPlayers, msg.isHost);
     app._showScreen('game-screen');
     app._waitingRoom.startTimer(msg.createdAt);
   }
