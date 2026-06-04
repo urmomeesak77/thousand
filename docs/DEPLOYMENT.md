@@ -1,9 +1,11 @@
 # Deployment — games.online-trash.com/thousand
 
 Production runs as a Docker container on a **zone.ee VPS (virtuaalserver)** behind
-the host's **nginx**, which terminates TLS and proxies the `/thousand` subpath to
-the container. WebSockets require a real reverse proxy with HTTP upgrade — zone.ee
-*web hosting* cannot do this, which is why we use a VPS with root.
+**nginx, which itself runs as a Docker container** (shared infra at `/web/` on the
+host: `web` = nginx, `certbot` = TLS issuance; config in `/web/nginx/conf.d/`).
+nginx terminates TLS and proxies the `/thousand` subpath to the app container.
+WebSockets require a real reverse proxy with HTTP upgrade — zone.ee *web hosting*
+cannot do this, which is why we use a VPS with root.
 
 ## How the subpath works
 
@@ -17,6 +19,27 @@ unchanged. The client is made subpath-aware at runtime:
   `GameApi.js` and `ThousandSocket.js` prefix their REST/WS URLs with it.
 
 With `BASE_PATH` unset the app serves from `/` exactly as in local dev.
+
+## Networking (containerized nginx → app)
+
+Because nginx is a **container**, it reaches the app over the Docker **host-gateway**,
+not the host loopback. Two requirements:
+
+1. The app container publishes on a **bridge-reachable** port. The shipped
+   `docker-compose.yml` uses `ports: ["3000:3000"]` (all interfaces). A loopback-only
+   bind (`127.0.0.1:3000`) is **not** reachable from the nginx container — do not use it.
+2. **Firewall port 3000** so it is not publicly reachable; nginx `:443` is the only
+   public entry point. Apply via the zone.ee firewall or `ufw`:
+   ```bash
+   ufw deny 3000/tcp        # block public 3000 (Docker's own bridge still reaches it)
+   ```
+   (Stricter alternative: bind to the bridge gateway IP instead of all interfaces,
+   e.g. `"172.17.0.1:3000:3000"` — find it via `docker network inspect bridge`; more
+   private but fragile if the bridge IP changes.)
+
+The nginx service needs `extra_hosts: ["host.docker.internal:host-gateway"]` (already
+set in the infra `temp/docker-compose.yml`) and proxies to
+`http://host.docker.internal:3000/`.
 
 ## Configuration (env vars)
 
@@ -32,34 +55,74 @@ All are set in `docker-compose.yml`.
 
 ## First-time bring-up on the VPS
 
-1. **Install host tooling:** Docker Engine + compose plugin, nginx, certbot (`python3-certbot-nginx`).
-   Enable Docker on boot: `systemctl enable --now docker`.
+1. **Host tooling** (already present for the shared nginx stack): Docker Engine +
+   compose plugin. `systemctl enable --now docker`.
 2. **DNS:** in the zone.ee panel, add an `A` (and `AAAA`) record for
    `games.online-trash.com` → the VPS IP.
-3. **Start the app:**
+3. **Start the app (image-pull — no git clone on the VPS):** the server only needs
+   the compose file and the image from GHCR. `docker-compose.yml` carries both
+   `build: .` (used on your dev machine) and `image: ghcr.io/urmomeesak77/thousand:latest`
+   (pulled on the server).
+
+   On your **dev machine** — build and push the image once:
    ```bash
-   git clone <repo> thousand && cd thousand
-   docker compose up -d --build
+   echo $GHCR_PAT | docker login ghcr.io -u urmomeesak77 --password-stdin  # PAT: write:packages
+   docker compose build
+   docker compose push
    ```
-   The container now listens on `127.0.0.1:3000` only.
-4. **nginx + TLS:**
+   (Make the GHCR package **public** so the VPS pulls without auth, or `docker login
+   ghcr.io` on the VPS too.)
+
+   On the **VPS** — copy just the compose file, then pull and run:
    ```bash
-   cp deploy/nginx-thousand.conf /etc/nginx/sites-available/games.online-trash.com
-   ln -s /etc/nginx/sites-available/games.online-trash.com /etc/nginx/sites-enabled/
-   certbot --nginx -d games.online-trash.com   # adds the cert + :80→:443 redirect
-   nginx -t && systemctl reload nginx
+   mkdir -p ~/thousand && cd ~/thousand
+   # scp docker-compose.yml here (or curl the raw file from GitHub)
+   docker compose pull
+   docker compose up -d          # NO --build; runs the pulled image (firewall :3000 — see above)
    ```
-   (The `map $http_upgrade $connection_upgrade` block must live in an `http {}`
-   context — if your nginx splits configs, move it to `conf.d/` rather than the
-   server block.)
-5. **Verify:** open `https://games.online-trash.com/thousand/` and play through
+4. **nginx config** — edit the containerized nginx config at
+   `/web/nginx/conf.d/default.conf` (see `deploy/nginx-thousand.conf` for the snippet):
+   - add the `map $http_upgrade $connection_upgrade { ... }` block (http context);
+   - add the `/thousand` `location` blocks inside the `games.online-trash.com`
+     `server { listen 443 ssl; }` block, before `location /`.
+   Ensure the nginx service has `extra_hosts: ["host.docker.internal:host-gateway"]`,
+   then recreate + reload:
+   ```bash
+   cd /web && docker compose up -d                       # picks up extra_hosts
+   docker compose exec web nginx -t
+   docker compose exec web nginx -s reload
+   ```
+5. **TLS:** the `games.online-trash.com` server block must use a cert that **covers
+   that hostname**. The acme-challenge `location` is already wired. If the existing
+   `online-trash.com` cert is not a SAN/wildcard covering the subdomain, issue one:
+   ```bash
+   cd /web && docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+     -d games.online-trash.com
+   ```
+   then point `ssl_certificate` / `ssl_certificate_key` in the games block at the
+   correct `/etc/letsencrypt/live/...` path and reload nginx.
+6. **Verify:** open `https://games.online-trash.com/thousand/` and play through
    nickname → lobby → bidding → trick play (confirms the WebSocket path works).
+   Confirm `https://games.online-trash.com:3000` is **not** reachable publicly.
 
 ## Redeploys
 
+**Manual (Phase 1):** rebuild + push from your dev machine, then pull on the VPS:
 ```bash
-git pull && docker compose up -d --build
+# dev machine
+docker compose build && docker compose push
+# VPS
+cd ~/thousand && docker compose pull && docker compose up -d
 ```
+
+**CI/CD (Phase 2 — GHCR + SSH):** pushing to `master` (after CI passes) builds and
+pushes `ghcr.io/urmomeesak77/thousand` to GHCR, then SSHes to the VPS to pull and
+restart — see `.github/workflows/deploy.yml`. The VPS runs:
+```bash
+cd ~/thousand && docker compose pull thousand && docker compose up -d thousand
+```
+Required GitHub repo secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` (and, if the GHCR
+package is private, a `GHCR_TOKEN` the VPS uses for `docker login ghcr.io`).
 
 ## Operational notes
 

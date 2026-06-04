@@ -1,13 +1,16 @@
 services:
   thousand:
     build: .
-    image: thousand:latest
+    image: ghcr.io/urmomeesak77/thousand:latest
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3000
       - BASE_PATH=/thousand
       - ALLOWED_ORIGINS=https://games.online-trash.com
-    # Bind to loopback only: the host's nginx is the sole entry point.
+    # The nginx *container* reaches this app via the Docker host-gateway, which
+    # can't see a loopback-only bind — so publish on all interfaces and keep
+    # port 3000 off the public internet with the host firewall (nginx :443 is
+    # the sole public entry point). See docs/DEPLOYMENT.md.
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
