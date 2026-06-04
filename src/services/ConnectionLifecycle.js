@@ -1,12 +1,10 @@
 'use strict';
 
-const WS_OPEN = 1;
-
-// Player connection lifecycle: disconnect grace timers, reconnection
-// (last-connect-wins), and grace-expiry purge. Extracted from ThousandStore to
-// keep that class focused on game/round/lobby state. Holds a back-reference to
-// the store for shared state (players, games, sendToPlayer, round cleanup) and
-// reads `store._gracePeriodMs` live so tests can tune it after construction.
+// Player connection lifecycle: disconnect grace timers, reconnection, and
+// grace-expiry purge. Extracted from ThousandStore to keep that class focused on
+// game/round/lobby state. Holds a back-reference to the store for shared state
+// (players, games, sendToPlayer, round cleanup) and reads `store._gracePeriodMs`
+// live so tests can tune it after construction.
 class ConnectionLifecycle {
   constructor(store) {
     this._store = store;
@@ -18,12 +16,18 @@ class ConnectionLifecycle {
       return;
     }
     const player = store.players.get(playerId);
-    // If a newer ws has replaced this one (last-connect-wins), the old close event
-    // is stale — leave the live session alone.
-    if (ws && player.ws !== ws) {
+    // Remove just the closing socket. If it wasn't a member (a stale close that
+    // arrives after the socket was already removed), do nothing.
+    if (ws) {
+      if (!player.sockets.delete(ws)) {return;}
+    } else {
+      // Defensive: callers without a ws (tests, forced teardown) tear down fully.
+      player.sockets.clear();
+    }
+    // Other tabs are still live → the player has not actually left.
+    if (player.sockets.size > 0) {
       return;
     }
-    player.ws = null;
     player.disconnectedAt = Date.now();
     player.graceTimer = setTimeout(() => this._purge(playerId), store._gracePeriodMs);
     if (typeof player.graceTimer.unref === 'function') {player.graceTimer.unref();}
@@ -50,21 +54,16 @@ class ConnectionLifecycle {
     const store = this._store;
     const player = store.players.get(playerId);
     if (!player) {return;}
+    // Adding a socket to an already-live player (another tab) is NOT a
+    // reconnect — only announce one when the player had fully dropped.
+    const wasFullyDisconnected = player.sockets.size === 0;
     clearTimeout(player.graceTimer);
     player.graceTimer = null;
     player.disconnectedAt = null;
-    if (player.ws && player.ws.readyState === WS_OPEN) {
-      // readyState can flip between the check and send — swallow the error so
-      // the state-update steps below still run.
-      try {
-        player.ws.send(JSON.stringify({ type: 'session_replaced' }));
-        player.ws.close();
-      } catch { /* socket already gone */ }
-    }
-    player.ws = ws;
+    player.sockets.add(ws);
     ws._playerId = playerId;
 
-    if (player.gameId) {
+    if (wasFullyDisconnected && player.gameId) {
       const game = store.games.get(player.gameId);
       if (game && game.status === 'in-progress' && game.round) {
         const seat = game.round.seatByPlayer.get(playerId);
