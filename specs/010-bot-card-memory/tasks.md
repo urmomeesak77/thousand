@@ -24,7 +24,7 @@ forgetting fidelity and per-bot differentiation. Dependencies are called out exp
 
 **Purpose**: Create the one new source file so dependent work and tests can import it.
 
-- [ ] T001 [P] Create `BotMemory` skeleton (class `BotMemory` with constructor storing `memorySkill`/`memorySeed` and a `recalledGoneCardIds()` stub returning an empty `Set`) in src/services/bots/BotMemory.js
+- [x] T001 [P] Create `BotMemory` skeleton (class `BotMemory` with constructor storing `memorySkill`/`memorySeed` and a `recalledGoneCardIds()` stub returning an empty `Set`) in src/services/bots/BotMemory.js
 
 ---
 
@@ -35,10 +35,10 @@ user story depends on. No story work can begin until this phase is complete.
 
 **⚠️ CRITICAL**: Blocks US1, US2, and US3.
 
-- [ ] T002 [P] Write `TrickPlay.playedLog` tests — every played card logged once with correct `trickNumber`, including the crawl path, no duplicates (per FR-003; contract played-log.md P1–P3) in tests/TrickPlay.playedLog.test.js
-- [ ] T003 Add `playedLog` to `TrickPlay`: init `this.playedLog = []` in the constructor and push `{ cardId, trickNumber: this.trickNumber }` after the hand filter in both `playCard` and `commitCrawlCard` (per FR-003) in src/services/TrickPlay.js
-- [ ] T004 Mirror `playedLog` on `Round`: init `this.playedLog = []` in the constructor, set `this._trickPlay.playedLog = this.playedLog` in the rehydrate block and `this.playedLog = this._trickPlay.playedLog` in the sync-back block (per FR-003; depends on T003) in src/services/Round.js
-- [ ] T005 [P] Add per-bot memory traits to `createBot`: `memorySkill = Math.random()` and `memorySeed = crypto.randomInt(...)`, alongside `aggressiveness` (per FR-009, FR-010) in src/services/PlayerRegistry.js
+- [x] T002 [P] Write `TrickPlay.playedLog` tests — every played card logged once with correct `trickNumber`, including the crawl path, no duplicates (per FR-003; contract played-log.md P1–P3) in tests/TrickPlay.playedLog.test.js
+- [x] T003 Add `playedLog` to `TrickPlay`: init `this.playedLog = []` in the constructor and push `{ cardId, trickNumber: this.trickNumber }` after the hand filter in both `playCard` and `commitCrawlCard` (per FR-003) in src/services/TrickPlay.js
+- [x] T004 Mirror `playedLog` on `Round`: init `this.playedLog = []` in the constructor, set `this._trickPlay.playedLog = this.playedLog` in the rehydrate block and `this.playedLog = this._trickPlay.playedLog` in the sync-back block (per FR-003; depends on T003) in src/services/Round.js
+- [x] T005 [P] Add per-bot memory traits to `createBot`: `memorySkill = Math.random()` and `memorySeed = crypto.randomInt(...)`, alongside `aggressiveness` (per FR-009, FR-010) in src/services/PlayerRegistry.js
 
 **Checkpoint**: Played-card history is recorded per round and bots carry independent memory traits.
 
@@ -56,16 +56,16 @@ of a suit is gone, and confirm it leads/cashes the now-unbeatable card; with an 
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] `BotMemory` core recall tests — `kernel[0] === 1`, kernel monotonically non-increasing, determinism for identical (seed, inputs), empty `playedLog` ⇒ empty Set, age-0 records excluded (per FR-004, FR-005, FR-006, FR-008; contract bot-memory-api.md C1–C5) in tests/BotMemory.test.js
-- [ ] T007 [P] [US1] `isBossCard` truth-table tests — trump-aware, covering higher cards that are gone / in-hand / on-table; forgotten higher card ⇒ not a boss (per FR-013; contract strategy-memory-integration.md H1–H3) in tests/botStrategyHelpers.boss.test.js
-- [ ] T008 [P] [US1] `BotStrategy` integration tests — with knowledge the bot cashes a boss card; with default empty `knowledge` the decision equals the 009 output; strategy never reads `round.playedLog` directly (per FR-012, FR-014; contract S1–S2) in tests/BotStrategy.memory.test.js
+- [x] T006 [P] [US1] `BotMemory` core recall tests — `kernel[0] === 1`, kernel monotonically non-increasing, determinism for identical (seed, inputs), empty `playedLog` ⇒ empty Set, age-0 records excluded (per FR-004, FR-005, FR-006, FR-008; contract bot-memory-api.md C1–C5) in tests/BotMemory.test.js
+- [x] T007 [P] [US1] `isBossCard` truth-table tests — trump-aware, covering higher cards that are gone / in-hand / on-table; forgotten higher card ⇒ not a boss (per FR-013; contract strategy-memory-integration.md H1–H3) in tests/botStrategyHelpers.boss.test.js
+- [x] T008 [P] [US1] `BotStrategy` integration tests — with knowledge the bot cashes a boss card; with default empty `knowledge` the decision equals the 009 output; strategy never reads `round.playedLog` directly (per FR-012, FR-014; contract S1–S2) in tests/BotStrategy.memory.test.js
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement `BotMemory`: module-private `recallKernel(memorySkill, maxAge)` (first-order low-pass via the Fourier formula, `kernel[0]=1`, monotonic), `recallDraw(memorySeed, roundKey, cardId)` (deterministic [0,1)), and `recalledGoneCardIds(playedLog, currentTrickNumber, roundKey)` returning past-trick (age ≥ 1) cardIds where draw < kernel[age] (per FR-001, FR-002, FR-004, FR-005, FR-006, FR-008, FR-011) in src/services/bots/BotMemory.js
-- [ ] T010 [P] [US1] Add pure `isBossCard(card, { goneCardIds, hand, currentTrick }, trump)` (plus any small `remainingBeaters` helper), reusing the existing `cardBeats` ordering (per FR-013) in src/services/bots/botStrategyHelpers.js
-- [ ] T011 [US1] Extend `BotStrategy.decide(round, seat, aggressiveness, knowledge = { goneCardIds: new Set() })`; in `_declarerLead`/`_declarerFollow` and the opponent lead/follow paths, prefer the highest-point identifiable boss card before the existing fallback, never spending a reserved marriage card, only reordering already-legal moves (per FR-012, FR-013, FR-014; depends on T010) in src/services/bots/BotStrategy.js
-- [ ] T012 [US1] Wire `BotTurnDriver._decisionFor` to build the recalled-gone set via `new BotMemory(player.memorySkill, player.memorySeed).recalledGoneCardIds(game.round.playedLog, game.round.trickNumber, roundKey)` and pass it as `knowledge` to `BotStrategy.decide` (only during trick-play; empty set otherwise) (per FR-001, FR-012; depends on T009, T011) in src/services/bots/BotTurnDriver.js
+- [x] T009 [US1] Implement `BotMemory`: module-private `recallKernel(memorySkill, maxAge)` (first-order low-pass via the Fourier formula, `kernel[0]=1`, monotonic), `recallDraw(memorySeed, roundKey, cardId)` (deterministic [0,1)), and `recalledGoneCardIds(playedLog, currentTrickNumber, roundKey)` returning past-trick (age ≥ 1) cardIds where draw < kernel[age] (per FR-001, FR-002, FR-004, FR-005, FR-006, FR-008, FR-011) in src/services/bots/BotMemory.js
+- [x] T010 [P] [US1] Add pure `isBossCard(card, { goneCardIds, hand, currentTrick }, trump)` (plus any small `remainingBeaters` helper), reusing the existing `cardBeats` ordering (per FR-013) in src/services/bots/botStrategyHelpers.js
+- [x] T011 [US1] Extend `BotStrategy.decide(round, seat, aggressiveness, knowledge = { goneCardIds: new Set() })`; in `_declarerLead`/`_declarerFollow` and the opponent lead/follow paths, prefer the highest-point identifiable boss card before the existing fallback, never spending a reserved marriage card, only reordering already-legal moves (per FR-012, FR-013, FR-014; depends on T010) in src/services/bots/BotStrategy.js
+- [x] T012 [US1] Wire `BotTurnDriver._decisionFor` to build the recalled-gone set via `new BotMemory(player.memorySkill, player.memorySeed).recalledGoneCardIds(game.round.playedLog, game.round.trickNumber, roundKey)` and pass it as `knowledge` to `BotStrategy.decide` (only during trick-play; empty set otherwise) (per FR-001, FR-012; depends on T009, T011) in src/services/bots/BotTurnDriver.js
 
 **Checkpoint**: Bots make memory-informed decisions end-to-end; existing 009 behaviour is preserved when no memory applies.
 
@@ -82,12 +82,12 @@ forgotten, and that a forgotten boss card produces a fallback ("mistake") play.
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Decay tests — a recent card (age 1) recalled at max skill 100%; a low-skill bot's recall of a card aged ≥ 4 falls below 50%; non-zero forgetting exists for any skill < max; monotonic (once forgotten, stays forgotten) (per FR-006, FR-007; SC-002) in tests/BotMemory.test.js
-- [ ] T014 [P] [US2] "Memory mistake" integration test — a forgotten boss card makes the bot play as if it were still live (fallback), and a forgetting-enabled bot commits measurably more such mistakes than a perfect-memory baseline over many simulated decisions (per FR-013; SC-004) in tests/BotStrategy.memory.test.js
+- [x] T013 [P] [US2] Decay tests — a recent card (age 1) recalled at max skill 100%; a low-skill bot's recall of a card aged ≥ 4 falls below 50%; non-zero forgetting exists for any skill < max; monotonic (once forgotten, stays forgotten) (per FR-006, FR-007; SC-002) in tests/BotMemory.test.js
+- [x] T014 [P] [US2] "Memory mistake" integration test — a forgotten boss card makes the bot play as if it were still live (fallback), and a forgetting-enabled bot commits measurably more such mistakes than a perfect-memory baseline over many simulated decisions (per FR-013; SC-004) in tests/BotStrategy.memory.test.js
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Tune the `recallKernel` cutoff mapping and the recall threshold so FR-007 (non-zero forgetting below max skill) and SC-002/SC-004 hold; if numeric constants emerge, name them as module constants in BotMemory.js (per FR-007; SC-002, SC-004) in src/services/bots/BotMemory.js
+- [x] T015 [US2] Tune the `recallKernel` cutoff mapping and the recall threshold so FR-007 (non-zero forgetting below max skill) and SC-002/SC-004 hold; if numeric constants emerge, name them as module constants in BotMemory.js (per FR-007; SC-002, SC-004) in src/services/bots/BotMemory.js
 
 **Checkpoint**: Forgetting is observable and bounded; bots are beatable, not perfect.
 
@@ -103,11 +103,11 @@ play history, and confirm their recalled-card sets differ in the expected direct
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Skill-ordering and divergence tests — for a fixed seed/age, higher `memorySkill` recall ⊇ lower-skill recall; two bots with different skills on one history produce different recalled sets; `memorySkill` alone moves recall across the spectrum (per FR-010, FR-011; SC-003, SC-005) in tests/BotMemory.test.js
+- [x] T016 [P] [US3] Skill-ordering and divergence tests — for a fixed seed/age, higher `memorySkill` recall ⊇ lower-skill recall; two bots with different skills on one history produce different recalled sets; `memorySkill` alone moves recall across the spectrum (per FR-010, FR-011; SC-003, SC-005) in tests/BotMemory.test.js
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Confirm/adjust the `memorySkill → kernel cutoff` mapping so higher skill yields strictly stronger, longer recall and each bot's memory is independent (no shared state across `BotMemory` instances) (per FR-010, FR-011; SC-003, SC-005) in src/services/bots/BotMemory.js
+- [x] T017 [US3] Confirm/adjust the `memorySkill → kernel cutoff` mapping so higher skill yields strictly stronger, longer recall and each bot's memory is independent (no shared state across `BotMemory` instances) (per FR-010, FR-011; SC-003, SC-005) in src/services/bots/BotMemory.js
 
 **Checkpoint**: All three stories independently testable; bots feel distinct.
 
@@ -115,12 +115,12 @@ play history, and confirm their recalled-card sets differ in the expected direct
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T018 [P] Run the full test suite incl. the feature-009 bot tests to confirm no game-rule or behavioural regression (per FR-014) — `npm test`
-- [ ] T019 [P] Performance assertion — `recalledGoneCardIds` for a full 32-card log completes in ≤ 50 ms per decision (per SC-006) in tests/BotMemory.test.js
-- [ ] T020 [P] Run ESLint and check against docs/CODING_CONVENTIONS.md (function ≤ ~20 lines §IX, one class per file §VIII) — `npm run lint`
-- [ ] T021 Verify ≥ 90% coverage on the new/changed `src/services/bots/` and `playedLog` code — `npm run test:coverage`
-- [ ] T022 Run quickstart.md verification (deterministic snippet + optional live game)
-- [ ] T023 FR-coverage audit — confirm every FR-001…FR-015 has a matching `// per FR-NNN` test annotation (fr-coverage-checker)
+- [x] T018 [P] Run the full test suite incl. the feature-009 bot tests to confirm no game-rule or behavioural regression (per FR-014) — `npm test`
+- [x] T019 [P] Performance assertion — `recalledGoneCardIds` for a full 32-card log completes in ≤ 50 ms per decision (per SC-006) in tests/BotMemory.test.js
+- [x] T020 [P] Run ESLint and check against docs/CODING_CONVENTIONS.md (function ≤ ~20 lines §IX, one class per file §VIII) — `npm run lint`
+- [x] T021 Verify ≥ 90% coverage on the new/changed `src/services/bots/` and `playedLog` code — `npm run test:coverage`
+- [x] T022 Run quickstart.md verification (deterministic snippet + optional live game)
+- [x] T023 FR-coverage audit — confirm every FR-001…FR-015 has a matching `// per FR-NNN` test annotation (fr-coverage-checker)
 
 ---
 

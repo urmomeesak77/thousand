@@ -3,6 +3,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const BotStrategy = require('../src/services/bots/BotStrategy');
+const BotMemory = require('../src/services/bots/BotMemory');
 
 // Build a deck (indexed by cardId) from [rank, suit] pairs.
 function buildDeck(cards) {
@@ -79,5 +80,43 @@ describe('BotStrategy.decide — opponent cashes a recalled boss on the lead (FR
   it('with any recall active, leads the boss ace it can prove unbeatable', () => { // per FR-012
     const knowledge = { goneCardIds: new Set([2]) }; // an unrelated gone card
     assert.equal(BotStrategy.decide(round, 0, 0.5, knowledge).cardId, 0); // A♣
+  });
+});
+
+describe('BotStrategy.decide — forgetting causes measurable mistakes (FR-013, SC-004)', () => {
+  // Declarer holds 10♥ + Q♣, leading trick 5. Q♣ is a boss ONLY if the bot recalls all
+  // three higher clubs (A♣,10♣,K♣, played at trick 1 ⇒ age 4). If any is forgotten the
+  // bot can't prove Q♣ safe and falls back to the 009 lead (10♥) — an observable mistake.
+  const DECK = buildDeck([
+    ['10', 'H'], ['Q', 'C'], ['A', 'H'], ['A', 'C'], ['10', 'C'], ['K', 'C'],
+  ]);
+  const round = {
+    phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
+    fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
+    trickNumber: 5, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1] }, deck: DECK,
+  };
+  const PLAYED_LOG = [
+    { cardId: 3, trickNumber: 1 }, { cardId: 4, trickNumber: 1 }, { cardId: 5, trickNumber: 1 },
+  ];
+
+  // Cash the boss (Q♣ = cardId 1) using the recall the given skill produces, over many
+  // rounds. Returns how many of `rounds` decisions cashed (vs the 10♥ fallback mistake).
+  function bossCashes(skill, seed, rounds) {
+    let cashes = 0;
+    for (let roundKey = 0; roundKey < rounds; roundKey++) {
+      const goneCardIds = new BotMemory(skill, seed).recalledGoneCardIds(PLAYED_LOG, 5, roundKey);
+      if (BotStrategy.decide(round, 0, 0.5, { goneCardIds }).cardId === 1) { cashes += 1; }
+    }
+    return cashes;
+  }
+
+  it('a perfect-memory bot cashes the boss every round (no mistakes)', () => { // per FR-013
+    assert.equal(bossCashes(1, 7, 200), 200);
+  });
+
+  it('a forgetful bot makes measurably more mistakes than the perfect baseline', () => { // per SC-004
+    const forgetful = bossCashes(0.2, 7, 200);
+    assert.ok(forgetful < 200, `forgetful cashed ${forgetful}/200 — expected some fallbacks`);
+    assert.ok(200 - forgetful >= 20, `expected ≥20 mistakes, got ${200 - forgetful}`);
   });
 });
