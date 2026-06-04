@@ -1,0 +1,131 @@
+// ============================================================
+// TabSync — converges same-browser tabs on ONE identity
+// ============================================================
+//
+// Same-browser tabs share one localStorage identity, but two tabs opened before
+// either has saved an identity would each create a distinct server-side player
+// (→ two games). TabSync runs a short BroadcastChannel election so the fresh
+// tabs agree on a single identity before connecting: the first tab to obtain an
+// identity broadcasts it, and the lowest-nonce fresh tab creates while the
+// others adopt. After resolution it keeps answering late siblings.
+
+import { IdentityStore } from './IdentityStore.js';
+
+const CHANNEL_NAME = 'thousand_tabs';
+const ELECTION_WINDOW_MS = 200;
+
+export class TabSync {
+  constructor({ channelFactory, identityStore, electionWindowMs, nonce } = {}) {
+    this._identityStore = identityStore ?? IdentityStore;
+    this._electionWindowMs = electionWindowMs ?? ELECTION_WINDOW_MS;
+    this._nonce = typeof nonce === 'number' ? nonce : Math.random();
+    this._identity = null;        // identity this tab currently holds/knows
+    this._peerNonces = [];        // nonces announced by sibling fresh tabs
+    this._onIdentity = null;      // set during an active election
+    this._resolvePromise = null;  // memoized result of resolveIdentity()
+
+    const factory = channelFactory ?? (
+      typeof BroadcastChannel !== 'undefined'
+        ? () => new BroadcastChannel(CHANNEL_NAME)
+        : null
+    );
+    this._channel = factory ? factory() : null;
+    if (this._channel) {
+      this._channel.onmessage = (e) => this._onMessage(e.data);
+    }
+  }
+
+  // Resolve the identity to connect with. Memoized: reconnects reuse the result
+  // (by then the identity is also in IdentityStore, so this returns it directly).
+  resolveIdentity() {
+    if (!this._resolvePromise) {
+      this._resolvePromise = this._resolve();
+    }
+    return this._resolvePromise;
+  }
+
+  _resolve() {
+    // stored comes from the injected identityStore (caller's realm) — use it
+    // directly rather than copying into a new object, so tests comparing across
+    // jsdom realm boundaries see the same prototype.
+    const stored = this._identityStore.load();
+    if (stored.playerId && stored.sessionToken) {
+      this._identity = stored;
+      this._broadcast({ kind: 'identity', playerId: stored.playerId, sessionToken: stored.sessionToken });
+      return Promise.resolve(this._identity);
+    }
+    if (!this._channel) {
+      // Return identityStore.load() rather than a fresh {} literal so the
+      // returned object belongs to the caller's realm, not jsdom's realm.
+      return Promise.resolve(this._identityStore.load());
+    }
+    return this._runElection();
+  }
+
+  _runElection() {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (val) => { if (!settled) { settled = true; resolve(val); } };
+
+      // Adopt the first identity a sibling reports during the election.
+      this._onIdentity = (playerId, sessionToken) => {
+        this._identityStore.save(playerId, sessionToken);
+        // Load back from the store so the returned object is in the caller's
+        // realm (not a jsdom-created literal), enabling cross-realm deepEqual.
+        this._identity = this._identityStore.load();
+        finish(this._identity);
+      };
+
+      this._broadcast({ kind: 'hello', nonce: this._nonce });
+
+      setTimeout(() => {
+        if (settled) {return;}
+        const isLowest = this._peerNonces.every((n) => this._nonce < n);
+        if (isLowest) {
+          // We create the identity; publishIdentity() broadcasts it once the
+          // server issues it, so waiting siblings can adopt.
+          finish(this._identityStore.load());
+        } else {
+          // A lower-nonce sibling will create — give it one more window to
+          // report its identity, then fall back to creating ourselves.
+          setTimeout(() => finish(this._identityStore.load()), this._electionWindowMs);
+        }
+      }, this._electionWindowMs);
+    });
+  }
+
+  _onMessage(data) {
+    if (!data || typeof data !== 'object') {return;}
+    if (data.kind === 'hello') {
+      this._peerNonces.push(data.nonce);
+      // Already hold an identity → answer the newcomer so it adopts ours.
+      if (this._identity) {
+        this._broadcast({ kind: 'identity', playerId: this._identity.playerId, sessionToken: this._identity.sessionToken });
+      }
+      return;
+    }
+    if (data.kind === 'identity' && typeof data.playerId === 'string'
+        && typeof data.sessionToken === 'string') {
+      if (this._onIdentity) {
+        this._onIdentity(data.playerId, data.sessionToken);
+      } else if (!this._identity) {
+        this._identity = { playerId: data.playerId, sessionToken: data.sessionToken };
+      }
+    }
+  }
+
+  // Called once this tab's identity is confirmed (on the `connected` message),
+  // so sibling tabs still electing can converge on it.
+  publishIdentity(playerId, sessionToken) {
+    this._identity = { playerId, sessionToken };
+    this._broadcast({ kind: 'identity', playerId, sessionToken });
+  }
+
+  _broadcast(msg) {
+    if (this._channel) {this._channel.postMessage(msg);}
+  }
+
+  dispose() {
+    if (this._channel) {this._channel.close();}
+  }
+}
