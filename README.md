@@ -2,6 +2,8 @@
 
 A real-time, web implementation of the classic European trick-taking card game **Thousand** (Tysiącha), playable with **3 or 4 players**. First player to **1000 points** wins.
 
+🎮 **Play the live version: [games.online-trash.com/thousand](https://games.online-trash.com/thousand)**
+
 ## Game Rules
 
 **Deck:**
@@ -64,10 +66,38 @@ The first player to reach **1000+** wins, at the end of that round. Ties are bro
 
 ## Running
 
+Requires **Node.js 18+**. No build step — vanilla JS frontend (ES modules) and a Node.js + WebSocket backend.
+
 ```bash
-npm start    # http://localhost:3000  (or $PORT)
-npm test     # run the test suite
-npm run lint # lint src/
+npm install            # install dependencies (ws; dev: eslint, jsdom, playwright)
+npm start              # http://localhost:3000  (or $PORT)
+npm run dev            # start with --watch (auto-restart on changes)
+npm test               # run the test suite (Node.js built-in test runner)
+npm run test:coverage  # run tests with coverage report
+npm run lint           # lint src/
 ```
 
-No build step — vanilla JS frontend (ES modules) and a Node.js + WebSocket backend.
+### Configuration
+
+The server reads these environment variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `3000` | HTTP/WebSocket listen port |
+| `BASE_PATH` | _(none)_ | URL path prefix when served behind a reverse proxy (e.g. `/thousand`) |
+| `ALLOWED_ORIGINS` | _(none)_ | Comma-separated allowlist of origins for WebSocket/CORS |
+| `NODE_ENV` | — | set to `production` in deployment |
+
+## Deployment
+
+The live instance runs as a container behind an nginx reverse proxy at
+[games.online-trash.com/thousand](https://games.online-trash.com/thousand).
+
+A production image is built from the [`Dockerfile`](Dockerfile) (runtime deps only) and
+published to GHCR as `ghcr.io/urmomeesak77/thousand:latest`. See
+[`docker-compose.yml`](docker-compose.yml), the nginx config under
+[`deploy/`](deploy/), and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full setup.
+
+```bash
+docker compose up -d   # build + run locally
+```
