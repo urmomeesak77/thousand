@@ -156,3 +156,25 @@ describe('hasTrumpControl', () => {
     assert.equal(hasTrumpControl([{ cardId: 0, rank: 'A', suit: 'S' }], { goneCardIds: new Set(), hand: [], currentTrick: [], deck }, null), false);
   });
 });
+
+describe('estimateMakeable — trump length + extra aces nudge (FR-competent)', () => {
+  const hand = (cards) => cards.map(([rank, suit]) => ({ rank, suit }));
+
+  it('values surplus aces above an otherwise-flat hand', () => { // per competent-play
+    const flat = hand([['J', 'H'], ['9', 'S'], ['J', 'D'], ['9', 'C']]); // no aces, no long suit
+    const aces = hand([['A', 'C'], ['A', 'S'], ['A', 'H'], ['9', 'D']]); // 3 aces ⇒ +10 nudge
+    assert.ok(H.estimateMakeable(aces).value > H.estimateMakeable(flat).value);
+  });
+
+  it('values a long suit above a flat hand', () => { // per competent-play
+    const flat = hand([['J', 'H'], ['9', 'S'], ['J', 'D'], ['9', 'C']]);
+    const long = hand([['J', 'C'], ['9', 'C'], ['Q', 'C'], ['10', 'C'], ['J', 'H']]); // 4-long clubs
+    assert.ok(H.estimateMakeable(long).value > H.estimateMakeable(flat).value);
+  });
+
+  it('caps the nudge at 20 (never runs away on its own)', () => { // per competent-play
+    // 4 aces + a 4-long suit, no complete marriage: nudge maxes at 20, half-marriage ≤ 10.
+    const huge = hand([['A', 'C'], ['A', 'S'], ['A', 'H'], ['A', 'D'], ['10', 'C'], ['9', 'C'], ['K', 'C']]);
+    assert.ok(H.estimateMakeable(huge).value <= 105 + 10 + 20);
+  });
+});

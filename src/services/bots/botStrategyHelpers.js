@@ -136,7 +136,12 @@ function estimateMakeable(hand) {
       halfCount += 1;
     }
   }
-  const value = 105 + completeBonus + Math.min(halfCount * 5, 10);
+  // Competent nudge: a long trump-capable suit and surplus aces make a hand stronger.
+  // Small and capped so it never inflates a bid past the sweepable ceiling on its own.
+  const longestSuit = Math.max(0, ...Object.values(bySuit).map((s) => s.size));
+  const aceCount = hand.filter((c) => c.rank === 'A').length;
+  const nudge = Math.min((longestSuit >= 4 ? (longestSuit - 3) * 5 : 0) + Math.max(0, aceCount - 1) * 5, 20);
+  const value = 105 + completeBonus + Math.min(halfCount * 5, 10) + nudge;
   return { value, complete, half: halfCount };
 }
 
