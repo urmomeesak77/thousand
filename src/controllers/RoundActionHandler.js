@@ -83,6 +83,8 @@ class RoundActionHandler {
       broadcast(pid, gameStatus, result, { game, round, playerId });
       this._store.sendToPlayer(pid, { type: 'phase_changed', phase: gameStatus.phase, gameStatus });
     }
+    // Let the bot driver react to the new turn state (no-op when no bots are seated).
+    this._store.notifyTurnAdvanced?.(game);
     return { game, round, result };
   }
 
@@ -276,6 +278,10 @@ class RoundActionHandler {
     }
     if (session.continuePresses.size === round.playerCount) {
       this._broadcaster.startAndBroadcastNextRound(game);
+    } else {
+      // Schedule any remaining bots to press continue (the all-pressed branch
+      // notifies via startAndBroadcastNextRound for the fresh round).
+      this._store.notifyTurnAdvanced?.(game);
     }
   }
 

@@ -45,6 +45,7 @@ class TrickPlayActionHandler {
       const gameStatus = round.getViewModelFor(pSeat);
       this._store.sendToPlayer(pid, { type: 'card_exchange_started', declarerId, finalBid, gameStatus });
     }
+    this._store.notifyTurnAdvanced?.(game);
   }
 
   // Bypasses _runRoundAction: two passes arrive in quick succession and the shared
@@ -95,6 +96,7 @@ class TrickPlayActionHandler {
         this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
       }
     }
+    this._store.notifyTurnAdvanced?.(game);
   }
 
   // FR-003/FR-027: each player acknowledges the four-nines modal. Sticky and
@@ -132,6 +134,7 @@ class TrickPlayActionHandler {
         this._store.sendToPlayer(pid, { type: 'trick_play_started', gameStatus });
       }
     }
+    this._store.notifyTurnAdvanced?.(game);
   }
 
   // Bypasses _runRoundAction for the same rate-limiter reason as handleExchangePass.
@@ -173,6 +176,9 @@ class TrickPlayActionHandler {
     if (isRoundComplete && victoryReached) {
       this._store._cleanupRound(game.id);
     }
+    // Drives the next trick-play turn, the round-summary continue presses, or
+    // (after victory cleanup) safely no-ops because the game is gone.
+    this._store.notifyTurnAdvanced?.(game);
   }
 
   // FR-003/FR-004/FR-006/FR-007: a single crawl_commit serves the declarer's
@@ -214,6 +220,7 @@ class TrickPlayActionHandler {
         });
       }
     }
+    this._store.notifyTurnAdvanced?.(game);
   }
 }
 

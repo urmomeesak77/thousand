@@ -359,4 +359,5 @@ module.exports = {
   buildSeatLayout,
   buildDealSequenceFor,
   compactScoreHistory,
+  computeLegalCardIds: _computeLegalCardIds,
 };

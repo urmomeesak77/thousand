@@ -6,6 +6,8 @@ const Round = require('./Round');
 const Game = require('./Game');
 const PlayerRegistry = require('./PlayerRegistry');
 const ConnectionLifecycle = require('./ConnectionLifecycle');
+const RoundActionHandler = require('../controllers/RoundActionHandler');
+const BotTurnDriver = require('./bots/BotTurnDriver');
 const { pickBotName } = require('./bots/botNames');
 const { applySeededScores } = require('./testScoreSeeding');
 
@@ -25,6 +27,16 @@ class ThousandStore {
     // Connection lifecycle (disconnect/reconnect/purge) reads `_gracePeriodMs`
     // live, so it must be constructed after the field is set.
     this._lifecycle = new ConnectionLifecycle(this);
+    // Server-side bot driver: a dedicated RoundActionHandler (its own rate-limiter
+    // bucket, isolated from human traffic) executes bot decisions through the exact
+    // same handler methods a human's WebSocket message would invoke.
+    this._botDriver = new BotTurnDriver(this, new RoundActionHandler({ store: this }));
+  }
+
+  // Turn-changing-broadcast chokepoint: lets the bot driver react to the new state
+  // the way a human client reacts to phase_changed (FR-006/FR-009).
+  notifyTurnAdvanced(game) {
+    this._botDriver.onStateChanged(game);
   }
 
   get players() {
@@ -201,6 +213,7 @@ class ThousandStore {
   }
 
   _deleteGame(gameId, game) {
+    this._botDriver.clearForGame(gameId);
     this._purgeBots(game);
     if (game.waitingRoomTimer) {
       clearTimeout(game.waitingRoomTimer);
@@ -263,6 +276,7 @@ class ThousandStore {
       if (payload) {this.sendToPlayer(pid, payload);}
     }
     this.broadcastLobbyUpdate();
+    this.notifyTurnAdvanced(game);
   }
 
   // Constructs and primes the per-round state machine for a game. Shared by the
@@ -279,6 +293,7 @@ class ThousandStore {
   _cleanupRound(gameId) {
     const game = this.games.get(gameId);
     if (!game) {return;}
+    this._botDriver.clearForGame(gameId);
     for (const pid of game.players) {
       const player = this.players.get(pid);
       if (player) {player.gameId = null;}

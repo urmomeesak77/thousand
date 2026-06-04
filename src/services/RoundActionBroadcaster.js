@@ -102,6 +102,8 @@ class RoundActionBroadcaster {
       const dealSequence = RoundSnapshot.buildDealSequenceFor(newRound, selfSeat);
       this._store.sendToPlayer(pid, { type: 'next_round_started', roundNumber, seats, dealSequence, gameStatus });
     }
+    // Drive bot turns in the fresh round (bidding opens immediately).
+    this._store.notifyTurnAdvanced?.(game);
   }
 
   _broadcastMarriage(pid, gameStatus, marriageResult, trickNumber, playerSeat, playerId) {
