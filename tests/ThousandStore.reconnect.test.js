@@ -31,7 +31,7 @@ describe('ThousandStore.handlePlayerDisconnect grace period', () => {
 
     assert.ok(store.players.has(playerId), 'player record must survive disconnect');
     const player = store.players.get(playerId);
-    assert.equal(player.ws, null);
+    assert.equal(player.sockets.size, 0);
     assert.ok(player.disconnectedAt !== null);
     assert.ok(player.graceTimer !== null);
     clearTimeout(player.graceTimer);
@@ -49,7 +49,8 @@ describe('ThousandStore.handlePlayerDisconnect grace period', () => {
     store.reconnectPlayer(playerId, ws2);
 
     const player = store.players.get(playerId);
-    assert.equal(player.ws, ws2);
+    assert.ok(player.sockets.has(ws2));
+    assert.equal(player.sockets.size, 1);
     assert.equal(player.graceTimer, null);
     assert.equal(player.disconnectedAt, null);
     assert.equal(ws2._playerId, playerId);
@@ -106,13 +107,14 @@ describe('ThousandStore.handlePlayerDisconnect grace period', () => {
 
     await new Promise((r) => setTimeout(r, 20));
     assert.ok(store.players.has(playerId), 'player must survive — clearTimeout prevented purge');
-    assert.equal(store.players.get(playerId).ws, ws2);
+    assert.ok(store.players.get(playerId).sockets.has(ws2));
   });
 });
 
-// T019: last-connect-wins
-describe('ThousandStore.reconnectPlayer last-connect-wins', () => {
-  it('sends session_replaced to live ws and closes it when player already connected', () => {
+// Reconnect is now additive: a second connection for the same player joins the
+// existing socket set instead of kicking the first (multi-tab mirroring).
+describe('ThousandStore.reconnectPlayer is additive (multi-tab)', () => {
+  it('keeps the existing socket open and adds the new one', () => {
     const store = new ThousandStore();
     const ws1 = makeWs();
     const { playerId } = store.createPlayer(ws1, '127.0.0.1');
@@ -120,9 +122,11 @@ describe('ThousandStore.reconnectPlayer last-connect-wins', () => {
     const ws2 = makeWs();
     store.reconnectPlayer(playerId, ws2);
 
-    assert.deepEqual(ws1._sent[0], { type: 'session_replaced' });
-    assert.ok(ws1._closed, 'old ws must be closed');
-    assert.equal(store.players.get(playerId).ws, ws2);
+    const player = store.players.get(playerId);
+    assert.equal(player.sockets.size, 2);
+    assert.ok(player.sockets.has(ws1) && player.sockets.has(ws2));
+    assert.equal(ws1._closed, false, 'first tab is not closed');
+    assert.deepEqual(ws1._sent, [], 'no session_replaced');
     assert.equal(ws2._playerId, playerId);
   });
 });
