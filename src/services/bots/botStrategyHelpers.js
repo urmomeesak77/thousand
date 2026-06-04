@@ -86,6 +86,29 @@ function isBossCard(card, context, trump) {
   return remainingBeaters(card, context, trump).length === 0;
 }
 
+// Total point value of the cards currently on the table.
+function trickPoints(centerCards) {
+  return centerCards.reduce((sum, c) => sum + rankValue(c.rank), 0);
+}
+
+// The lowest-strength card in `cards` that beats `best` (trump-aware), or null. Lets a
+// bot win a trick without overspending a high card.
+function cheapestWinner(cards, best, trump) {
+  const winners = cards
+    .filter((c) => cardBeats(c, best, trump))
+    .sort((a, b) => rankStrength(a.rank) - rankStrength(b.rank));
+  return winners[0] ?? null;
+}
+
+// True when the bot's highest trump is unbeatable by anything still unaccounted — i.e. it
+// holds the top remaining trump, so leading trumps strips opponents without being overtaken.
+function hasTrumpControl(hand, context, trump) {
+  if (!trump) { return false; }
+  const trumps = hand.filter((c) => c.suit === trump)
+    .sort((a, b) => rankStrength(b.rank) - rankStrength(a.rank));
+  return trumps.length > 0 && isBossCard(trumps[0], context, trump);
+}
+
 // Estimate the score a declarer can safely make against passive opponents: the
 // ~120 sweepable trick points (minus a buffer for a lost trick) plus the bonus of
 // every COMPLETE marriage held, with a small capped nudge for half-marriages a
@@ -144,6 +167,9 @@ module.exports = {
   cardBeats,
   remainingBeaters,
   isBossCard,
+  trickPoints,
+  cheapestWinner,
+  hasTrumpControl,
   estimateMakeable,
   pickExchangeCard,
 };

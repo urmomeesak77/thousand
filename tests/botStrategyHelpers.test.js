@@ -3,6 +3,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const H = require('../src/services/bots/botStrategyHelpers');
+const { trickPoints, cheapestWinner, hasTrumpControl } = H;
 
 const card = (cardId, rank, suit) => ({ cardId, rank, suit });
 
@@ -115,5 +116,43 @@ describe('botStrategyHelpers.pickExchangeCard', () => {
     const chosen = H.pickExchangeCard(hand);
     assert.ok(chosen, 'still returns a card');
     assert.equal(chosen.rank, '10'); // lower point value than the ace
+  });
+});
+
+describe('trickPoints', () => {
+  it('sums the point value of the cards on the table', () => { // per competent-play
+    assert.equal(trickPoints([{ rank: 'A', suit: 'H' }, { rank: 'K', suit: 'H' }]), 15); // 11 + 4
+    assert.equal(trickPoints([{ rank: '9', suit: 'S' }]), 0);
+    assert.equal(trickPoints([]), 0);
+  });
+});
+
+describe('cheapestWinner', () => {
+  const C = (rank, suit) => ({ cardId: 0, rank, suit });
+  it('returns the lowest-strength card that beats the current best, trump-aware', () => { // per competent-play
+    const legal = [C('A', 'H'), C('K', 'H'), C('J', 'H')];
+    const best = { rank: '10', suit: 'H' };
+    assert.equal(cheapestWinner(legal, best, null).rank, 'A'); // only A beats 10 in hearts
+  });
+  it('returns null when nothing beats the best', () => { // per competent-play
+    const legal = [{ cardId: 1, rank: '9', suit: 'H' }, { cardId: 2, rank: 'J', suit: 'H' }];
+    assert.equal(cheapestWinner(legal, { rank: 'A', suit: 'H' }, null), null);
+  });
+});
+
+describe('hasTrumpControl', () => {
+  const deck = [['A', 'S'], ['10', 'S'], ['K', 'S']].map(([rank, suit], id) => ({ id, rank, suit }));
+  it('is true when the bot holds the top remaining trump', () => { // per competent-play
+    const hand = [{ cardId: 0, rank: 'A', suit: 'S' }];
+    const ctx = { goneCardIds: new Set(), hand, currentTrick: [], deck };
+    assert.equal(hasTrumpControl(hand, ctx, 'S'), true);
+  });
+  it('is false when a higher trump is still unaccounted', () => { // per competent-play
+    const hand = [{ cardId: 1, rank: '10', suit: 'S' }];
+    const ctx = { goneCardIds: new Set(), hand, currentTrick: [], deck };
+    assert.equal(hasTrumpControl(hand, ctx, 'S'), false); // A♠ still out
+  });
+  it('is false with no trump', () => { // per competent-play
+    assert.equal(hasTrumpControl([{ cardId: 0, rank: 'A', suit: 'S' }], { goneCardIds: new Set(), hand: [], currentTrick: [], deck }, null), false);
   });
 });
