@@ -123,9 +123,12 @@ docker run -d --name thousand --restart unless-stopped -p 3000:3000 \
 docker image prune -f
 ```
 
-**CI/CD (Phase 2 — GHCR + SSH):** pushing to `master` (after CI passes) builds and
-pushes `ghcr.io/urmomeesak77/thousand` to GHCR, then SSHes to the VPS to pull and
-restart — see `.github/workflows/deploy.yml` (same `docker pull` → `rm -f` → `docker run`).
+**CI/CD (Phase 2 — GHCR + SSH, manual trigger):** the `Deploy` workflow is run
+**manually** — from the Actions tab ("Run workflow") or `gh workflow run Deploy`. It
+builds and pushes `ghcr.io/urmomeesak77/thousand` to GHCR, then SSHes to the VPS to pull
+and restart — see `.github/workflows/deploy.yml` (same `docker pull` → `rm -f` →
+`docker run`). `CI` (lint/test/build) still runs automatically on every push, but no
+longer triggers a deploy; trigger Deploy yourself once you're satisfied CI is green.
 Required GitHub repo secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` (and, if the GHCR
 package is private, a `GHCR_TOKEN` the VPS uses for `docker login ghcr.io`).
 

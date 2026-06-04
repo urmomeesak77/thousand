@@ -1,12 +1,10 @@
 name: Deploy
 
-# Build + push the image to GHCR and redeploy on the VPS, but only after CI
-# (lint/test/build) has succeeded on master.
+# Manually triggered: build + push the image to GHCR and redeploy on the VPS.
+# Run from the Actions tab ("Run workflow") or: gh workflow run Deploy
+# CI still runs automatically on push; this deploy no longer triggers off it.
 on:
-  workflow_run:
-    workflows: ['CI']
-    types: [completed]
-    branches: [master]
+  workflow_dispatch:
 
 concurrency:
   group: deploy-production
@@ -14,8 +12,6 @@ concurrency:
 
 jobs:
   deploy:
-    # Only run if the triggering CI run passed.
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,8 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -43,7 +37,7 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ github.event.workflow_run.head_sha }}
+            ${{ env.IMAGE }}:${{ github.sha }}
 
       - name: Deploy on VPS over SSH
         uses: appleboy/ssh-action@v1
