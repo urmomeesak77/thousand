@@ -102,3 +102,27 @@ describe('TabSync.resolveIdentity', () => {
     assert.deepEqual(id, {});
   });
 });
+
+describe('TabSync.publishIdentity', () => {
+  it('saves the identity to the store and broadcasts it to siblings', () => {
+    const TabSync = loadTabSync();
+    const bus = makeBus();
+    // A fresh sibling that is mid-election, listening on the bus.
+    const sibStore = makeIdentityStore();
+    const sibling = new TabSync({ channelFactory: bus.create, identityStore: sibStore, electionWindowMs: 1000, nonce: 0.5 });
+    const sibPromise = sibling.resolveIdentity(); // starts electing, registers _onIdentity
+
+    const pubStore = makeIdentityStore();
+    const publisher = new TabSync({ channelFactory: bus.create, identityStore: pubStore, electionWindowMs: 1000 });
+
+    publisher.publishIdentity('pX', 'tX');
+
+    // Publisher persisted it.
+    assert.deepEqual(pubStore._get(), { playerId: 'pX', sessionToken: 'tX' });
+    // Sibling adopted it via the broadcast.
+    return sibPromise.then((id) => {
+      assert.deepEqual(id, { playerId: 'pX', sessionToken: 'tX' });
+      assert.deepEqual(sibStore._get(), { playerId: 'pX', sessionToken: 'tX' });
+    });
+  });
+});

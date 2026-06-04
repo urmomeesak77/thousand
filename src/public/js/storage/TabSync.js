@@ -45,9 +45,8 @@ export class TabSync {
   }
 
   _resolve() {
-    // stored comes from the injected identityStore (caller's realm) — use it
-    // directly rather than copying into a new object, so tests comparing across
-    // jsdom realm boundaries see the same prototype.
+    // Return the store's own identity object rather than re-wrapping it in a new
+    // literal, so the identity's shape has a single source of truth.
     const stored = this._identityStore.load();
     if (stored.playerId && stored.sessionToken) {
       this._identity = stored;
@@ -55,8 +54,8 @@ export class TabSync {
       return Promise.resolve(this._identity);
     }
     if (!this._channel) {
-      // Return identityStore.load() rather than a fresh {} literal so the
-      // returned object belongs to the caller's realm, not jsdom's realm.
+      // No siblings to coordinate with: resolve with whatever the store holds
+      // (empty for a fresh tab → the server will issue a new identity).
       return Promise.resolve(this._identityStore.load());
     }
     return this._runElection();
@@ -65,13 +64,18 @@ export class TabSync {
   _runElection() {
     return new Promise((resolve) => {
       let settled = false;
-      const finish = (val) => { if (!settled) { settled = true; resolve(val); } };
+      const finish = (val) => {
+        if (settled) {return;}
+        settled = true;
+        this._onIdentity = null;
+        resolve(val);
+      };
 
       // Adopt the first identity a sibling reports during the election.
       this._onIdentity = (playerId, sessionToken) => {
         this._identityStore.save(playerId, sessionToken);
-        // Load back from the store so the returned object is in the caller's
-        // realm (not a jsdom-created literal), enabling cross-realm deepEqual.
+        // Read the saved identity back so the resolved value comes from the store,
+        // keeping a single source of truth for its shape.
         this._identity = this._identityStore.load();
         finish(this._identity);
       };
@@ -117,6 +121,7 @@ export class TabSync {
   // Called once this tab's identity is confirmed (on the `connected` message),
   // so sibling tabs still electing can converge on it.
   publishIdentity(playerId, sessionToken) {
+    this._identityStore.save(playerId, sessionToken);
     this._identity = { playerId, sessionToken };
     this._broadcast({ kind: 'identity', playerId, sessionToken });
   }
