@@ -71,3 +71,21 @@ describe('trickPlanner.chooseLead (FR-competent)', () => {
     assert.equal(d.cardId, 1); // 9♦ — lowest of the long ♦ side suit
   });
 });
+
+describe('trickPlanner.chooseLead — draw trumps with control (FR-competent)', () => {
+  it('draws the top trump (a 9) when it has control but no boss point card', () => { // per competent-play
+    // Trump ♠; the bot holds only 9♠ in trump but every higher spade is gone, so 9♠ is the
+    // top remaining trump (control). It has no boss point card (A♥/10♥ keep K♥ live), so it
+    // falls through the boss step into the draw-trumps branch and leads 9♠.
+    const deck = buildDeck([
+      ['A', 'S'], ['10', 'S'], ['K', 'S'], ['Q', 'S'], ['J', 'S'], ['9', 'S'],
+      ['K', 'H'], ['9', 'D'], ['A', 'H'], ['10', 'H'],
+    ]);
+    const ctx = {
+      legal: obj(deck, [5, 6, 7]), hand: obj(deck, [5, 6, 7]), trump: 'S', deck,
+      goneCardIds: new Set([0, 1, 2, 3, 4]), currentTrick: [], playerCount: 3,
+      trickNumber: 1, isDeclarer: true, declaredMarriages: [],
+    };
+    assert.equal(trickPlanner.chooseLead(ctx).cardId, 5); // 9♠
+  });
+});
