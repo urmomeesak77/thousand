@@ -161,5 +161,5 @@ Post-feature enhancements (landed on this branch, no separate spec dir — desig
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/009-ai-opponents/plan.md`.
+at `specs/010-bot-card-memory/plan.md`.
 <!-- SPECKIT END -->

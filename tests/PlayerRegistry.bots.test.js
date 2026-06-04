@@ -27,6 +27,31 @@ describe('PlayerRegistry.createBot', () => {
     assert.ok(aggressiveness >= 0 && aggressiveness <= 1);
   });
 
+  it('assigns a persistent memorySkill in [0, 1]', () => { // per FR-009
+    const registry = new PlayerRegistry();
+    const { playerId } = registry.createBot('Robo-Mem');
+    const { memorySkill } = registry.players.get(playerId);
+    assert.equal(typeof memorySkill, 'number');
+    assert.ok(memorySkill >= 0 && memorySkill <= 1);
+  });
+
+  it('assigns an integer memorySeed for the deterministic recall draw', () => { // per FR-010
+    const registry = new PlayerRegistry();
+    const { playerId } = registry.createBot('Robo-Seed');
+    const { memorySeed } = registry.players.get(playerId);
+    assert.equal(typeof memorySeed, 'number');
+    assert.ok(Number.isInteger(memorySeed));
+  });
+
+  it('gives independent traits to different bots (no shared memory state)', () => { // per FR-010, FR-011
+    const registry = new PlayerRegistry();
+    const a = registry.players.get(registry.createBot('Robo-A').playerId);
+    const b = registry.players.get(registry.createBot('Robo-B').playerId);
+    // Seeds are drawn from a wide range, so two successive bots must differ
+    // (a collision would make their per-card recall draws identical).
+    assert.notEqual(a.memorySeed, b.memorySeed);
+  });
+
   it('is NOT registered in the session-token index', () => {
     const registry = new PlayerRegistry();
     const { playerId } = registry.createBot('Robo-Vera');

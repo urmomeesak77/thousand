@@ -21,6 +21,12 @@ class TrickPlay {
     this.collectedTricks = initSeatMap(playerCount, () => []);
     this.collectedTrickCounts = initSeatMap(playerCount, 0);
 
+    // Append-only "cards already gone" timeline (feature 010): one
+    // { cardId, trickNumber } per card as it leaves a hand. Consumed only by
+    // bot memory; logged at the single point each card is removed (playCard /
+    // commitCrawlCard) so crawl funnelling never double-logs.
+    this.playedLog = [];
+
     // Crawl sub-state (feature 007). Only ever active during trick 1 when an
     // ace-less declarer crawls. Commits accumulate here — never in the
     // face-exposing `currentTrick` — until the third lands (R-202).
@@ -61,6 +67,7 @@ class TrickPlay {
     }
 
     hands[seat] = hands[seat].filter(id => id !== cardId);
+    this.playedLog.push({ cardId, trickNumber: this.trickNumber });
     this.crawlCommits.push({ seat, cardId });
     this.currentTurnSeat = (seat + 1) % this.playerCount;
     const committedSeats = this.crawlCommits.map(c => c.seat);
@@ -90,6 +97,7 @@ class TrickPlay {
     if (followSuitRejection) {return followSuitRejection;}
 
     hands[seat] = hands[seat].filter(id => id !== cardId);
+    this.playedLog.push({ cardId, trickNumber: this.trickNumber });
     this.currentTrick.push({ seat, cardId });
     this.currentTurnSeat = (seat + 1) % this.playerCount;
 

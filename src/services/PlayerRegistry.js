@@ -41,6 +41,8 @@ class PlayerRegistry {
   // A bot is an ordinary seated player with no socket and no session token, so every
   // broadcast (sendToPlayer) silently no-ops and the disconnect/grace lifecycle never
   // touches it. `aggressiveness` (FR-016) is drawn once and persists for the game.
+  // `memorySkill`/`memorySeed` (feature 010, FR-009/FR-010) likewise persist per-game:
+  // skill sets the card-recall filter cutoff; seed salts the deterministic recall draw.
   createBot(nickname) {
     const playerId = crypto.randomUUID();
     this.players.set(playerId, {
@@ -53,6 +55,8 @@ class PlayerRegistry {
       graceTimer: null,
       isBot: true,
       aggressiveness: Math.random(),
+      memorySkill: Math.random(),
+      memorySeed: crypto.randomInt(2 ** 32),
     });
     return { playerId };
   }
