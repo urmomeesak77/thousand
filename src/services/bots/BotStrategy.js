@@ -1,9 +1,9 @@
 'use strict';
 
 const RoundSnapshot = require('../RoundSnapshot');
+const trickPlanner = require('./trickPlanner');
 const {
-  rankValue, rankStrength, roundDownToStep, findMarriages, pickCard,
-  bestCenterCard, cardBeats, isBossCard, estimateMakeable, pickExchangeCard, MARRIAGE_BONUS,
+  roundDownToStep, pickCard, estimateMakeable, pickExchangeCard,
 } = require('./botStrategyHelpers');
 const { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE } = require('./botConstants');
 
@@ -86,77 +86,20 @@ class BotStrategy {
     }
     const legal = legalCards(round, seat);
     if (legal.length === 0) { return null; }
-    const hand = handCards(round, seat);
-    if (seat !== round.declarerSeat) {
-      // On the lead, cash a recalled boss card (the led card sets the suit, so a boss is
-      // a guaranteed winner); otherwise dump the lowest legal card as in feature 009.
-      if (round.currentTrick.length === 0) {
-        const boss = BotStrategy._bossLead(round, legal, knowledge, hand);
-        if (boss) { return { kind: 'playCard', cardId: boss.cardId }; }
-      }
-      return { kind: 'playCard', cardId: pickCard(legal, { highest: false }).cardId };
-    }
-    return round.currentTrick.length === 0
-      ? BotStrategy._declarerLead(round, legal, knowledge, hand)
-      : BotStrategy._declarerFollow(round, legal);
-  }
-
-  // Highest-point recalled boss card legal to lead, never a reserved marriage card.
-  // Gated on non-empty recall so empty knowledge ⇒ feature-009 behaviour (S1); the boss
-  // property is computed only from what the bot recalls as gone (S2).
-  static _bossLead(round, legal, knowledge, hand, reserved = new Set()) {
-    const goneCardIds = knowledge?.goneCardIds;
-    if (!goneCardIds || goneCardIds.size === 0) { return null; }
-    const context = { goneCardIds, hand, currentTrick: round.currentTrick, deck: round.deck };
-    const trump = round.currentTrumpSuit;
-    return legal
-      .filter((c) => !reserved.has(c.cardId) && rankValue(c.rank) > 0 && isBossCard(c, context, trump))
-      .sort((a, b) => rankValue(b.rank) - rankValue(a.rank))[0] ?? null;
-  }
-
-  // Declarer lead: declare the most valuable marriage in its legal window, else cash a
-  // recalled boss card, else draw trumps, else lead the highest free card while
-  // reserving a still-declarable marriage.
-  static _declarerLead(round, legal, knowledge, hand) {
-    const trump = round.currentTrumpSuit;
-    const trickNumber = round.trickNumber;
-    const marriageSuits = declarableMarriageSuits(legal, trump);
-    if (trickNumber >= 2 && trickNumber <= 6) {
-      for (const suit of marriageSuits) {
-        const king = legal.find((c) => c.rank === 'K' && c.suit === suit);
-        if (king) { return { kind: 'playCard', cardId: king.cardId, declareMarriage: true }; }
-      }
-    }
-    const reserved = reservedMarriageCards(legal, marriageSuits, trickNumber);
-    const boss = BotStrategy._bossLead(round, legal, knowledge, hand, reserved);
-    if (boss) { return { kind: 'playCard', cardId: boss.cardId }; }
-    if (trump) {
-      const trumps = legal.filter((c) => c.suit === trump)
-        .sort((a, b) => rankStrength(b.rank) - rankStrength(a.rank));
-      if (trumps.length > 0) { return { kind: 'playCard', cardId: trumps[0].cardId }; }
-    }
-    const pool = legal.filter((c) => !reserved.has(c.cardId));
-    const best = pickCard(pool.length > 0 ? pool : legal, { highest: true });
-    return best ? { kind: 'playCard', cardId: best.cardId } : null;
-  }
-
-  // Declarer follow: win as cheaply as possible without spending a reserved marriage
-  // card; otherwise discard the lowest free card, protecting K+Q for declaration.
-  static _declarerFollow(round, legal) {
-    const trump = round.currentTrumpSuit;
-    const marriageSuits = findMarriages(legal).filter((s) => s !== trump);
-    const reserved = reservedMarriageCards(legal, marriageSuits, round.trickNumber);
-    const center = round.currentTrick.map(({ cardId }) => ({
-      rank: round.deck[cardId].rank, suit: round.deck[cardId].suit,
-    }));
-    const best = bestCenterCard(center, trump);
-    const winners = legal
-      .filter((c) => !reserved.has(c.cardId) && cardBeats(c, best, trump))
-      .sort((a, b) => rankStrength(a.rank) - rankStrength(b.rank));
-    if (winners.length > 0) { return { kind: 'playCard', cardId: winners[0].cardId }; }
-    const discardPool = legal.filter((c) => !reserved.has(c.cardId));
-    const worst = pickCard(discardPool.length > 0 ? discardPool : legal, { highest: false });
-    return worst ? { kind: 'playCard', cardId: worst.cardId } : null;
+    const ctx = {
+      legal, hand: handCards(round, seat), trump: round.currentTrumpSuit,
+      trickNumber: round.trickNumber, goneCardIds: knowledge.goneCardIds || new Set(),
+      currentTrick: round.currentTrick, deck: round.deck, playerCount: round.playerCount,
+      isDeclarer: seat === round.declarerSeat, declaredMarriages: round.declaredMarriages || [],
+    };
+    const decision = round.currentTrick.length === 0
+      ? trickPlanner.chooseLead(ctx)
+      : trickPlanner.chooseFollow(ctx);
+    if (!decision) { return null; }
+    return {
+      kind: 'playCard', cardId: decision.cardId,
+      ...(decision.declareMarriage ? { declareMarriage: true } : {}),
+    };
   }
 
   static _decideContinue(round, seat) {
@@ -182,24 +125,6 @@ function nextExchangeDest(round, declarerSeat) {
     if (s !== declarerSeat && !round._usedExchangeDestSeats.has(s)) { return s; }
   }
   return null;
-}
-
-// Complete marriages held (excluding the current trump), highest-bonus first.
-function declarableMarriageSuits(legal, trump) {
-  return findMarriages(legal)
-    .filter((s) => s !== trump)
-    .sort((a, b) => MARRIAGE_BONUS[b] - MARRIAGE_BONUS[a]);
-}
-
-// The K/Q of still-declarable marriages, reserved (never spent) while a declaration
-// remains reachable (before trick 6 ends).
-function reservedMarriageCards(legal, marriageSuits, trickNumber) {
-  if (trickNumber > 6) { return new Set(); }
-  return new Set(
-    legal
-      .filter((c) => marriageSuits.includes(c.suit) && (c.rank === 'K' || c.rank === 'Q'))
-      .map((c) => c.cardId),
-  );
 }
 
 module.exports = BotStrategy;

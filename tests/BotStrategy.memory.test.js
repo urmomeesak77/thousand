@@ -10,45 +10,47 @@ function buildDeck(cards) {
   return cards.map(([rank, suit], id) => ({ id, rank, suit }));
 }
 
-// Declarer leading on trick 1 (outside the marriage window), no trump. Hand: 10♥, Q♣.
-// 10♥ is the higher-value card but is beatable by A♥; Q♣ is lower-value but becomes a
-// guaranteed winner once A♣/10♣/K♣ are gone.
+// Declarer leading on trick 1, no trump. Hand: K♣, 9♦, J♦. With no recall the bot can't
+// prove K♣ safe (A♣/10♣ still live) so it leads the low safe 9♦; once A♣ & 10♣ are
+// recalled gone, K♣ is a guaranteed winner and gets cashed. The full higher-diamond suit
+// is in the deck so 9♦/J♦ are never themselves bosses.
 function declarerRound(deck) {
   return {
     phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
     fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
-    trickNumber: 1, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1] }, deck,
+    trickNumber: 1, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1, 2] }, deck,
   };
 }
 
 const CARDS = [
-  ['10', 'H'], // 0  10♥ — higher value, beatable by A♥
-  ['Q', 'C'],  // 1  Q♣  — boss once the higher clubs are gone
-  ['A', 'H'],  // 2  A♥  — the live card that keeps 10♥ from being boss
-  ['A', 'C'],  // 3
-  ['10', 'C'], // 4
-  ['K', 'C'],  // 5
+  ['K', 'C'],  // 0  hand — boss only once A♣ & 10♣ are recalled gone
+  ['9', 'D'],  // 1  hand — the empty-memory safe lead
+  ['J', 'D'],  // 2  hand
+  ['A', 'C'],  // 3  higher club (recall target)
+  ['10', 'C'], // 4  higher club (recall target)
+  ['A', 'D'],  // 5  higher diamonds keep 9♦/J♦ from ever being a boss
+  ['10', 'D'], // 6
+  ['K', 'D'],  // 7
+  ['Q', 'D'],  // 8
 ];
 
-describe('BotStrategy.decide — boss-card cashing with memory (FR-012, S1)', () => {
-  it('with empty knowledge, the declarer plays the feature-009 lead (highest value)', () => { // per FR-014
+describe('BotStrategy.decide — boss-card cashing with memory (FR-012, S2)', () => {
+  it('with empty knowledge, leads a low safe side card (no boss provable)', () => { // per FR-014
     const d = BotStrategy.decide(declarerRound(buildDeck(CARDS)), 0, 0.5);
     assert.equal(d.kind, 'playCard');
-    assert.equal(d.cardId, 0); // 10♥ — 009 leads the highest-value free card
+    assert.equal(d.cardId, 1); // 9♦ — K♣ not provably safe, lead low from the long ♦ suit
   });
 
-  it('cashes a recalled boss card instead of the 009 lead', () => { // per FR-012
-    // A♣/10♣/K♣ recalled gone ⇒ Q♣ is unbeatable; A♥ still live ⇒ 10♥ is not.
-    const knowledge = { goneCardIds: new Set([3, 4, 5]) };
-    const d = BotStrategy.decide(declarerRound(buildDeck(CARDS)), 0, 0.5, knowledge);
-    assert.equal(d.cardId, 1); // Q♣ — the highest-point identifiable boss
-  });
-
-  it('falls back to the 009 lead when a higher card is forgotten (memory mistake)', () => { // per FR-013
-    // K♣ forgotten ⇒ Q♣ can no longer be proven safe ⇒ no boss ⇒ 009 fallback.
+  it('cashes K♣ once A♣ and 10♣ are recalled gone', () => { // per FR-012
     const knowledge = { goneCardIds: new Set([3, 4]) };
     const d = BotStrategy.decide(declarerRound(buildDeck(CARDS)), 0, 0.5, knowledge);
-    assert.equal(d.cardId, 0); // 10♥, exactly as with no memory
+    assert.equal(d.cardId, 0); // K♣ is now a guaranteed winner
+  });
+
+  it('falls back to the safe lead when a higher club is forgotten (memory mistake)', () => { // per FR-013
+    const knowledge = { goneCardIds: new Set([3]) }; // 10♣ forgotten
+    const d = BotStrategy.decide(declarerRound(buildDeck(CARDS)), 0, 0.5, knowledge);
+    assert.equal(d.cardId, 1); // 9♦ — cannot prove K♣ safe
   });
 
   it('never reads gone cards from round state — only from knowledge.goneCardIds (S2)', () => { // per FR-012
@@ -57,15 +59,16 @@ describe('BotStrategy.decide — boss-card cashing with memory (FR-012, S1)', ()
     Object.defineProperty(round, 'playedLog', {
       get() { throw new Error('BotStrategy read round.playedLog directly'); },
     });
-    const knowledge = { goneCardIds: new Set([3, 4, 5]) };
+    const knowledge = { goneCardIds: new Set([3, 4]) };
     assert.doesNotThrow(() => BotStrategy.decide(round, 0, 0.5, knowledge));
-    assert.equal(BotStrategy.decide(round, 0, 0.5, knowledge).cardId, 1);
+    assert.equal(BotStrategy.decide(round, 0, 0.5, knowledge).cardId, 0); // K♣
   });
 });
 
-describe('BotStrategy.decide — opponent cashes a recalled boss on the lead (FR-012)', () => {
-  // Opponent (declarer is seat 1) leading with A♣ + 9♥. A♣ is an unbeatable boss; 9♥ is
-  // the lowest dump. 009 opponents always dump lowest; memory lets it cash the ace.
+describe('BotStrategy.decide — opponents play competently on the lead (FR-012)', () => {
+  // Declarer is seat 1; the opponent at seat 0 leads. It cashes its boss ace instead of
+  // dumping its lowest card (the old v1 behaviour). An ace is an inherent boss — no memory
+  // needed; memory only matters for non-top cards (covered by the declarer cases above).
   const deck = buildDeck([['A', 'C'], ['9', 'H'], ['K', 'D']]);
   const round = {
     phase: 'trick-play', declarerSeat: 1, currentTurnSeat: 0, playerCount: 3,
@@ -73,39 +76,32 @@ describe('BotStrategy.decide — opponent cashes a recalled boss on the lead (FR
     trickNumber: 2, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1] }, deck,
   };
 
-  it('with empty knowledge, dumps the lowest legal card (feature 009)', () => { // per FR-014
-    assert.equal(BotStrategy.decide(round, 0, 0.5).cardId, 1); // 9♥
-  });
-
-  it('with any recall active, leads the boss ace it can prove unbeatable', () => { // per FR-012
-    const knowledge = { goneCardIds: new Set([2]) }; // an unrelated gone card
-    assert.equal(BotStrategy.decide(round, 0, 0.5, knowledge).cardId, 0); // A♣
+  it('leads the boss ace, not the lowest card', () => { // per FR-012
+    assert.equal(BotStrategy.decide(round, 0, 0.5).cardId, 0); // A♣
   });
 });
 
 describe('BotStrategy.decide — forgetting causes measurable mistakes (FR-013, SC-004)', () => {
-  // Declarer holds 10♥ + Q♣, leading trick 5. Q♣ is a boss ONLY if the bot recalls all
-  // three higher clubs (A♣,10♣,K♣, played at trick 1 ⇒ age 4). If any is forgotten the
-  // bot can't prove Q♣ safe and falls back to the 009 lead (10♥) — an observable mistake.
+  // Declarer holds K♣, 9♦, J♦, leading trick 5. K♣ is a boss ONLY if the bot recalls both
+  // higher clubs (A♣,10♣, played trick 1 ⇒ age 4). Recalled ⇒ cash K♣; forgotten ⇒ it
+  // can't prove K♣ safe and leads the low 9♦ — an observable mistake (a missed winner).
   const DECK = buildDeck([
-    ['10', 'H'], ['Q', 'C'], ['A', 'H'], ['A', 'C'], ['10', 'C'], ['K', 'C'],
+    ['K', 'C'], ['9', 'D'], ['J', 'D'], ['A', 'C'], ['10', 'C'],
+    ['A', 'D'], ['10', 'D'], ['K', 'D'], ['Q', 'D'],
   ]);
   const round = {
     phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
     fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
-    trickNumber: 5, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1] }, deck: DECK,
+    trickNumber: 5, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1, 2] }, deck: DECK,
   };
-  const PLAYED_LOG = [
-    { cardId: 3, trickNumber: 1 }, { cardId: 4, trickNumber: 1 }, { cardId: 5, trickNumber: 1 },
-  ];
+  const PLAYED_LOG = [{ cardId: 3, trickNumber: 1 }, { cardId: 4, trickNumber: 1 }];
 
-  // Cash the boss (Q♣ = cardId 1) using the recall the given skill produces, over many
-  // rounds. Returns how many of `rounds` decisions cashed (vs the 10♥ fallback mistake).
+  // How many of `rounds` decisions cash the boss K♣ (cardId 0) vs leading 9♦ (the mistake).
   function bossCashes(skill, seed, rounds) {
     let cashes = 0;
     for (let roundKey = 0; roundKey < rounds; roundKey++) {
       const goneCardIds = new BotMemory(skill, seed).recalledGoneCardIds(PLAYED_LOG, 5, roundKey);
-      if (BotStrategy.decide(round, 0, 0.5, { goneCardIds }).cardId === 1) { cashes += 1; }
+      if (BotStrategy.decide(round, 0, 0.5, { goneCardIds }).cardId === 0) { cashes += 1; }
     }
     return cashes;
   }

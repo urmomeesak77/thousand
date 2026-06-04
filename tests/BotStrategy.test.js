@@ -100,8 +100,9 @@ describe('BotStrategy.decide — per-phase legality', () => {
     assert.equal(BotStrategy.decide(round, 0, 0.5), null);
   });
 
-  it('trick-play non-declarer: dumps the lowest legal (follow-suit) card', () => {
-    // Hand A♥,J♥,9♠; led K♥ ⇒ must follow hearts ⇒ legal {A♥,J♥} ⇒ dump J♥.
+  it('trick-play non-declarer: wins a point-rich trick with the cheapest winner', () => { // per competent-play
+    // Hand A♥,J♥,9♠; led K♥ (4 pts) ⇒ must follow hearts ⇒ capture with A♥ (the only winner).
+    // Competent play takes the points off the declarer rather than dumping low (old v1).
     const { deck } = deckHand([['A', 'H'], ['J', 'H'], ['9', 'S'], ['K', 'H']]);
     const round = {
       phase: 'trick-play', declarerSeat: 1, currentTurnSeat: 0, playerCount: 3,
@@ -111,7 +112,7 @@ describe('BotStrategy.decide — per-phase legality', () => {
     };
     const d = BotStrategy.decide(round, 0, 0.5);
     assert.equal(d.kind, 'playCard');
-    assert.equal(d.cardId, 1); // J♥, the lowest-value legal heart
+    assert.equal(d.cardId, 0); // A♥ — wins the points
   });
 
   it('trick-play declarer lead: declares a held marriage in the legal window', () => {
@@ -170,18 +171,19 @@ describe('BotStrategy.decide — per-phase legality', () => {
     assert.equal(d.cardId, 1); // A♠ is the strongest trump
   });
 
-  it('trick-play declarer follow: wins the trick as cheaply as it can', () => {
-    // Led 9♥; declarer holds K♥ and A♥ → wins with the cheaper winner (K♥).
-    const { deck } = deckHand([['K', 'H'], ['A', 'H'], ['9', 'H']]);
+  it('trick-play follow: ducks a worthless trick to save a high card', () => { // per competent-play
+    // Led 9♠ (0 pts); follower is void in ♠ with no trump and holds A♥,9♦ → discards 9♦,
+    // keeping the ace for a point trick instead of wasting it.
+    const { deck } = deckHand([['A', 'H'], ['9', 'D'], ['9', 'S']]);
     const round = {
-      phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
+      phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 1, playerCount: 3,
       fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
       trickNumber: 4, currentTrumpSuit: null,
-      currentTrick: [{ seat: 1, cardId: 2 }], hands: { 0: [0, 1] }, deck,
+      currentTrick: [{ seat: 0, cardId: 2 }], hands: { 1: [0, 1] }, deck,
     };
-    const d = BotStrategy.decide(round, 0, 0.5);
+    const d = BotStrategy.decide(round, 1, 0.5);
     assert.equal(d.kind, 'playCard');
-    assert.equal(d.cardId, 0); // K♥ beats the 9♥ more cheaply than the A♥
+    assert.equal(d.cardId, 1); // 9♦ — keep the ace
   });
 
   it('returns null when it is not the bot\'s turn to bid', () => {
