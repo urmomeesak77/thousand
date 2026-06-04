@@ -156,3 +156,10 @@ triggers a harmless resync.
 - **Retire `session_replaced` entirely** — confirmed; multi-socket leaves no
   scenario needing it.
 - **Election window ~200 ms**, fresh first-load only.
+- **Adopt timeout ~3000 ms** (separate from the election window): a non-creator
+  fresh tab waits this long for the elected creator to broadcast its
+  server-issued identity before falling back to creating its own. Generous on
+  purpose so it covers a real WS connect + hello round-trip — the fixed
+  election-window fallback alone was not robust against non-localhost latency
+  (a slow round-trip could still produce a second player). `_onIdentity` stays
+  registered through this wait, so an identity arriving late is still adopted.
