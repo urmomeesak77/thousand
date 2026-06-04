@@ -25,7 +25,6 @@ const MESSAGE_VALIDATORS = {
     && typeof m.restored === 'boolean'
     && (m.nickname === null || typeof m.nickname === 'string')
   ),
-  session_replaced: () => true,
   lobby_update: (m) => Array.isArray(m.games),
   game_joined: (m) => typeof m.gameId === 'string' && Array.isArray(m.players)
     && typeof m.requiredPlayers === 'number',
@@ -122,7 +121,6 @@ class ThousandMessageRouter {
       player_joined:        (m) => this._onPlayerJoined(m),
       player_left:          (m) => this._onPlayerLeft(m),
       game_disbanded:       (m) => this._onGameDisbanded(m),
-      session_replaced:     ( ) => this._onSessionReplaced(),
       error:                (m) => app._toast.show(m.message || 'An error occurred'),
       round_started:        (m) => this._onRoundStarted(m),
       phase_changed:        (m) => app._gameScreen.updateStatus(m.gameStatus),
@@ -180,15 +178,6 @@ class ThousandMessageRouter {
     }
   }
 
-  // Server kicks this connection when another tab/browser connects with the same
-  // identity (last-connect-wins). Stop the reconnect loop so the kicked tab
-  // doesn't immediately kick the new one back — that races forever.
-  _onSessionReplaced() {
-    const app = this._app;
-    app._toast.show('Connected from another tab or browser — this session ended.');
-    app._socket.disconnect();
-  }
-
   _onConnected(msg) {
     const app = this._app;
     // Hide first: any throw below shouldn't strand the user behind the overlay.
@@ -197,6 +186,7 @@ class ThousandMessageRouter {
     app._sessionToken = msg.sessionToken;
     app._api.setSessionToken(app._sessionToken);
     IdentityStore.save(msg.playerId, msg.sessionToken);
+    app._tabSync?.publishIdentity(msg.playerId, msg.sessionToken);
     if (msg.restored && msg.nickname !== null) {
       app._nickname = msg.nickname;
       $('player-name-display').textContent = msg.nickname;

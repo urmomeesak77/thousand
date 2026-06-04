@@ -1,4 +1,5 @@
 import { IdentityStore } from '../storage/IdentityStore.js';
+import { TabSync } from '../storage/TabSync.js';
 import { ReconnectOverlay } from '../overlays/ReconnectOverlay.js';
 import HtmlContainer from '../antlion/HtmlContainer.js';
 import NicknameScreen from '../screens/NicknameScreen.js';
@@ -28,6 +29,7 @@ class ThousandApp {
     this._inviteCode = null;
     this._selectedGameId = null;
     this._roundEnded = false;
+    this._tabSync = new TabSync();
     this._toast = new Toast(antlion);
     this._api = new GameApi((msg) => this._toast.show(msg));
     this._modal = new NewGameModal(
@@ -90,7 +92,10 @@ class ThousandApp {
     if (IdentityStore.load().playerId) {
       this._reconnectOverlay.show();
     }
-    this._socket.connect();
+    // Resolve the shared identity (electing with sibling tabs if this is a
+    // fresh load) BEFORE the first connect, so the hello carries the agreed
+    // identity and two fresh tabs don't become two players.
+    this._tabSync.resolveIdentity().then(() => this._socket.connect());
   }
 
   _showScreen(name) {

@@ -30,6 +30,7 @@ before(() => {
     path.join(publicDir, 'js', 'utils', 'HtmlUtil.js'),
     path.join(publicDir, 'js', 'overlays', 'Toast.js'),
     path.join(publicDir, 'js', 'storage', 'IdentityStore.js'),
+    path.join(publicDir, 'js', 'storage', 'TabSync.js'),
     path.join(publicDir, 'js', 'overlays', 'ReconnectOverlay.js'),
     path.join(publicDir, 'js', 'network', 'ThousandSocket.js'),
     path.join(publicDir, 'js', 'network', 'GameApi.js'),
