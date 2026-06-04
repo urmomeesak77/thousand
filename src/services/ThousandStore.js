@@ -158,7 +158,18 @@ class ThousandStore {
     this.broadcastLobbyUpdate();
   }
 
+  // Bots have no session token to expire, so the disconnect/grace lifecycle never
+  // reclaims them. Every game-teardown path must explicitly remove a game's bot
+  // records or they leak in the registry forever (FR-014).
+  _purgeBots(game) {
+    for (const pid of game.players) {
+      const player = this.players.get(pid);
+      if (player?.isBot) {this._registry.remove(pid);}
+    }
+  }
+
   _deleteGame(gameId, game) {
+    this._purgeBots(game);
     if (game.waitingRoomTimer) {
       clearTimeout(game.waitingRoomTimer);
       game.waitingRoomTimer = null;
@@ -240,6 +251,7 @@ class ThousandStore {
       const player = this.players.get(pid);
       if (player) {player.gameId = null;}
     }
+    this._purgeBots(game);
     if (game.waitingRoomTimer) {
       clearTimeout(game.waitingRoomTimer);
       game.waitingRoomTimer = null;

@@ -38,6 +38,25 @@ class PlayerRegistry {
     return { playerId, sessionToken };
   }
 
+  // A bot is an ordinary seated player with no socket and no session token, so every
+  // broadcast (sendToPlayer) silently no-ops and the disconnect/grace lifecycle never
+  // touches it. `aggressiveness` (FR-016) is drawn once and persists for the game.
+  createBot(nickname) {
+    const playerId = crypto.randomUUID();
+    this.players.set(playerId, {
+      id: playerId,
+      nickname,
+      gameId: null,
+      sockets: new Set(),
+      sessionToken: null,
+      disconnectedAt: null,
+      graceTimer: null,
+      isBot: true,
+      aggressiveness: Math.random(),
+    });
+    return { playerId };
+  }
+
   createOrRestore(ws, clientIp, playerId, sessionToken) {
     const isValidShape = typeof playerId === 'string' && typeof sessionToken === 'string'
       && playerId.length === UUID_LENGTH && sessionToken.length === UUID_LENGTH;
@@ -98,7 +117,7 @@ class PlayerRegistry {
   serializePlayers(game) {
     return [...game.players].map((pid) => {
       const p = this.players.get(pid);
-      return p ? { nickname: p.nickname } : null;
+      return p ? { nickname: p.nickname, isBot: Boolean(p.isBot) } : null;
     }).filter(Boolean);
   }
 
