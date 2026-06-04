@@ -15,4 +15,9 @@ const BARREL_BID_FLOOR = 120;
 // Caps even the boldest bot so it can miss a gambled contract but never runaway-overbid.
 const MAX_TALON_GAMBLE = 30;
 
-module.exports = { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE };
+// Selling: how far below the bid a declarer tolerates before selling, and how far above
+// the bid an opponent needs before buying. Both shrink with aggressiveness.
+const SELL_CUSHION = 30;
+const BUY_MARGIN = 20;
+
+module.exports = { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE, SELL_CUSHION, BUY_MARGIN };
