@@ -67,17 +67,6 @@ describe('BotStrategy.decide — per-phase legality', () => {
     if (d.kind === 'bid') { assert.equal(d.amount % BID_STEP, 0); }
   });
 
-  it('post-bid-decision: the declarer starts the game (never sells in v1)', () => {
-    const round = { phase: 'post-bid-decision', declarerSeat: 0 };
-    assert.deepEqual(BotStrategy.decide(round, 0, 0.5), { kind: 'startGame' });
-    assert.equal(BotStrategy.decide(round, 1, 0.5), null);
-  });
-
-  it('selling-bidding: a bot opponent passes', () => {
-    const round = { phase: 'selling-bidding', declarerSeat: 0, currentTurnSeat: 1 };
-    assert.deepEqual(BotStrategy.decide(round, 1, 0.5), { kind: 'sellPass' });
-  });
-
   it('card-exchange: the declarer passes a non-essential card to a fresh seat', () => {
     const { deck } = deckHand([['A', 'S'], ['K', 'C'], ['Q', 'C'], ['9', 'D']]);
     const round = {
@@ -192,5 +181,46 @@ describe('BotStrategy.decide — per-phase legality', () => {
       passedBidders: new Set(), isPausedByDisconnect: false, hands: {}, deck: [], _game: {},
     };
     assert.equal(BotStrategy.decide(round, 0, 0.5), null);
+  });
+});
+
+describe('BotStrategy.decide — selling (FR-competent)', () => {
+  it('post-bid: declarer sells a hopeless hand; a non-declarer has nothing to do', () => { // per competent-play
+    const { deck } = deckHand([['9', 'D'], ['J', 'D'], ['9', 'S'], ['J', 'H']]);
+    const round = {
+      phase: 'post-bid-decision', declarerSeat: 0, currentTurnSeat: 0,
+      currentHighBid: 200, hands: { 0: [0, 1, 2, 3] }, deck, attemptCount: 0, _game: {},
+    };
+    assert.equal(BotStrategy.decide(round, 0, 0.5).kind, 'sellStart');
+    assert.equal(BotStrategy.decide(round, 1, 0.5), null);
+  });
+
+  it('post-bid: declarer takes a makeable hand', () => { // per competent-play
+    const { deck } = deckHand([['K', 'C'], ['Q', 'C'], ['A', 'S'], ['A', 'H']]);
+    const round = {
+      phase: 'post-bid-decision', declarerSeat: 0, currentTurnSeat: 0,
+      currentHighBid: 120, hands: { 0: [0, 1, 2, 3] }, deck, attemptCount: 0, _game: {},
+    };
+    assert.equal(BotStrategy.decide(round, 0, 0.5).kind, 'startGame');
+  });
+
+  it('selling-selection: declarer exposes exactly playerCount cards', () => { // per competent-play
+    const { deck } = deckHand([['A', 'S'], ['9', 'D'], ['K', 'C'], ['J', 'H']]);
+    const round = {
+      phase: 'selling-selection', declarerSeat: 0, playerCount: 3,
+      hands: { 0: [0, 1, 2, 3] }, deck,
+    };
+    const d = BotStrategy.decide(round, 0, 0.5);
+    assert.equal(d.kind, 'sellSelect');
+    assert.equal(d.cardIds.length, 3);
+  });
+
+  it('selling-bidding: opponent passes a poor exposed hand', () => { // per competent-play
+    const { deck } = deckHand([['9', 'D'], ['J', 'D'], ['9', 'S'], ['J', 'H'], ['Q', 'D']]);
+    const round = {
+      phase: 'selling-bidding', declarerSeat: 0, currentTurnSeat: 1, playerCount: 3,
+      currentHighBid: 200, hands: { 1: [0, 1] }, exposedSellCards: [2, 3, 4], deck,
+    };
+    assert.equal(BotStrategy.decide(round, 1, 0.5).kind, 'sellPass');
   });
 });

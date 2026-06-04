@@ -15,6 +15,9 @@ function makeHandler() {
     handleBid: rec('handleBid'),
     handlePass: rec('handlePass'),
     handleSellPass: rec('handleSellPass'),
+    handleSellStart: rec('handleSellStart'),
+    handleSellSelect: rec('handleSellSelect'),
+    handleSellBid: rec('handleSellBid'),
     handleExchangePass: rec('handleExchangePass'),
     handlePlayCard: rec('handlePlayCard'),
     handleCrawlCommit: rec('handleCrawlCommit'),
@@ -35,7 +38,7 @@ function makeStore(round) {
 describe('BotTurnDriver', () => {
   it('schedules and fires one action for a bot with a pending obligation', (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
-    const round = { phase: 'post-bid-decision', declarerSeat: 0, seatByPlayer: new Map([['bot-1', 0]]) };
+    const round = { phase: 'post-bid-decision', declarerSeat: 0, currentHighBid: 100, attemptCount: 0, hands: { 0: [0] }, deck: [{ id: 0, rank: '9', suit: 'D' }], seatByPlayer: new Map([['bot-1', 0]]) };
     const { store, game } = makeStore(round);
     const handler = makeHandler();
     const driver = new BotTurnDriver(store, handler);
@@ -62,7 +65,7 @@ describe('BotTurnDriver', () => {
 
   it('re-reads state at fire time rather than trusting the scheduled state', (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
-    const round = { phase: 'post-bid-decision', declarerSeat: 0, seatByPlayer: new Map([['bot-1', 0]]) };
+    const round = { phase: 'post-bid-decision', declarerSeat: 0, currentHighBid: 100, attemptCount: 0, hands: { 0: [0] }, deck: [{ id: 0, rank: '9', suit: 'D' }], seatByPlayer: new Map([['bot-1', 0]]) };
     const { store, game } = makeStore(round);
     const driver = new BotTurnDriver(store, makeHandler());
     const handler = driver._handler;
@@ -77,7 +80,7 @@ describe('BotTurnDriver', () => {
 
   it('debounces double-schedules to a single pending timer', (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
-    const round = { phase: 'post-bid-decision', declarerSeat: 0, seatByPlayer: new Map([['bot-1', 0]]) };
+    const round = { phase: 'post-bid-decision', declarerSeat: 0, currentHighBid: 100, attemptCount: 0, hands: { 0: [0] }, deck: [{ id: 0, rank: '9', suit: 'D' }], seatByPlayer: new Map([['bot-1', 0]]) };
     const { store, game } = makeStore(round);
     const handler = makeHandler();
     const driver = new BotTurnDriver(store, handler);
@@ -90,7 +93,7 @@ describe('BotTurnDriver', () => {
 
   it('clears pending timers on game teardown', (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
-    const round = { phase: 'post-bid-decision', declarerSeat: 0, seatByPlayer: new Map([['bot-1', 0]]) };
+    const round = { phase: 'post-bid-decision', declarerSeat: 0, currentHighBid: 100, attemptCount: 0, hands: { 0: [0] }, deck: [{ id: 0, rank: '9', suit: 'D' }], seatByPlayer: new Map([['bot-1', 0]]) };
     const { store, game } = makeStore(round);
     const handler = makeHandler();
     const driver = new BotTurnDriver(store, handler);

@@ -9,8 +9,13 @@
 const RANK_VALUE = { A: 11, '10': 10, K: 4, Q: 3, J: 2, '9': 0, '8': 0, '7': 0 };
 // Trick-winning order, high→low: A,10,K,Q,J,9,8,7 (distinct from point value).
 const RANK_STRENGTH = { A: 8, '10': 7, K: 6, Q: 5, J: 4, '9': 3, '8': 2, '7': 1 };
-// Marriage bonus by suit letter (♣100 / ♠80 / ♥60 / ♦40).
-const MARRIAGE_BONUS = { C: 100, S: 80, H: 60, D: 40 };
+// Marriage bonus by suit. Keyed by BOTH the letter form used in unit tests and the
+// symbol form the real Deck produces (♣100 / ♠80 / ♥60 / ♦40), so lookups never return
+// undefined — an undefined bonus would poison estimateMakeable's sum with NaN.
+const MARRIAGE_BONUS = {
+  C: 100, S: 80, H: 60, D: 40,
+  '♣': 100, '♠': 80, '♥': 60, '♦': 40,
+};
 
 function rankValue(rank) {
   return RANK_VALUE[rank] ?? 0;

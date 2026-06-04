@@ -76,6 +76,9 @@ class BotTurnDriver {
       case 'pass': return h.handlePass(botId);
       case 'startGame': return h.handleStartGame(botId);
       case 'sellPass': return h.handleSellPass(botId);
+      case 'sellStart': return h.handleSellStart(botId);
+      case 'sellSelect': return h.handleSellSelect(botId, decision.cardIds);
+      case 'sellBid': return h.handleSellBid(botId, decision.amount);
       case 'exchangePass': return h.handleExchangePass(botId, decision.cardId, decision.toSeat);
       case 'playCard': return h.handlePlayCard(botId, decision.cardId, decision.declareMarriage === true);
       case 'crawlCommit': return h.handleCrawlCommit(botId, decision.cardId);

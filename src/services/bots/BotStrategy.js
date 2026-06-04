@@ -2,6 +2,7 @@
 
 const RoundSnapshot = require('../RoundSnapshot');
 const trickPlanner = require('./trickPlanner');
+const sellEvaluator = require('./sellEvaluator');
 const {
   roundDownToStep, pickCard, estimateMakeable, pickExchangeCard,
 } = require('./botStrategyHelpers');
@@ -25,8 +26,9 @@ class BotStrategy {
     if (!round) { return null; }
     switch (round.phase) {
       case 'bidding': return BotStrategy._decideBidding(round, seat, aggressiveness);
-      case 'post-bid-decision': return seat === round.declarerSeat ? { kind: 'startGame' } : null;
-      case 'selling-bidding': return BotStrategy._decideSellBidding(round, seat);
+      case 'post-bid-decision': return BotStrategy._decidePostBid(round, seat, aggressiveness);
+      case 'selling-selection': return seat === round.declarerSeat ? BotStrategy._decideSellSelection(round, seat) : null;
+      case 'selling-bidding': return BotStrategy._decideSellBidding(round, seat, aggressiveness);
       case 'card-exchange': return seat === round.declarerSeat ? BotStrategy._decideExchange(round, seat) : null;
       case 'trick-play': return BotStrategy._decideTrickPlay(round, seat, knowledge);
       case 'round-summary': return BotStrategy._decideContinue(round, seat);
@@ -59,11 +61,26 @@ class BotStrategy {
     return BotStrategy.decideBid(handCards(round, seat), aggressiveness, floor, { forced });
   }
 
-  // A bot opponent never buys a sold hand in v1 — it passes the sell auction (legal,
-  // completes the selling-phase obligation). The declarer itself never sells.
-  static _decideSellBidding(round, seat) {
+  // Declarer's post-bid decision: take a makeable hand, else start selling (FR-competent).
+  // Sell at most once — if a prior auction already returned the hand (attemptCount > 0),
+  // take it rather than re-exposing the same cards (which the round would reject).
+  static _decidePostBid(round, seat, aggressiveness) {
+    if (seat !== round.declarerSeat) { return null; }
+    const attemptsLeft = (round.attemptCount || 0) > 0 ? 0 : 1;
+    return sellEvaluator.takeOrSell(handCards(round, seat), round.currentHighBid, aggressiveness, attemptsLeft);
+  }
+
+  // Declarer exposes its strongest cards (playerCount of them) to entice a buyer.
+  static _decideSellSelection(round, seat) {
+    const cardIds = sellEvaluator.chooseSellExposure(handCards(round, seat), round.playerCount);
+    return cardIds.length === round.playerCount ? { kind: 'sellSelect', cardIds } : null;
+  }
+
+  // Opponent's sell-auction decision: buy a profitable exposed hand, else pass.
+  static _decideSellBidding(round, seat, aggressiveness) {
     if (seat === round.declarerSeat || round.currentTurnSeat !== seat) { return null; }
-    return { kind: 'sellPass' };
+    const exposed = (round.exposedSellCards || []).map((id) => ({ rank: round.deck[id].rank, suit: round.deck[id].suit }));
+    return sellEvaluator.buyOrPass(handCards(round, seat), exposed, round.currentHighBid, aggressiveness, round.currentHighBid);
   }
 
   static _decideExchange(round, seat) {
