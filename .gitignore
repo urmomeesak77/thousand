@@ -4,6 +4,10 @@ node_modules/
 .env
 temp/
 
+# Deploy SSH keys (never commit private keys)
+thousand_deploy
+thousand_deploy.pub
+
 # Live e2e test artifacts
 /*.png
 *.log
