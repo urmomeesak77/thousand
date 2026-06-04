@@ -99,7 +99,11 @@ export class TabSync {
         } else {
           // A lower-nonce sibling will create. Wait (generously — see
           // ADOPT_TIMEOUT_MS) for it to broadcast its server-issued identity,
-          // then fall back to creating our own if it never arrives.
+          // then fall back to creating our own if it never arrives. If that
+          // fallback ever fires (creator died / extreme latency) we become a
+          // second player; the server-side create-guard (already_in_game in
+          // GameController.handleCreateGame) is the backstop that still prevents
+          // a second *game*.
           setTimeout(() => finish(this._identityStore.load()), this._adoptTimeoutMs);
         }
       }, this._electionWindowMs);

@@ -104,14 +104,6 @@ class GameController {
       return;
     }
 
-    // A player already in a game must leave it first — mirrors the join guard
-    // (_validateJoinPreconditions). Closes the one create path that bypasses
-    // the lobby UI (e.g. a duplicate request from a second tab).
-    if (player.gameId !== null) {
-      HttpUtil.sendError(res, 409, 'already_in_game', 'Leave your current game first');
-      return;
-    }
-
     const body = await this._readJsonBody(req, res);
     if (body === null) {
       return;
@@ -122,6 +114,17 @@ class GameController {
       return;
     }
     const { type, nickname, requiredPlayers } = validated;
+
+    // A player already in a game must leave it first — mirrors the join guard
+    // (_validateJoinPreconditions). This MUST stay below the body-parse await
+    // and above _admitPlayerToGame with no `await` in between: that synchronous
+    // span is the critical section that stops two concurrent creates from one
+    // player (now a supported state — multiple tabs) from both passing the
+    // check and creating two games.
+    if (player.gameId !== null) {
+      HttpUtil.sendError(res, 409, 'already_in_game', 'Leave your current game first');
+      return;
+    }
 
     if (!this._assignNicknameIfMissing(player, nickname, res)) {
       return;
