@@ -21,7 +21,10 @@ function loadTabSync() {
   return dom.window.TabSync;
 }
 
-// In-memory stand-in for BroadcastChannel: posts reach every OTHER channel.
+// In-memory stand-in for BroadcastChannel. Faithfully models the real API:
+// delivery is asynchronous (on a later task, like a real channel) and a sender
+// never receives its own message. Async delivery guards against tests that
+// would only pass under synchronous, same-tick delivery.
 function makeBus() {
   const channels = [];
   return {
@@ -30,7 +33,9 @@ function makeBus() {
         onmessage: null,
         postMessage(data) {
           for (const c of channels) {
-            if (c !== ch && c.onmessage) {c.onmessage({ data });}
+            if (c !== ch) {
+              setTimeout(() => { if (c.onmessage) {c.onmessage({ data });} }, 0);
+            }
           }
         },
         close() {},

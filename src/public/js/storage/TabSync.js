@@ -141,8 +141,4 @@ export class TabSync {
   _broadcast(msg) {
     if (this._channel) {this._channel.postMessage(msg);}
   }
-
-  dispose() {
-    if (this._channel) {this._channel.close();}
-  }
 }
