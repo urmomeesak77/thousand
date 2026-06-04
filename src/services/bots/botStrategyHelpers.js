@@ -63,6 +63,29 @@ function cardBeats(card, best, trump) {
   return card.suit === best.suit && rankStrength(card.rank) > rankStrength(best.rank);
 }
 
+// Cards still unaccounted-for that could beat `card` (trump-aware, per cardBeats):
+// every deck card that outranks it and is NOT recalled gone, in the bot's own hand, or
+// already on the table. `context.deck` resolves a cardId to its rank/suit (goneCardIds
+// carries only ids). An empty result ⇒ `card` is a guaranteed winner if led.
+function remainingBeaters(card, { goneCardIds, hand, currentTrick, deck }, trump) {
+  const accounted = new Set(goneCardIds);
+  for (const c of hand) { accounted.add(c.cardId); }
+  for (const c of currentTrick) { accounted.add(c.cardId); }
+  const beaters = [];
+  for (let id = 0; id < deck.length; id++) {
+    if (id === card.cardId || accounted.has(id)) { continue; }
+    if (cardBeats({ rank: deck[id].rank, suit: deck[id].suit }, card, trump)) { beaters.push(id); }
+  }
+  return beaters;
+}
+
+// A "boss" card: nothing still in play can beat it. Conservative under forgetting — a
+// higher card that is genuinely gone but NOT recalled (absent from goneCardIds) counts
+// as unaccounted, so the bot won't treat the card as safe (the "memory mistake", H3).
+function isBossCard(card, context, trump) {
+  return remainingBeaters(card, context, trump).length === 0;
+}
+
 // Estimate the score a declarer can safely make against passive opponents: the
 // ~120 sweepable trick points (minus a buffer for a lost trick) plus the bonus of
 // every COMPLETE marriage held, with a small capped nudge for half-marriages a
@@ -119,6 +142,8 @@ module.exports = {
   pickCard,
   bestCenterCard,
   cardBeats,
+  remainingBeaters,
+  isBossCard,
   estimateMakeable,
   pickExchangeCard,
 };

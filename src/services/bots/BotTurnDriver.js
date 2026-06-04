@@ -1,6 +1,7 @@
 'use strict';
 
 const BotStrategy = require('./BotStrategy');
+const BotMemory = require('./BotMemory');
 
 // Randomized 1–3 s turn delay (FR-009) so bot play feels human and never instant.
 const MIN_DELAY_MS = 1000;
@@ -49,7 +50,23 @@ class BotTurnDriver {
     if (!player?.isBot) { return null; }
     const seat = game.round.seatByPlayer.get(botId);
     if (seat === null || seat === undefined) { return null; }
-    return BotStrategy.decide(game.round, seat, player.aggressiveness);
+    const knowledge = BotTurnDriver._knowledgeFor(game, player);
+    return BotStrategy.decide(game.round, seat, player.aggressiveness, knowledge);
+  }
+
+  // Recalled-gone knowledge for the acting bot (feature 010), built fresh each decision
+  // from the round's play log via the bot's own memory traits. Only meaningful during
+  // trick-play; every other phase gets the empty default (identical to feature 009).
+  // `game.history.length` salts the recall draw so each round forgets differently.
+  static _knowledgeFor(game, player) {
+    const round = game.round;
+    if (round.phase !== 'trick-play') { return { goneCardIds: new Set() }; }
+    const memory = new BotMemory(player.memorySkill, player.memorySeed);
+    const roundKey = game.history ? game.history.length : 0;
+    const goneCardIds = memory.recalledGoneCardIds(
+      round.playedLog || [], round.trickNumber, roundKey,
+    );
+    return { goneCardIds };
   }
 
   _execute(botId, decision) {

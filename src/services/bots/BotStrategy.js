@@ -2,8 +2,8 @@
 
 const RoundSnapshot = require('../RoundSnapshot');
 const {
-  rankStrength, roundDownToStep, findMarriages, pickCard,
-  bestCenterCard, cardBeats, estimateMakeable, pickExchangeCard, MARRIAGE_BONUS,
+  rankValue, rankStrength, roundDownToStep, findMarriages, pickCard,
+  bestCenterCard, cardBeats, isBossCard, estimateMakeable, pickExchangeCard, MARRIAGE_BONUS,
 } = require('./botStrategyHelpers');
 const { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE } = require('./botConstants');
 
@@ -18,14 +18,17 @@ const { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE } = requi
 // bot always declares a marriage when it can, and it declines the crawl.
 class BotStrategy {
   // Returns a Bot Decision for the bot at `seat`, or null when it has no obligation.
-  static decide(round, seat, aggressiveness) {
+  // `knowledge.goneCardIds` is the set of past-trick cards the bot recalls as played
+  // (feature 010); the default empty set ⇒ behaviour identical to feature 009 (S1). The
+  // strategy reads recalled-gone cards ONLY from here, never from round state (S2).
+  static decide(round, seat, aggressiveness, knowledge = { goneCardIds: new Set() }) {
     if (!round) { return null; }
     switch (round.phase) {
       case 'bidding': return BotStrategy._decideBidding(round, seat, aggressiveness);
       case 'post-bid-decision': return seat === round.declarerSeat ? { kind: 'startGame' } : null;
       case 'selling-bidding': return BotStrategy._decideSellBidding(round, seat);
       case 'card-exchange': return seat === round.declarerSeat ? BotStrategy._decideExchange(round, seat) : null;
-      case 'trick-play': return BotStrategy._decideTrickPlay(round, seat);
+      case 'trick-play': return BotStrategy._decideTrickPlay(round, seat, knowledge);
       case 'round-summary': return BotStrategy._decideContinue(round, seat);
       default: return null;
     }
@@ -70,7 +73,7 @@ class BotStrategy {
     return { kind: 'exchangePass', cardId: card.cardId, toSeat };
   }
 
-  static _decideTrickPlay(round, seat) {
+  static _decideTrickPlay(round, seat, knowledge) {
     if (round.fourNinesAckPending) {
       return round.fourNinesAcks.has(seat) ? null : { kind: 'acknowledgeFourNines' };
     }
@@ -83,17 +86,38 @@ class BotStrategy {
     }
     const legal = legalCards(round, seat);
     if (legal.length === 0) { return null; }
+    const hand = handCards(round, seat);
     if (seat !== round.declarerSeat) {
+      // On the lead, cash a recalled boss card (the led card sets the suit, so a boss is
+      // a guaranteed winner); otherwise dump the lowest legal card as in feature 009.
+      if (round.currentTrick.length === 0) {
+        const boss = BotStrategy._bossLead(round, legal, knowledge, hand);
+        if (boss) { return { kind: 'playCard', cardId: boss.cardId }; }
+      }
       return { kind: 'playCard', cardId: pickCard(legal, { highest: false }).cardId };
     }
     return round.currentTrick.length === 0
-      ? BotStrategy._declarerLead(round, legal)
+      ? BotStrategy._declarerLead(round, legal, knowledge, hand)
       : BotStrategy._declarerFollow(round, legal);
   }
 
-  // Declarer lead: declare the most valuable marriage in its legal window, else draw
-  // trumps, else lead the highest free card while reserving a still-declarable marriage.
-  static _declarerLead(round, legal) {
+  // Highest-point recalled boss card legal to lead, never a reserved marriage card.
+  // Gated on non-empty recall so empty knowledge ⇒ feature-009 behaviour (S1); the boss
+  // property is computed only from what the bot recalls as gone (S2).
+  static _bossLead(round, legal, knowledge, hand, reserved = new Set()) {
+    const goneCardIds = knowledge?.goneCardIds;
+    if (!goneCardIds || goneCardIds.size === 0) { return null; }
+    const context = { goneCardIds, hand, currentTrick: round.currentTrick, deck: round.deck };
+    const trump = round.currentTrumpSuit;
+    return legal
+      .filter((c) => !reserved.has(c.cardId) && rankValue(c.rank) > 0 && isBossCard(c, context, trump))
+      .sort((a, b) => rankValue(b.rank) - rankValue(a.rank))[0] ?? null;
+  }
+
+  // Declarer lead: declare the most valuable marriage in its legal window, else cash a
+  // recalled boss card, else draw trumps, else lead the highest free card while
+  // reserving a still-declarable marriage.
+  static _declarerLead(round, legal, knowledge, hand) {
     const trump = round.currentTrumpSuit;
     const trickNumber = round.trickNumber;
     const marriageSuits = declarableMarriageSuits(legal, trump);
@@ -103,12 +127,14 @@ class BotStrategy {
         if (king) { return { kind: 'playCard', cardId: king.cardId, declareMarriage: true }; }
       }
     }
+    const reserved = reservedMarriageCards(legal, marriageSuits, trickNumber);
+    const boss = BotStrategy._bossLead(round, legal, knowledge, hand, reserved);
+    if (boss) { return { kind: 'playCard', cardId: boss.cardId }; }
     if (trump) {
       const trumps = legal.filter((c) => c.suit === trump)
         .sort((a, b) => rankStrength(b.rank) - rankStrength(a.rank));
       if (trumps.length > 0) { return { kind: 'playCard', cardId: trumps[0].cardId }; }
     }
-    const reserved = reservedMarriageCards(legal, marriageSuits, trickNumber);
     const pool = legal.filter((c) => !reserved.has(c.cardId));
     const best = pickCard(pool.length > 0 ? pool : legal, { highest: true });
     return best ? { kind: 'playCard', cardId: best.cardId } : null;
