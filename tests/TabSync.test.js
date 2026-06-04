@@ -87,15 +87,24 @@ describe('TabSync.resolveIdentity', () => {
     const bus = makeBus();
     const storeA = makeIdentityStore();
     const storeB = makeIdentityStore();
-    const a = new TabSync({ channelFactory: bus.create, identityStore: storeA, electionWindowMs: 20, adoptTimeoutMs: 20, nonce: 0.1 });
-    const b = new TabSync({ channelFactory: bus.create, identityStore: storeB, electionWindowMs: 20, adoptTimeoutMs: 20, nonce: 0.8 });
+    const a = new TabSync({ channelFactory: bus.create, identityStore: storeA, electionWindowMs: 10, adoptTimeoutMs: 1000, nonce: 0.1 });
+    const b = new TabSync({ channelFactory: bus.create, identityStore: storeB, electionWindowMs: 10, adoptTimeoutMs: 1000, nonce: 0.8 });
 
-    const [resA, resB] = await Promise.all([a.resolveIdentity(), b.resolveIdentity()]);
+    // Both elect simultaneously. This assertion must DISTINGUISH a working
+    // election from a silently-broken one: if B never saw A's `hello`, its
+    // peerNonces would be empty, it would think itself lowest, and resolve {}
+    // immediately. We instead require B to adopt the creator's published
+    // identity — which only happens if A's nonce reached B and B waited.
+    const resAP = a.resolveIdentity();
+    const resBP = b.resolveIdentity();
 
-    // Lowest nonce (A) is the creator → empty identity (server will issue one).
-    assert.deepEqual(resA, {});
-    // B is NOT the creator; with no identity published yet it falls back to empty too.
-    assert.deepEqual(resB, {});
+    // A is lowest → the creator → resolves empty (server will issue an identity).
+    assert.deepEqual(await resAP, {});
+    // A obtains its server identity and broadcasts it; B (still waiting out its
+    // adopt window) must converge on it rather than create a second player.
+    a.publishIdentity('pElected', 'tElected');
+    assert.deepEqual(await resBP, { playerId: 'pElected', sessionToken: 'tElected' });
+    assert.deepEqual(storeB._get(), { playerId: 'pElected', sessionToken: 'tElected' });
   });
 
   it('falls back to a direct (empty) connect when BroadcastChannel is unavailable', async () => {
