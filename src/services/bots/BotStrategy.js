@@ -62,11 +62,13 @@ class BotStrategy {
   }
 
   // Declarer's post-bid decision: take a makeable hand, else start selling (FR-competent).
-  // Sell at most once — if a prior auction already returned the hand (attemptCount > 0),
-  // take it rather than re-exposing the same cards (which the round would reject).
+  // Sell at most once and never when the round has already disallowed it — a prior returned
+  // auction bumps attemptCount and a prior sale blocks selling outright; re-selling there
+  // would be silently rejected and stall the bot, so just take the hand.
   static _decidePostBid(round, seat, aggressiveness) {
     if (seat !== round.declarerSeat) { return null; }
-    const attemptsLeft = (round.attemptCount || 0) > 0 ? 0 : 1;
+    const sold = (round.attemptHistory || []).some((a) => a.outcome === 'sold');
+    const attemptsLeft = (round.attemptCount || 0) > 0 || sold ? 0 : 1;
     return sellEvaluator.takeOrSell(handCards(round, seat), round.currentHighBid, aggressiveness, attemptsLeft);
   }
 
@@ -107,7 +109,7 @@ class BotStrategy {
       legal, hand: handCards(round, seat), trump: round.currentTrumpSuit,
       trickNumber: round.trickNumber, goneCardIds: knowledge.goneCardIds || new Set(),
       currentTrick: round.currentTrick, deck: round.deck, playerCount: round.playerCount,
-      isDeclarer: seat === round.declarerSeat, declaredMarriages: round.declaredMarriages || [],
+      isDeclarer: seat === round.declarerSeat,
     };
     const decision = round.currentTrick.length === 0
       ? trickPlanner.chooseLead(ctx)
