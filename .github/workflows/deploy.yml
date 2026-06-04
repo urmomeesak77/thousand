@@ -52,7 +52,10 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd thousand
-            docker compose pull thousand
-            docker compose up -d thousand
+            docker pull ${{ env.IMAGE }}:latest
+            docker rm -f thousand || true
+            docker run -d --name thousand --restart unless-stopped -p 3000:3000 \
+              -e NODE_ENV=production -e BASE_PATH=/thousand \
+              -e ALLOWED_ORIGINS=https://games.online-trash.com \
+              ${{ env.IMAGE }}:latest
             docker image prune -f

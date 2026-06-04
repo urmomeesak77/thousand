@@ -59,26 +59,28 @@ All are set in `docker-compose.yml`.
    compose plugin. `systemctl enable --now docker`.
 2. **DNS:** in the zone.ee panel, add an `A` (and `AAAA`) record for
    `games.online-trash.com` → the VPS IP.
-3. **Start the app (image-pull — no git clone on the VPS):** the server only needs
-   the compose file and the image from GHCR. `docker-compose.yml` carries both
-   `build: .` (used on your dev machine) and `image: ghcr.io/urmomeesak77/thousand:latest`
-   (pulled on the server).
+3. **Start the app (pull from GHCR + run — no compose file or clone on the VPS):**
+   the server just downloads the prebuilt image and runs it. `docker-compose.yml`
+   lives in the repo only as the **dev-machine** build/push tool.
 
-   On your **dev machine** — build and push the image once:
-   ```bash
-   echo $GHCR_PAT | docker login ghcr.io -u urmomeesak77 --password-stdin  # PAT: write:packages
+   On your **dev machine** — build and push the image (one-time login first):
+   ```powershell
+   # Windows PowerShell — set a write:packages PAT, then log in:
+   $env:GHCR_PAT = "ghp_your_token"
+   $env:GHCR_PAT | docker login ghcr.io -u urmomeesak77 --password-stdin
    docker compose build
    docker compose push
    ```
-   (Make the GHCR package **public** so the VPS pulls without auth, or `docker login
-   ghcr.io` on the VPS too.)
+   The GHCR package is **public**, so the VPS pulls without any login.
 
-   On the **VPS** — copy just the compose file, then pull and run:
+   On the **VPS** — one command (auto-pulls the image on first run):
    ```bash
-   mkdir -p ~/thousand && cd ~/thousand
-   # scp docker-compose.yml here (or curl the raw file from GitHub)
-   docker compose pull
-   docker compose up -d          # NO --build; runs the pulled image (firewall :3000 — see above)
+   docker run -d --name thousand --restart unless-stopped \
+     -p 3000:3000 \
+     -e NODE_ENV=production \
+     -e BASE_PATH=/thousand \
+     -e ALLOWED_ORIGINS=https://games.online-trash.com \
+     ghcr.io/urmomeesak77/thousand:latest        # firewall :3000 — see above
    ```
 4. **nginx config** — edit the containerized nginx config at
    `/web/nginx/conf.d/default.conf` (see `deploy/nginx-thousand.conf` for the snippet):
@@ -107,20 +109,23 @@ All are set in `docker-compose.yml`.
 
 ## Redeploys
 
-**Manual (Phase 1):** rebuild + push from your dev machine, then pull on the VPS:
+**Manual (Phase 1):** rebuild + push from your dev machine, then pull + replace on the VPS:
 ```bash
 # dev machine
 docker compose build && docker compose push
-# VPS
-cd ~/thousand && docker compose pull && docker compose up -d
+# VPS — pull the new :latest, drop the old container, run the new one
+docker pull ghcr.io/urmomeesak77/thousand:latest
+docker rm -f thousand
+docker run -d --name thousand --restart unless-stopped -p 3000:3000 \
+  -e NODE_ENV=production -e BASE_PATH=/thousand \
+  -e ALLOWED_ORIGINS=https://games.online-trash.com \
+  ghcr.io/urmomeesak77/thousand:latest
+docker image prune -f
 ```
 
 **CI/CD (Phase 2 — GHCR + SSH):** pushing to `master` (after CI passes) builds and
 pushes `ghcr.io/urmomeesak77/thousand` to GHCR, then SSHes to the VPS to pull and
-restart — see `.github/workflows/deploy.yml`. The VPS runs:
-```bash
-cd ~/thousand && docker compose pull thousand && docker compose up -d thousand
-```
+restart — see `.github/workflows/deploy.yml` (same `docker pull` → `rm -f` → `docker run`).
 Required GitHub repo secrets: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` (and, if the GHCR
 package is private, a `GHCR_TOKEN` the VPS uses for `docker login ghcr.io`).
 
@@ -128,4 +133,4 @@ package is private, a `GHCR_TOKEN` the VPS uses for `docker login ghcr.io`).
 
 - **State is in-memory** (`ThousandStore`): a restart/redeploy drops all active
   games and sessions. Deploy when no game is mid-round.
-- Logs: `docker compose logs -f thousand`.
+- Logs: `docker logs -f thousand`. Status: `docker ps`.
