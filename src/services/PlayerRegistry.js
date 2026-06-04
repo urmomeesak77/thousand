@@ -27,7 +27,7 @@ class PlayerRegistry {
       id: playerId,
       nickname: null,
       gameId: null,
-      ws,
+      sockets: new Set([ws]),
       sessionToken,
       disconnectedAt: null,
       graceTimer: null,
@@ -85,8 +85,13 @@ class PlayerRegistry {
 
   sendToPlayer(playerId, payload) {
     const player = this.players.get(playerId);
-    if (player && player.ws && player.ws.readyState === WS_OPEN) {
-      try { player.ws.send(JSON.stringify(payload)); } catch { /* ignore */ }
+    if (!player || !player.sockets) {return;}
+    const data = JSON.stringify(payload);
+    for (const ws of player.sockets) {
+      if (ws.readyState !== WS_OPEN) {continue;}
+      // readyState can flip between the check and send; swallow per-socket
+      // errors so one dead tab doesn't starve the others.
+      try { ws.send(data); } catch { /* ignore */ }
     }
   }
 
