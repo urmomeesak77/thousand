@@ -42,6 +42,21 @@ describe('ThousandStore.broadcastLobbyUpdate — send isolation', () => {
   });
 });
 
+describe('ThousandStore.broadcastLobbyUpdate — multi-socket', () => {
+  it('delivers lobby_update to every socket of a lobby player', () => {
+    const store = new ThousandStore();
+    const ws1 = makeWs();
+    const { playerId } = store.createPlayer(ws1, '127.0.0.1');
+    const ws2 = makeWs();
+    store.players.get(playerId).sockets.add(ws2);
+
+    store.broadcastLobbyUpdate();
+
+    assert.ok(ws1._sent.some((m) => m.type === 'lobby_update'));
+    assert.ok(ws2._sent.some((m) => m.type === 'lobby_update'), 'second tab must receive it too');
+  });
+});
+
 describe('ThousandStore.sendToPlayer — error isolation', () => {
   it('throwing ws.send() does not propagate to caller', () => {
     const store = new ThousandStore();

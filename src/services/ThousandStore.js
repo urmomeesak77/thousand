@@ -113,10 +113,12 @@ class ThousandStore {
   broadcastLobbyUpdate() {
     const msg = JSON.stringify({ type: 'lobby_update', games: this.getLobbyGames() });
     for (const [, player] of this.players) {
-      if (player.gameId === null && player.ws && player.ws.readyState === WS_OPEN) {
-        // readyState can flip between the check and send (socket terminated mid-iteration).
-        // Swallow per-recipient errors so one bad ws doesn't abort the broadcast.
-        try { player.ws.send(msg); } catch { /* ignore */ }
+      if (player.gameId !== null) {continue;}
+      for (const ws of player.sockets) {
+        if (ws.readyState !== WS_OPEN) {continue;}
+        // readyState can flip between the check and send; swallow per-socket
+        // errors so one bad tab doesn't abort the broadcast.
+        try { ws.send(msg); } catch { /* ignore */ }
       }
     }
   }
