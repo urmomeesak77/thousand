@@ -40,3 +40,34 @@ describe('trickPlanner.chooseFollow (FR-competent)', () => {
     assert.equal(trickPlanner.chooseFollow(ctx).cardId, 1); // 9♥
   });
 });
+
+describe('trickPlanner.chooseLead (FR-competent)', () => {
+  const base = (deck, ids, extra) => ({
+    legal: obj(deck, ids), hand: obj(deck, ids), trump: null, deck,
+    goneCardIds: new Set(), currentTrick: [], playerCount: 3, trickNumber: 1,
+    isDeclarer: true, declaredMarriages: [], ...extra,
+  });
+
+  it('cashes the highest-point boss card on the lead', () => { // per competent-play
+    const deck = buildDeck([['A', 'D'], ['9', 'H']]); // A♦ has nothing above it -> boss
+    const d = trickPlanner.chooseLead(base(deck, [0, 1]));
+    assert.equal(d.cardId, 0); // A♦
+  });
+
+  it('draws the top trump when it has trump control', () => { // per competent-play
+    const deck = buildDeck([['A', 'S'], ['K', 'S'], ['9', 'H']]);
+    const d = trickPlanner.chooseLead(base(deck, [0, 1, 2], { trump: 'S' }));
+    assert.equal(d.cardId, 0); // A♠ (top trump, also the boss)
+  });
+
+  it('leads a low side card, keeping aces/tens, when it has no boss or trump control', () => { // per competent-play
+    // Full-ish deck so the hand holds no boss: K♥ (A♥,10♥ out), 9♦/J♦ (A♦,10♦,K♦,Q♦ out).
+    const deck = buildDeck([
+      ['K', 'H'], ['9', 'D'], ['J', 'D'],
+      ['A', 'H'], ['10', 'H'],
+      ['A', 'D'], ['10', 'D'], ['K', 'D'], ['Q', 'D'],
+    ]);
+    const d = trickPlanner.chooseLead(base(deck, [0, 1, 2]));
+    assert.equal(d.cardId, 1); // 9♦ — lowest of the long ♦ side suit
+  });
+});

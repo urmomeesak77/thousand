@@ -3,6 +3,7 @@
 const {
   findMarriages, pickCard, bestCenterCard,
   cheapestWinner, isBossCard, trickPoints,
+  rankValue, rankStrength, hasTrumpControl, MARRIAGE_BONUS,
 } = require('./botStrategyHelpers');
 
 // K/Q of still-declarable marriages, reserved while a declaration remains reachable.
@@ -36,4 +37,62 @@ function chooseFollow(ctx) {
   return duck ? { cardId: duck.cardId } : null;
 }
 
-module.exports = { chooseFollow, reservedMarriageCards };
+// Small bonus for making `suit` trump: trump length + protected side aces.
+function trumpUsefulness(hand, suit) {
+  const trumpLen = hand.filter((c) => c.suit === suit).length;
+  const sideAces = hand.filter((c) => c.suit !== suit && c.rank === 'A').length;
+  return trumpLen * 2 + sideAces * 3;
+}
+
+// Declarer marriage lead (tricks 2-6): declare promptly to bank the bonus, choosing which
+// marriage by bonus + trump usefulness. Returns a lead-with-declare, or null.
+function chooseMarriageLead(ctx) {
+  const { legal, hand, trump, trickNumber } = ctx;
+  if (trickNumber < 2 || trickNumber > 6) { return null; }
+  const suits = findMarriages(legal).filter((s) => s !== trump);
+  if (suits.length === 0) { return null; }
+  const bestSuit = suits
+    .map((suit) => ({ suit, score: MARRIAGE_BONUS[suit] + trumpUsefulness(hand, suit) }))
+    .sort((a, b) => b.score - a.score)[0].suit;
+  const king = legal.find((c) => c.rank === 'K' && c.suit === bestSuit);
+  return king ? { cardId: king.cardId, declareMarriage: true } : null;
+}
+
+// Lead a low card from the longest non-trump side suit, keeping aces/tens. Null if none.
+function chooseSafeLead(legal, reserved, trump) {
+  const candidates = legal.filter((c) => !reserved.has(c.cardId)
+    && c.suit !== trump && c.rank !== 'A' && c.rank !== '10');
+  if (candidates.length === 0) { return null; }
+  const bySuit = {};
+  for (const c of candidates) { (bySuit[c.suit] ||= []).push(c); }
+  const longest = Object.keys(bySuit).sort((a, b) => bySuit[b].length - bySuit[a].length)[0];
+  return bySuit[longest].sort((a, b) => rankValue(a.rank) - rankValue(b.rank))[0];
+}
+
+// Leading a fresh trick.
+function chooseLead(ctx) {
+  const { legal, hand, trump, trickNumber, goneCardIds, currentTrick, deck, isDeclarer } = ctx;
+  if (isDeclarer) {
+    const marriage = chooseMarriageLead(ctx);
+    if (marriage) { return marriage; }
+  }
+  const reserved = reservedMarriageCards(legal, trump, trickNumber);
+  const context = { goneCardIds, hand, currentTrick, deck };
+  const boss = legal
+    .filter((c) => !reserved.has(c.cardId) && rankValue(c.rank) > 0 && isBossCard(c, context, trump))
+    .sort((a, b) => rankValue(b.rank) - rankValue(a.rank))[0];
+  if (boss) { return { cardId: boss.cardId }; }
+
+  if (trump && hasTrumpControl(hand, context, trump)) {
+    const trumps = legal.filter((c) => c.suit === trump)
+      .sort((a, b) => rankStrength(b.rank) - rankStrength(a.rank));
+    if (trumps.length > 0) { return { cardId: trumps[0].cardId }; }
+  }
+  const safe = chooseSafeLead(legal, reserved, trump);
+  if (safe) { return { cardId: safe.cardId }; }
+  const fallback = pickCard(legal.filter((c) => !reserved.has(c.cardId)), { highest: false })
+    || pickCard(legal, { highest: false });
+  return fallback ? { cardId: fallback.cardId } : null;
+}
+
+module.exports = { chooseLead, chooseFollow, reservedMarriageCards };
