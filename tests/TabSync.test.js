@@ -82,8 +82,8 @@ describe('TabSync.resolveIdentity', () => {
     const bus = makeBus();
     const storeA = makeIdentityStore();
     const storeB = makeIdentityStore();
-    const a = new TabSync({ channelFactory: bus.create, identityStore: storeA, electionWindowMs: 20, nonce: 0.1 });
-    const b = new TabSync({ channelFactory: bus.create, identityStore: storeB, electionWindowMs: 20, nonce: 0.8 });
+    const a = new TabSync({ channelFactory: bus.create, identityStore: storeA, electionWindowMs: 20, adoptTimeoutMs: 20, nonce: 0.1 });
+    const b = new TabSync({ channelFactory: bus.create, identityStore: storeB, electionWindowMs: 20, adoptTimeoutMs: 20, nonce: 0.8 });
 
     const [resA, resB] = await Promise.all([a.resolveIdentity(), b.resolveIdentity()]);
 
@@ -100,6 +100,27 @@ describe('TabSync.resolveIdentity', () => {
 
     const id = await sync.resolveIdentity();
     assert.deepEqual(id, {});
+  });
+
+  it('a non-lowest fresh tab adopts a creator identity that arrives AFTER the election window', async () => {
+    const TabSync = loadTabSync();
+    const bus = makeBus();
+    const loserStore = makeIdentityStore();
+    const loser = new TabSync({ channelFactory: bus.create, identityStore: loserStore, electionWindowMs: 10, adoptTimeoutMs: 1000, nonce: 0.9 });
+    const creatorStore = makeIdentityStore();
+    const creator = new TabSync({ channelFactory: bus.create, identityStore: creatorStore, electionWindowMs: 10, adoptTimeoutMs: 1000, nonce: 0.1 });
+
+    const loserPromise = loser.resolveIdentity();
+    const creatorRes = await creator.resolveIdentity(); // creator (lowest) → resolves empty
+    assert.deepEqual(creatorRes, {});
+
+    // Creator's server round-trip completes only AFTER the loser's 10ms election
+    // window has elapsed; the loser must still adopt it (within adoptTimeoutMs).
+    setTimeout(() => creator.publishIdentity('pLate', 'tLate'), 40);
+
+    const id = await loserPromise;
+    assert.deepEqual(id, { playerId: 'pLate', sessionToken: 'tLate' });
+    assert.deepEqual(loserStore._get(), { playerId: 'pLate', sessionToken: 'tLate' });
   });
 });
 

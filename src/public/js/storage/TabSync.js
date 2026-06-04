@@ -13,11 +13,18 @@ import { IdentityStore } from './IdentityStore.js';
 
 const CHANNEL_NAME = 'thousand_tabs';
 const ELECTION_WINDOW_MS = 200;
+// How long a non-creator fresh tab waits for the elected creator to broadcast
+// its server-issued identity before giving up and creating its own. Generous
+// on purpose: it must cover a real WS connect + hello round-trip, and the only
+// cost of over-waiting is a slightly delayed first connect in the rare case of
+// two genuinely-simultaneous fresh tabs.
+const ADOPT_TIMEOUT_MS = 3000;
 
 export class TabSync {
-  constructor({ channelFactory, identityStore, electionWindowMs, nonce } = {}) {
+  constructor({ channelFactory, identityStore, electionWindowMs, adoptTimeoutMs, nonce } = {}) {
     this._identityStore = identityStore ?? IdentityStore;
     this._electionWindowMs = electionWindowMs ?? ELECTION_WINDOW_MS;
+    this._adoptTimeoutMs = adoptTimeoutMs ?? ADOPT_TIMEOUT_MS;
     this._nonce = typeof nonce === 'number' ? nonce : Math.random();
     this._identity = null;        // identity this tab currently holds/knows
     this._peerNonces = [];        // nonces announced by sibling fresh tabs
@@ -90,9 +97,10 @@ export class TabSync {
           // server issues it, so waiting siblings can adopt.
           finish(this._identityStore.load());
         } else {
-          // A lower-nonce sibling will create — give it one more window to
-          // report its identity, then fall back to creating ourselves.
-          setTimeout(() => finish(this._identityStore.load()), this._electionWindowMs);
+          // A lower-nonce sibling will create. Wait (generously — see
+          // ADOPT_TIMEOUT_MS) for it to broadcast its server-issued identity,
+          // then fall back to creating our own if it never arrives.
+          setTimeout(() => finish(this._identityStore.load()), this._adoptTimeoutMs);
         }
       }, this._electionWindowMs);
     });
