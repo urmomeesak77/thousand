@@ -57,6 +57,7 @@ describe('bots autoplay integration', () => {
     assert.ok(typeof entry.declarerSeat === 'number');
   });
 
+  // per FR-011 — bots are supported in both the 3- and 4-player variants.
   it('four bots also complete a round (4-player variant)', (t) => {
     t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
     const store = new ThousandStore();

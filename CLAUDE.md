@@ -31,6 +31,12 @@ src/services/
   GameRules.js                         # numeric rule constants (barrel thresholds, victory threshold, special penalty)
   Seats.js                             # seat-range helpers (`seatRange`, `initSeatMap`) used by the playerCount generalization
   Deck.js                              # deck creation and shuffle
+  bots/                                # server-side AI opponents (feature 009)
+    BotStrategy.js                     # decides one legal action per (round, seat); bidding scaled by per-bot aggressiveness (FR-016/017)
+    botStrategyHelpers.js              # pure card-evaluation utilities (ported from tests/e2e-live-smart.js)
+    BotTurnDriver.js                   # detects a bot's pending turn, schedules a randomized 1–3 s timer, executes one action via RoundActionHandler
+    botNames.js                        # themed unique bot-name pool + picker ("Robo-Ada", …)
+    botConstants.js                    # bid range + MAX_TALON_GAMBLE (bot-specific numeric constants)
 src/controllers/
   RequestHandler.js                    # HTTP routing
   GameController.js                    # game CRUD handlers

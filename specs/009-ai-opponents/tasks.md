@@ -115,9 +115,9 @@ non-host sees badges but no controls (per spec US3 Independent Test).
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T033 [P] Audit `// per FR-NNN` annotations across new tests; confirm every FR-001…FR-017 has a covering test
-- [ ] T034 [P] Update `CLAUDE.md` project structure with the `src/services/bots/` modules (BotStrategy, BotTurnDriver, botStrategyHelpers, botNames, botConstants)
-- [ ] T035 Run `npm run lint` and `npm test`; confirm clean lint and ≥90% coverage on new files (`npm run test:coverage`)
+- [x] T033 [P] Audit `// per FR-NNN` annotations across new tests; confirm every FR-001…FR-017 has a covering test
+- [x] T034 [P] Update `CLAUDE.md` project structure with the `src/services/bots/` modules (BotStrategy, BotTurnDriver, botStrategyHelpers, botNames, botConstants)
+- [x] T035 Run `npm run lint` and `npm test`; confirm clean lint and ≥90% coverage on new files (`npm run test:coverage`)
 - [ ] T036 Manual `quickstart.md` validation: 3-player & 4-player happy path, manage/remove bots, and the edge cases (last human leaves, host leaves, paused-for-disconnect)
 - [ ] T037 [P] (Optional) Headless single-client bot e2e in `tests/e2e-bots-single-client.js`: create a game with one real client, fill remaining seats via `POST /api/games/:id/bots`, assert the game reaches final results — exercises the real server-side bot loop end-to-end (per SC-001, SC-003)
 

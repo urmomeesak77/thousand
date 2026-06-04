@@ -85,6 +85,23 @@ describe('botStrategyHelpers.estimateMakeable', () => {
   });
 });
 
+describe('botNames.pickBotName', () => {
+  const { pickBotName, BOT_NAMES } = require('../src/services/bots/botNames');
+
+  it('returns an unused themed name', () => {
+    const name = pickBotName(['Robo-Ada']);
+    assert.notEqual(name, 'Robo-Ada');
+    assert.ok(BOT_NAMES.includes(name));
+  });
+
+  it('falls back to a numbered name when the themed pool is exhausted', () => {
+    const name = pickBotName(BOT_NAMES);
+    assert.equal(name, 'Robo-1');
+    // and keeps incrementing past taken fallbacks
+    assert.equal(pickBotName([...BOT_NAMES, 'Robo-1']), 'Robo-2');
+  });
+});
+
 describe('botStrategyHelpers.pickExchangeCard', () => {
   it('never gives away a marriage card or an ace/ten', () => {
     const hand = [card(0, 'K', 'C'), card(1, 'Q', 'C'), card(2, 'A', 'S'), card(3, 'J', 'H'), card(4, '9', 'D')];

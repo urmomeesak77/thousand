@@ -58,6 +58,7 @@ describe('ThousandStore.addBot', () => {
     assert.ok(game.round, 'round was dealt on fill');
   });
 
+  // per FR-013 — multiple bots at one table get distinct themed names.
   it('gives each bot at a table a distinct name', () => {
     const store = new ThousandStore();
     const { gameId } = seatHost(store, 4);

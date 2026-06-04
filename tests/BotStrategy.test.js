@@ -91,6 +91,15 @@ describe('BotStrategy.decide — per-phase legality', () => {
     assert.ok(d.toSeat >= 0 && d.toSeat < 3);
   });
 
+  it('card-exchange: returns null once every opponent already received a card', () => {
+    const { deck } = deckHand([['A', 'S'], ['9', 'D']]);
+    const round = {
+      phase: 'card-exchange', declarerSeat: 0, playerCount: 3,
+      hands: { 0: [0, 1] }, deck, _usedExchangeDestSeats: new Set([1, 2]),
+    };
+    assert.equal(BotStrategy.decide(round, 0, 0.5), null);
+  });
+
   it('trick-play non-declarer: dumps the lowest legal (follow-suit) card', () => {
     // Hand A♥,J♥,9♠; led K♥ ⇒ must follow hearts ⇒ legal {A♥,J♥} ⇒ dump J♥.
     const { deck } = deckHand([['A', 'H'], ['J', 'H'], ['9', 'S'], ['K', 'H']]);
@@ -125,6 +134,54 @@ describe('BotStrategy.decide — per-phase legality', () => {
     assert.deepEqual(BotStrategy.decide(round, 2, 0.5), { kind: 'continueToNextRound' });
     session.continuePresses.add(2);
     assert.equal(BotStrategy.decide(round, 2, 0.5), null);
+  });
+
+  it('trick-play: acknowledges a pending four-nines gate, then waits', () => {
+    const round = {
+      phase: 'trick-play', fourNinesAckPending: true, fourNinesAcks: new Set(),
+      currentTurnSeat: 1, isPausedByDisconnect: false, crawlActive: false,
+    };
+    assert.deepEqual(BotStrategy.decide(round, 0, 0.5), { kind: 'acknowledgeFourNines' });
+    round.fourNinesAcks.add(0);
+    assert.equal(BotStrategy.decide(round, 0, 0.5), null);
+  });
+
+  it('trick-play: responds to a human crawl by committing the lowest card', () => {
+    const { deck } = deckHand([['A', 'S'], ['9', 'D'], ['K', 'C']]);
+    const round = {
+      phase: 'trick-play', fourNinesAckPending: false, isPausedByDisconnect: false,
+      crawlActive: true, currentTurnSeat: 0, hands: { 0: [0, 1, 2] }, deck,
+    };
+    const d = BotStrategy.decide(round, 0, 0.5);
+    assert.equal(d.kind, 'crawlCommit');
+    assert.equal(d.cardId, 1); // 9♦ — lowest value
+  });
+
+  it('trick-play declarer lead: draws trumps when no marriage is declarable', () => {
+    // trick 1 (outside the 2–6 marriage window), trump set → lead the highest trump.
+    const { deck } = deckHand([['9', 'S'], ['A', 'S'], ['J', 'H']]);
+    const round = {
+      phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
+      fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
+      trickNumber: 1, currentTrumpSuit: 'S', currentTrick: [], hands: { 0: [0, 1, 2] }, deck,
+    };
+    const d = BotStrategy.decide(round, 0, 0.5);
+    assert.equal(d.kind, 'playCard');
+    assert.equal(d.cardId, 1); // A♠ is the strongest trump
+  });
+
+  it('trick-play declarer follow: wins the trick as cheaply as it can', () => {
+    // Led 9♥; declarer holds K♥ and A♥ → wins with the cheaper winner (K♥).
+    const { deck } = deckHand([['K', 'H'], ['A', 'H'], ['9', 'H']]);
+    const round = {
+      phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
+      fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
+      trickNumber: 4, currentTrumpSuit: null,
+      currentTrick: [{ seat: 1, cardId: 2 }], hands: { 0: [0, 1] }, deck,
+    };
+    const d = BotStrategy.decide(round, 0, 0.5);
+    assert.equal(d.kind, 'playCard');
+    assert.equal(d.cardId, 0); // K♥ beats the 9♥ more cheaply than the A♥
   });
 
   it('returns null when it is not the bot\'s turn to bid', () => {
