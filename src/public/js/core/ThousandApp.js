@@ -132,11 +132,21 @@ class ThousandApp {
   _bindAddBot() {
     this._antlion.bindInput($('add-bot-btn'), 'click', 'add-bot-click');
     this._antlion.onInput('add-bot-click', () => this._addBot());
+    // Per-bot Remove controls are rendered dynamically, so delegate from the
+    // static player-list container (no raw per-button DOM listeners, per §XI).
+    this._antlion.bindInput($('player-list'), 'click', 'player-list-click');
+    this._antlion.onInput('player-list-click', (e) => this._onPlayerListClick(e));
   }
 
   async _addBot() {
     if (!this._gameId) {return;}
     await this._api.addBot(this._gameId);
+  }
+
+  async _onPlayerListClick(e) {
+    const btn = e.target.closest('.remove-bot-btn');
+    if (!btn || !this._gameId) {return;}
+    await this._api.removeBot(this._gameId, btn.dataset.botId);
   }
 
   _clearGameSelection() {

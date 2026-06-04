@@ -53,9 +53,11 @@ describe('PlayerRegistry.serializePlayers — isBot', () => {
     const game = { players: new Set([human, bot]) };
 
     const view = registry.serializePlayers(game);
-    assert.deepEqual(view, [
-      { nickname: 'Kashka', isBot: false },
-      { nickname: 'Robo-Ada', isBot: true },
-    ]);
+    assert.deepEqual(view[0], { nickname: 'Kashka', isBot: false });
+    // The human entry exposes no id; the bot entry exposes its id for host removal.
+    assert.equal(view[0].id, undefined);
+    assert.equal(view[1].nickname, 'Robo-Ada');
+    assert.equal(view[1].isBot, true);
+    assert.equal(view[1].id, bot);
   });
 });

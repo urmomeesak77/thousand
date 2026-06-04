@@ -117,7 +117,10 @@ class PlayerRegistry {
   serializePlayers(game) {
     return [...game.players].map((pid) => {
       const p = this.players.get(pid);
-      return p ? { nickname: p.nickname, isBot: Boolean(p.isBot) } : null;
+      // A bot's id is exposed so the host can target it for removal (FR-002); it is
+      // a server-generated UUID, not a session token. Human ids are never exposed.
+      if (!p) {return null;}
+      return p.isBot ? { nickname: p.nickname, isBot: true, id: pid } : { nickname: p.nickname, isBot: false };
     }).filter(Boolean);
   }
 

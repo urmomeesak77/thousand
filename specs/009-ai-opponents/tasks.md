@@ -98,16 +98,16 @@ non-hosts cannot manage composition; a table with no human left is cleaned up.
 **Independent Test**: In a waiting room with a bot, the host removes it and the seat frees; a
 non-host sees badges but no controls (per spec US3 Independent Test).
 
-- [ ] T023 [P] [US3] Test remove-bot in `tests/GameController.removebot.test.js`: 404 unknown game/bot, 403 non-host, 409 already-started, 200 + seat freed + `player_left` broadcast (per FR-002, FR-005)
-- [ ] T024 [P] [US3] Test no-human cleanup in `tests/ThousandStore.no-human.test.js`: when the last human leaves a table that still has bots, the in-progress round is aborted (if any), the game is deleted, and all its bot records are purged (per FR-014)
-- [ ] T025 [US3] Implement `ThousandStore.removeBot(gameId, requesterId, botId)` in `src/services/ThousandStore.js`: validate it is a bot in the game, remove from `game.players`, `PlayerRegistry.remove(botId)`, broadcast `player_left` with refreshed `players`, `broadcastLobbyUpdate()` (per FR-002)
-- [ ] T026 [US3] Update `leaveGame`/`_resolveGameAfterExit` in `src/services/ThousandStore.js` to count **humans**: when no human remains (bots only), abort any round, delete the game, and purge bots — instead of the current `players.size === 0` check (per FR-014, FR-015)
-- [ ] T027 [US3] Implement `GameController.handleRemoveBot(req, res, player, gameId, botId)` in `src/controllers/GameController.js` with preconditions per `contracts/http-bot-management.md` (per FR-002, FR-005)
-- [ ] T028 [US3] Add route `DELETE /api/games/:id/bots/:botId` → `handleRemoveBot` in `src/controllers/RequestHandler.js` (per FR-002)
-- [ ] T029 [P] [US3] Add `removeBot(gameId, botId)` to `src/public/js/network/GameApi.js` (per FR-002)
-- [ ] T030 [US3] Update `src/public/js/screens/WaitingRoom.js`: render each bot seat with the themed name + a bot badge; show a host-only per-bot **Remove** control (Antlion-bound); hide all bot-management controls for non-hosts (per FR-002, FR-005, FR-012, FR-013)
-- [ ] T031 [P] [US3] Style the bot badge + remove control (responsive, touch targets) in `src/public/css/index.css` (per FR-012, constitution §VI)
-- [ ] T032 [P] [US3] Show the bot badge on in-game seat labels where seat names render (e.g. `src/public/js/thousand/` seat/status views), driven by the serialized `isBot` (per FR-012)
+- [x] T023 [P] [US3] Test remove-bot in `tests/GameController.removebot.test.js`: 404 unknown game/bot, 403 non-host, 409 already-started, 200 + seat freed + `player_left` broadcast (per FR-002, FR-005)
+- [x] T024 [P] [US3] Test no-human cleanup in `tests/ThousandStore.no-human.test.js`: when the last human leaves a table that still has bots, the in-progress round is aborted (if any), the game is deleted, and all its bot records are purged (per FR-014)
+- [x] T025 [US3] Implement `ThousandStore.removeBot(gameId, requesterId, botId)` in `src/services/ThousandStore.js`: validate it is a bot in the game, remove from `game.players`, `PlayerRegistry.remove(botId)`, broadcast `player_left` with refreshed `players`, `broadcastLobbyUpdate()` (per FR-002)
+- [x] T026 [US3] Update `leaveGame`/`_resolveGameAfterExit` in `src/services/ThousandStore.js` to count **humans**: when no human remains (bots only), abort any round, delete the game, and purge bots — instead of the current `players.size === 0` check (per FR-014, FR-015)
+- [x] T027 [US3] Implement `GameController.handleRemoveBot(req, res, player, gameId, botId)` in `src/controllers/GameController.js` with preconditions per `contracts/http-bot-management.md` (per FR-002, FR-005)
+- [x] T028 [US3] Add route `DELETE /api/games/:id/bots/:botId` → `handleRemoveBot` in `src/controllers/RequestHandler.js` (per FR-002)
+- [x] T029 [P] [US3] Add `removeBot(gameId, botId)` to `src/public/js/network/GameApi.js` (per FR-002)
+- [x] T030 [US3] Update `src/public/js/screens/WaitingRoom.js`: render each bot seat with the themed name + a bot badge; show a host-only per-bot **Remove** control (Antlion-bound); hide all bot-management controls for non-hosts (per FR-002, FR-005, FR-012, FR-013)
+- [x] T031 [P] [US3] Style the bot badge + remove control (responsive, touch targets) in `src/public/css/index.css` (per FR-012, constitution §VI)
+- [x] T032 [P] [US3] Show the bot badge on in-game seat labels where seat names render (e.g. `src/public/js/thousand/` seat/status views), driven by the serialized `isBot` (per FR-012)
 
 **Checkpoint**: All three stories are independently functional; tables never linger bot-only.
 

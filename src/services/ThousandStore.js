@@ -175,8 +175,39 @@ class ThousandStore {
     return { botId, nickname };
   }
 
+  // Removes a seated bot, freeing its seat (FR-002). Host/waiting preconditions are
+  // enforced by the caller. Returns false when the id is not a bot in this game so
+  // the controller can answer 404.
+  removeBot(gameId, botId) {
+    const game = this.games.get(gameId);
+    if (!game) {return false;}
+    const bot = this.players.get(botId);
+    if (!bot?.isBot || !game.players.has(botId)) {return false;}
+    game.players.delete(botId);
+    this._registry.remove(botId);
+    const players = this.serializePlayers(game);
+    const leftMsg = { type: 'player_left', playerId: botId, nickname: bot.nickname, players };
+    for (const pid of game.players) {
+      this.sendToPlayer(pid, leftMsg);
+    }
+    this.broadcastLobbyUpdate();
+    return true;
+  }
+
+  // Count of seated humans (bots never satisfy the "≥1 human" / no-human-cleanup rule).
+  _humanCount(game) {
+    let count = 0;
+    for (const pid of game.players) {
+      if (!this.players.get(pid)?.isBot) {count += 1;}
+    }
+    return count;
+  }
+
   _resolveGameAfterExit(gameId, game, playerId, nickname) {
-    if (game.players.size === 0) {
+    // FR-014: a table must never keep running with only bots. The moment the last
+    // human leaves, abort any round and delete the game (which purges the bots).
+    if (this._humanCount(game) === 0) {
+      if (game.status === 'in-progress' && game.round) {game.round.abort();}
       this._deleteGame(gameId, game);
       return;
     }

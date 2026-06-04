@@ -175,6 +175,7 @@ function buildSeatLayout(round, seat) {
     seat: s,
     playerId: pid,
     nickname: round._store.players.get(pid)?.nickname ?? null,
+    isBot: Boolean(round._store.players.get(pid)?.isBot),
   }));
   // Opponents are ordered clockwise from self: left, (across for 4p), right.
   const layout = {

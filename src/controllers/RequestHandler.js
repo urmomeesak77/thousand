@@ -85,6 +85,13 @@ class RequestHandler {
       return this._games.handleAddBot(req, res, player, addBotMatch[1]);
     }
 
+    const removeBotMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/bots\/([0-9a-f-]{36})$/);
+    if (req.method === 'DELETE' && removeBotMatch) {
+      const player = this._requireAuth(req, res);
+      if (!player) {return;}
+      return this._games.handleRemoveBot(req, res, player, removeBotMatch[1], removeBotMatch[2]);
+    }
+
     const joinMatch = pathname.match(/^\/api\/games\/([0-9a-f]{6})\/join$/);
     if (req.method === 'POST' && joinMatch) {
       const player = this._requireAuth(req, res);

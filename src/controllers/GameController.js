@@ -352,6 +352,34 @@ class GameController {
     const { botId, nickname } = this.store.addBot(gameId);
     HttpUtil.sendJSON(res, 201, { botId, nickname });
   }
+
+  // DELETE /api/games/:id/bots/:botId — host removes a bot, freeing the seat (FR-002, FR-005)
+  async handleRemoveBot(req, res, player, gameId, botId) {
+    try {
+      await HttpUtil.parseBody(req);
+    } catch {
+      HttpUtil.sendError(res, 400, 'invalid_request', 'Invalid JSON body');
+      return;
+    }
+    const game = this.store.games.get(gameId);
+    if (!game) {
+      HttpUtil.sendError(res, 404, 'not_found', 'Game not found');
+      return;
+    }
+    if (game.hostId !== player.id) {
+      HttpUtil.sendError(res, 403, 'forbidden', 'Only the host can remove bots');
+      return;
+    }
+    if (game.status !== 'waiting') {
+      HttpUtil.sendError(res, 409, 'game_already_started', 'Game has already started');
+      return;
+    }
+    if (!this.store.removeBot(gameId, botId)) {
+      HttpUtil.sendError(res, 404, 'not_found', 'Bot not found in this game');
+      return;
+    }
+    HttpUtil.sendJSON(res, 200, {});
+  }
 }
 
 module.exports = GameController;

@@ -518,6 +518,12 @@ input[type="text"]::placeholder {
   margin: 0 auto 0.5rem;
 }
 
+/* Host-only per-bot Remove control, pushed to the trailing edge of the seat row. */
+.remove-bot-btn {
+  margin-left: auto;
+  min-height: var(--touch-min);
+}
+
 .waiting-hint {
   font-size: 0.85rem;
   color: var(--color-text-muted);

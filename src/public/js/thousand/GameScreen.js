@@ -270,7 +270,10 @@ class GameScreen {
   _setOpponentNicknames(seats) {
     for (const o of this._opponents()) {
       const player = seats.players.find((p) => p.seat === o.seat);
-      if (player) { o.view.setNickname(player.nickname); }
+      if (player) {
+        o.view.setNickname(player.nickname);
+        o.view.setIsBot(player.isBot);
+      }
     }
   }
 

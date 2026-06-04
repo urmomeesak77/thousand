@@ -9,6 +9,7 @@ class OpponentView {
     this._container = container;
     this._container.className = 'opponent-view';
     this._nickname = '';
+    this._isBot = false;
     this._cardCount = 0;
     this._isDisconnected = false;
     this._lastAction = '';
@@ -19,6 +20,12 @@ class OpponentView {
 
   setNickname(nickname) {
     this._nickname = nickname;
+    this._render();
+  }
+
+  // FR-012: a computer opponent is badged in-game so it is never mistaken for a human.
+  setIsBot(isBot) {
+    this._isBot = Boolean(isBot);
     this._render();
   }
 
@@ -49,6 +56,12 @@ class OpponentView {
     const nick = document.createElement('div');
     nick.className = 'opponent-view__nickname';
     nick.textContent = this._nickname;
+    if (this._isBot) {
+      const badge = document.createElement('span');
+      badge.className = 'bot-badge';
+      badge.textContent = 'BOT';
+      nick.appendChild(badge);
+    }
     this._container.appendChild(nick);
 
     this._container.appendChild(this._buildCardStack());

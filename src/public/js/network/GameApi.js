@@ -108,6 +108,20 @@ class GameApi {
     }
   }
 
+  async removeBot(gameId, botId) {
+    try {
+      const { res, data } = await this._request('DELETE', `/api/games/${gameId}/bots/${botId}`);
+      if (!res.ok) {
+        this._onError(data.message || 'Failed to remove bot');
+        return false;
+      }
+      return true;
+    } catch {
+      this._onError('Network error. Please try again.');
+      return false;
+    }
+  }
+
   async logout() {
     // Best-effort: the server purges the player so the nickname frees up at
     // once. Even if this call fails (network/offline), the caller still clears
@@ -120,16 +134,20 @@ class GameApi {
     }
   }
 
-  async _post(url, body) {
+  _post(url, body) {
+    return this._request('POST', url, body);
+  }
+
+  async _request(method, url, body) {
     const headers = { 'Content-Type': 'application/json' };
     if (this._sessionToken) {
       headers['Authorization'] = `Bearer ${this._sessionToken}`;
     }
-    const res = await fetch(`${BASE_PATH}${url}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
+    const init = { method, headers };
+    if (body !== undefined) {
+      init.body = JSON.stringify(body);
+    }
+    const res = await fetch(`${BASE_PATH}${url}`, init);
     const text = await res.text();
     let data;
     try {

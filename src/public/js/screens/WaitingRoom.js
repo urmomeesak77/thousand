@@ -46,6 +46,14 @@ class WaitingRoom extends HtmlContainer {
         badge.className = 'bot-badge';
         badge.textContent = 'BOT';
         li.appendChild(badge);
+        // FR-002/FR-005: only the host gets a per-bot Remove control.
+        if (this._isHost && p.id) {
+          const remove = document.createElement('button');
+          remove.className = 'btn btn-ghost btn-sm remove-bot-btn';
+          remove.dataset.botId = p.id;
+          remove.textContent = 'Remove';
+          li.appendChild(remove);
+        }
       }
       ul.appendChild(li);
     }
