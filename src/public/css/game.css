@@ -459,6 +459,48 @@
 }
 
 /* ============================================================
+   Trump box — color-coded trump-suit display above the status box
+   ============================================================ */
+
+.trump-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.9rem;
+}
+
+.trump-box__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.trump-box__suit {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.trump-box__suit--red {
+  color: var(--card-color-red);
+}
+
+.trump-box__suit--black {
+  /* literal black is invisible on the dark table — use the light text color */
+  color: var(--color-text);
+}
+
+.trump-box__suit--none {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
    Last action box — spans all columns between opponents and hand
    ============================================================ */
 
