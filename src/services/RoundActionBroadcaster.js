@@ -24,7 +24,15 @@ class RoundActionBroadcaster {
 
   computeRoundEnd(game, round) {
     round.roundScores = roundScores(round);
-    round.roundDeltas = roundDeltas(round.roundScores, round.declarerSeat, round.currentHighBid, round.playerCount);
+    // Build the on-barrel seat set so non-declarers on the barrel score 0 this
+    // round (design 2026-06-05-barrel-non-declarer-scoring). barrelState reflects
+    // whether each seat ENTERED this round on the barrel — set at end of prior round.
+    const onBarrelSeats = new Set(
+      seatRange(round.playerCount).filter((s) => game.session?.barrelState[s]?.onBarrel),
+    );
+    round.roundDeltas = roundDeltas(
+      round.roundScores, round.declarerSeat, round.currentHighBid, round.playerCount, onBarrelSeats,
+    );
     round.buildSummary(game);
     const session = game.session;
     if (!session) { return { victoryReached: false, finalResults: null }; }

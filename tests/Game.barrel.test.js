@@ -4,6 +4,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const Game = require('../src/services/Game');
 const Round = require('../src/services/Round');
+const RoundActionBroadcaster = require('../src/services/RoundActionBroadcaster');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -660,5 +661,161 @@ describe('Round.submitBid — barrel forced-last-bidder floor (FR-022d)', () => 
     assert.equal(round.declarerSeat, 1);
     assert.equal(round.currentHighBid, 120);
     assert.equal(round.phase, 'post-bid-decision');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suite 6 — computeRoundEnd: barrel scoring freeze for non-declarers (T092)
+// Verifies that a non-declarer on the barrel gets roundDeltas[seat]=0 and
+// their cumulative score is unchanged by point-bearing cards they collected.
+// ---------------------------------------------------------------------------
+
+describe('RoundActionBroadcaster.computeRoundEnd — barrel non-declarer scoring freeze', () => {
+  // Build a store stub sufficient for computeRoundEnd (no sendToPlayer needed;
+  // computeRoundEnd does not broadcast).
+  function makeStore() {
+    return {
+      players: new Map([
+        ['p0', { nickname: 'Dealer' }],
+        ['p1', { nickname: 'P1' }],
+        ['p2', { nickname: 'P2' }],
+      ]),
+    };
+  }
+
+  // Drive a fresh round to a state where trick-play is complete:
+  // - seat 0 is declarer at bid 100
+  // - seat 1 has collected point-bearing cards (A♣ = 11 pts, 10♣ = 10 pts)
+  // - seat 0 (declarer) holds the remaining 99 trick points
+  // - no marriages declared
+  // Returns { round, game } where game.session is the Game instance.
+  function makeCompletedRound(barrelOverrides = {}) {
+    const game = new Game({
+      gameId: 'barrel-freeze-test',
+      seatOrder: ['p0', 'p1', 'p2'],
+      dealerSeat: 0,
+    });
+    // Apply barrel overrides before the round runs so barrelState is as-if set by
+    // the previous round end (the design invariant: barrelState is set at end of
+    // prior round, so it reflects barrel entry for THIS round).
+    for (const [seat, state] of Object.entries(barrelOverrides)) {
+      Object.assign(game.barrelState[seat], state);
+    }
+
+    const pids = ['p0', 'p1', 'p2'];
+    const gameRecord = { players: new Set(pids), session: game };
+    const store = makeStore();
+    const round = new Round({ game: gameRecord, store });
+    round.start();
+    round.advanceFromDealingToBidding();
+
+    // Seat 0 is forced to bid (all others pass); takes contract at 100.
+    round.submitPass(1);
+    round.submitPass(2);
+    round.submitBid(0, 100);
+    // round is now in post-bid-decision with declarerSeat=0, currentHighBid=100.
+
+    // Directly assign post-trick-play state: seat 1 collected A♣ + 10♣ (21 pts),
+    // seat 0 collected the rest (99 pts), seat 2 collected nothing.
+    // We use card ids from the live deck for consistency.
+    const aceClub = round.deck.find((c) => c.rank === 'A' && c.suit === '♣');
+    const tenClub = round.deck.find((c) => c.rank === '10' && c.suit === '♣');
+    // Assign all other cards to seat 0 so total = 120 pts across the table.
+    const seat1Ids = [aceClub.id, tenClub.id];
+    const seat0Ids = round.deck
+      .filter((c) => !seat1Ids.includes(c.id))
+      .map((c) => c.id);
+    round.collectedTricks[0] = seat0Ids;   // 99 pts
+    round.collectedTricks[1] = seat1Ids;   // 21 pts  ← on-barrel seat
+    round.collectedTricks[2] = [];         // 0 pts
+    round.declaredMarriages = [];
+    round.declarerSeat = 0;
+    round.currentHighBid = 100;
+
+    return { round, game };
+  }
+
+  it('non-declarer on barrel gets roundDeltas[seat]=0 despite collecting point-bearing cards', () => {
+    // Seat 1 is on the barrel and collects 21 pts (A♣ + 10♣).
+    // Without the barrel freeze, roundDeltas[1] would be 21.
+    // With the freeze, roundDeltas[1] must be 0.
+    const { round, game } = makeCompletedRound({ 1: { onBarrel: true, barrelRoundsUsed: 0 } });
+    const store = makeStore();
+    const broadcaster = new RoundActionBroadcaster({ store });
+
+    broadcaster.computeRoundEnd({ players: new Set(['p0', 'p1', 'p2']), session: game }, round);
+
+    assert.equal(round.roundDeltas[1], 0,
+      'on-barrel non-declarer must score 0 regardless of collected points');
+  });
+
+  it('cumulative score of the on-barrel non-declarer is unchanged after computeRoundEnd', () => {
+    // Seat 1 starts at 900 (barrel range). Collects 21 pts this round.
+    // With the freeze, their cumulative score must stay 900 (+ no delta).
+    const { round, game } = makeCompletedRound({ 1: { onBarrel: true, barrelRoundsUsed: 0 } });
+    game.cumulativeScores[1] = 900;
+
+    const store = makeStore();
+    const broadcaster = new RoundActionBroadcaster({ store });
+
+    broadcaster.computeRoundEnd({ players: new Set(['p0', 'p1', 'p2']), session: game }, round);
+
+    // applyRoundEnd adds roundDeltas[1] (which must be 0) to cumulativeScores[1].
+    assert.equal(game.cumulativeScores[1], 900,
+      'barrel non-declarer cumulative score must not change from collected points');
+  });
+
+  it('non-barrel non-declarer still scores their collected points normally', () => {
+    // Seat 2 is NOT on barrel. Seat 1 is on barrel. Give seat 2 some points instead.
+    const game = new Game({
+      gameId: 'barrel-freeze-test-2',
+      seatOrder: ['p0', 'p1', 'p2'],
+      dealerSeat: 0,
+    });
+    game.barrelState[1].onBarrel = true;
+
+    const pids = ['p0', 'p1', 'p2'];
+    const gameRecord = { players: new Set(pids), session: game };
+    const store = makeStore();
+    const round = new Round({ game: gameRecord, store });
+    round.start();
+    round.advanceFromDealingToBidding();
+    round.submitPass(1);
+    round.submitPass(2);
+    round.submitBid(0, 100);
+
+    const aceSpade = round.deck.find((c) => c.rank === 'A' && c.suit === '♠');
+    const tenSpade = round.deck.find((c) => c.rank === '10' && c.suit === '♠');
+    const seat2Ids = [aceSpade.id, tenSpade.id]; // 21 pts
+    const seat0Ids = round.deck
+      .filter((c) => !seat2Ids.includes(c.id))
+      .map((c) => c.id); // 99 pts
+    round.collectedTricks[0] = seat0Ids;
+    round.collectedTricks[1] = [];
+    round.collectedTricks[2] = seat2Ids;
+    round.declaredMarriages = [];
+    round.declarerSeat = 0;
+    round.currentHighBid = 100;
+
+    const broadcaster = new RoundActionBroadcaster({ store });
+    broadcaster.computeRoundEnd({ players: new Set(pids), session: game }, round);
+
+    assert.equal(round.roundDeltas[2], 21,
+      'non-barrel non-declarer must score their collected points normally');
+  });
+
+  it('declarer on barrel scores as declarer (bid win/miss), not as a frozen non-declarer', () => {
+    // Seat 0 is declarer AND on barrel (unusual but must not accidentally freeze them).
+    // Seat 0 collects 99 pts (>= bid 100 is false → actually 99 < 100 → misses bid).
+    // Wait — 99 < 100, so declarer misses. Delta = −100. Not frozen.
+    const { round, game } = makeCompletedRound({ 0: { onBarrel: true, barrelRoundsUsed: 0 } });
+
+    const store = makeStore();
+    const broadcaster = new RoundActionBroadcaster({ store });
+    broadcaster.computeRoundEnd({ players: new Set(['p0', 'p1', 'p2']), session: game }, round);
+
+    // Seat 0 has 99 pts < bid 100 → misses → delta = −100 (not 0).
+    assert.equal(round.roundDeltas[0], -100,
+      'declarer on barrel is scored by bid outcome, not frozen to 0');
   });
 });
