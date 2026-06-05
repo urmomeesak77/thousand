@@ -16,6 +16,7 @@ const MIME = {
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
+  '.mp3': 'audio/mpeg',
 };
 
 class StaticServer {

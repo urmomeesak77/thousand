@@ -26,8 +26,8 @@ Web app, single existing layout: frontend under `src/public/js/`, styles under `
 
 **Purpose**: Ensure the audio assets are served correctly before any playback work.
 
-- [ ] T001 Add a `.mp3` → `audio/mpeg` MIME mapping in `src/utils/StaticServer.js` if not already present, so sound files serve with the correct content-type (without it, browsers may refuse to decode the audio).
-- [ ] T002 [P] Confirm the three assets exist and are reachable: `src/public/sound/playing-card.mp3`, `src/public/sound/flipcard.mp3`, `src/public/sound/turn.mp3` (load each via `http://localhost:3000/sound/<file>` while `npm start` runs).
+- [X] T001 Add a `.mp3` → `audio/mpeg` MIME mapping in `src/utils/StaticServer.js` if not already present, so sound files serve with the correct content-type (without it, browsers may refuse to decode the audio).
+- [X] T002 [P] Confirm the three assets exist and are reachable: `src/public/sound/playing-card.mp3`, `src/public/sound/flipcard.mp3`, `src/public/sound/turn.mp3` (load each via `http://localhost:3000/sound/<file>` while `npm start` runs).
 
 ---
 
@@ -37,9 +37,9 @@ Web app, single existing layout: frontend under `src/public/js/`, styles under `
 
 **⚠️ CRITICAL**: No user story can be fully exercised until this phase is complete.
 
-- [ ] T003 [P] Write failing unit tests for `SoundManager` in `tests/sound-manager.test.js`: muted ⇒ `play(cue)` does NOT call the audio factory; unmuted ⇒ `play(cue)` plays exactly once per call; unknown cue is a no-op; `toggleMute()` flips and returns the new state; a `play()` that throws is swallowed. Use an injected `audioFactory` stub returning a spy with `cloneNode()`/`play()`.
-- [ ] T004 Implement `SoundManager` in `src/public/js/thousand/SoundManager.js` to make T003 pass: constructor `(antlion, { store = null, audioFactory = (src) => new Audio(src) } = {})`; preload one base `Audio` per cue (`card`/`flip`/`turn` → the three files); `play(cue)` no-ops when muted else clones the cached base and `.play()` (errors swallowed, no `ended` listener — §XI); in-memory `muted` initialised from `store?.get()` (default `false`); `isMuted()`, `toggleMute()` (flips, persists via `store?.set()`); register `antlion.onInput('sound:card'|'sound:flip'|'sound:turn', …)` → `play(...)`.
-- [ ] T005 Construct the `SoundManager` in `src/public/js/core/ThousandApp.js` (instantiate with the app's `antlion`; leave the `store` option unset for now) and keep the reference for the mute button wiring.
+- [X] T003 [P] Write failing unit tests for `SoundManager` in `tests/sound-manager.test.js`: muted ⇒ `play(cue)` does NOT call the audio factory; unmuted ⇒ `play(cue)` plays exactly once per call; unknown cue is a no-op; `toggleMute()` flips and returns the new state; a `play()` that throws is swallowed. Use an injected `audioFactory` stub returning a spy with `cloneNode()`/`play()`.
+- [X] T004 Implement `SoundManager` in `src/public/js/thousand/SoundManager.js` to make T003 pass: constructor `(antlion, { store = null, audioFactory = (src) => new Audio(src) } = {})`; preload one base `Audio` per cue (`card`/`flip`/`turn` → the three files); `play(cue)` no-ops when muted else clones the cached base and `.play()` (errors swallowed, no `ended` listener — §XI); in-memory `muted` initialised from `store?.get()` (default `false`); `isMuted()`, `toggleMute()` (flips, persists via `store?.set()`); register `antlion.onInput('sound:card'|'sound:flip'|'sound:turn', …)` → `play(...)`.
+- [X] T005 Construct the `SoundManager` in `src/public/js/core/ThousandApp.js` (instantiate with the app's `antlion`; leave the `store` option unset for now) and keep the reference for the mute button wiring.
 
 **Checkpoint**: Engine events now produce sound; default state is unmuted.
 

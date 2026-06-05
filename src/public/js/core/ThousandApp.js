@@ -12,6 +12,7 @@ import GameApi from '../network/GameApi.js';
 import NewGameModal from '../overlays/NewGameModal.js';
 import RulesModal from '../overlays/RulesModal.js';
 import GameScreen from '../thousand/GameScreen.js';
+import SoundManager from '../thousand/SoundManager.js';
 import RoundActionDispatcher from '../thousand/RoundActionDispatcher.js';
 import ThousandMessageRouter from './ThousandMessageRouter.js';
 import LobbyBinder from './LobbyBinder.js';
@@ -67,6 +68,10 @@ class ThousandApp {
     gameEl.appendChild(this._roundScreenEl);
     this._dispatcher = new RoundActionDispatcher(this._socket);
     this._gameScreen = new GameScreen(this._antlion, this._roundScreenEl, this._dispatcher);
+
+    // Consumes engine sound:* events. The store/mute-button wiring is added by
+    // later user stories; default behaviour is unmuted.
+    this._soundManager = new SoundManager(this._antlion);
 
     this._reconnectOverlay = new ReconnectOverlay($('reconnect-overlay'));
 
