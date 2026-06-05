@@ -6,6 +6,10 @@ const {
   rankValue, rankStrength, hasTrumpControl, MARRIAGE_BONUS,
 } = require('./botStrategyHelpers');
 
+// Point value of a ten: the threshold below which a declarer treats a winner as a
+// throwaway it will spend to capture a point trick (an ace/ten it saves to duck instead).
+const RANK_VALUE_TEN = 10;
+
 // K/Q of still-declarable marriages, reserved while a declaration remains reachable.
 function reservedMarriageCards(legal, trump, trickNumber) {
   if (trickNumber > 6) { return new Set(); }
@@ -18,7 +22,7 @@ function reservedMarriageCards(legal, trump, trickNumber) {
 // Following a trick already in progress: capture point-rich tricks as cheaply as possible,
 // otherwise duck with the lowest-value card (keeping aces/tens and reserved marriages).
 function chooseFollow(ctx) {
-  const { legal, hand, trump, currentTrick, deck, goneCardIds, playerCount, trickNumber } = ctx;
+  const { legal, hand, trump, currentTrick, deck, goneCardIds, playerCount, trickNumber, isDeclarer } = ctx;
   const reserved = reservedMarriageCards(legal, trump, trickNumber);
   const usable = legal.filter((c) => !reserved.has(c.cardId));
   const pool = usable.length > 0 ? usable : legal;
@@ -32,6 +36,10 @@ function chooseFollow(ctx) {
   if (winner && points > 0) {
     const sure = isBossCard(winner, { goneCardIds, hand, currentTrick, deck }, trump);
     if (amLast || sure) { return { cardId: winner.cardId }; }
+    // A declarer must CAPTURE its bid, so on a point-rich trick it grabs the points with a
+    // throwaway winner (a low ruff or low card) rather than ducking them to the opponents.
+    // It still refuses to risk an ace or ten to a later over-take — those it saves to duck.
+    if (isDeclarer && rankValue(winner.rank) < RANK_VALUE_TEN) { return { cardId: winner.cardId }; }
   }
   const duck = pickCard(pool, { highest: false });
   return duck ? { cardId: duck.cardId } : null;

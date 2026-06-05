@@ -23,11 +23,12 @@ describe('sellEvaluator.takeOrSell (FR-competent)', () => {
     const starved = hand([['A', 'S'], ['10', 'S'], ['J', 'H'], ['9', 'D']]); // ~21 expected
     assert.equal(sellEvaluator.takeOrSell(starved, 200, 0.5, 1).kind, 'sellStart');
   });
-  it('a bolder bot takes a thinner hand than a cautious one', () => { // per competent-play
-    const marginal = hand([['K', 'S'], ['Q', 'S'], ['9', 'D'], ['J', 'H']]);
-    const cautious = sellEvaluator.takeOrSell(marginal, 130, 0, 1).kind;
-    const bold = sellEvaluator.takeOrSell(marginal, 130, 1, 1).kind;
-    assert.ok(!(cautious === 'startGame' && bold === 'sellStart'));
+  it('a bolder bot takes a marginal hand the cautious one sells', () => { // per competent-play
+    // K♣+Q♣ marriage (trump) + a side ace ≈ 109 expected, against a 130 bid: inside the
+    // bold bot's cushion but short for the cautious one. Bolder ⇒ tolerate the thinner hand.
+    const marginal = hand([['K', 'C'], ['Q', 'C'], ['9', 'C'], ['A', 'S'], ['J', 'H'], ['9', 'D']]);
+    assert.equal(sellEvaluator.takeOrSell(marginal, 130, 1, 1).kind, 'startGame', 'bold takes');
+    assert.equal(sellEvaluator.takeOrSell(marginal, 130, 0, 1).kind, 'sellStart', 'cautious sells');
   });
 });
 

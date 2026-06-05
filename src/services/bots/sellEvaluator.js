@@ -7,7 +7,8 @@ const { MIN_BID, MAX_BID, BID_STEP, SELL_CUSHION, BUY_MARGIN } = require('./botC
 // thinner hand (smaller effective cushion). Forced to take when no attempts remain.
 function takeOrSell(hand, bid, aggressiveness, attemptsLeft) {
   if (attemptsLeft <= 0) { return { kind: 'startGame' }; }
-  const cushion = SELL_CUSHION * (1 - aggressiveness);
+  // A bolder bot tolerates a thinner hand: a wider cushion below the bid before it sells.
+  const cushion = SELL_CUSHION * aggressiveness;
   if (estimateMakeable(hand).value >= bid - cushion) { return { kind: 'startGame' }; }
   return { kind: 'sellStart' };
 }

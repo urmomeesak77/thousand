@@ -39,6 +39,44 @@ describe('trickPlanner.chooseFollow (FR-competent)', () => {
     };
     assert.equal(trickPlanner.chooseFollow(ctx).cardId, 1); // 9♥
   });
+
+  it('declarer ruffs a point-rich trick rather than ducking the points away', () => { // per competent-play
+    // Trump ♠; declarer is void in the led ♥ and can ruff the fat A♥ trick with J♠. A higher
+    // trump (A♠) is still out, so the ruff is not "sure" — but a declarer must capture its bid,
+    // so it grabs the points instead of throwing the 9♦ duck a defender would save it for.
+    const deck = buildDeck([['A', 'H'], ['J', 'S'], ['9', 'D'], ['A', 'S']]);
+    const hand = obj(deck, [1, 2]); // J♠, 9♦
+    const ctx = {
+      legal: hand, hand, trump: 'S', deck, goneCardIds: new Set(),
+      currentTrick: [{ seat: 0, cardId: 0 }], playerCount: 4, trickNumber: 3,
+      isDeclarer: true,
+    };
+    assert.equal(trickPlanner.chooseFollow(ctx).cardId, 1); // J♠ ruff
+  });
+
+  it('a defender ducks that same trick, saving its trump', () => { // per competent-play
+    const deck = buildDeck([['A', 'H'], ['J', 'S'], ['9', 'D'], ['A', 'S']]);
+    const hand = obj(deck, [1, 2]); // J♠, 9♦
+    const ctx = {
+      legal: hand, hand, trump: 'S', deck, goneCardIds: new Set(),
+      currentTrick: [{ seat: 0, cardId: 0 }], playerCount: 4, trickNumber: 3,
+      isDeclarer: false,
+    };
+    assert.equal(trickPlanner.chooseFollow(ctx).cardId, 2); // 9♦ duck, keep J♠
+  });
+
+  it('declarer still will not waste an ace/ten on an unsafe mid-trick win', () => { // per competent-play
+    // The grab is for throwaway winners only: a declarer void in ♥ whose only ruff is the
+    // trump 10♠ keeps it (A♠ is still out to over-ruff) rather than risking a 10-point card.
+    const deck = buildDeck([['A', 'H'], ['10', 'S'], ['9', 'D'], ['A', 'S']]);
+    const hand = obj(deck, [1, 2]); // 10♠, 9♦
+    const ctx = {
+      legal: hand, hand, trump: 'S', deck, goneCardIds: new Set(),
+      currentTrick: [{ seat: 0, cardId: 0 }], playerCount: 4, trickNumber: 3,
+      isDeclarer: true,
+    };
+    assert.equal(trickPlanner.chooseFollow(ctx).cardId, 2); // 9♦ duck, keep 10♠
+  });
 });
 
 describe('trickPlanner.chooseLead (FR-competent)', () => {
