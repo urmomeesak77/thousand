@@ -5,6 +5,7 @@
 import StatusBar from './StatusBar.js';
 import ScoreboardPanel from './ScoreboardPanel.js';
 import GameStatusBox from './GameStatusBox.js';
+import TrumpBox from './TrumpBox.js';
 import CardTable from './CardTable.js';
 import HandView from './HandView.js';
 import OpponentView from './OpponentView.js';
@@ -62,9 +63,10 @@ class GameScreen {
     const acrossEl = document.createElement('div');
     const centerColEl = document.createElement('div');
     centerColEl.className = 'talon-col';
+    const trumpBoxEl = document.createElement('div');
     const statusBoxEl = document.createElement('div');
     const talonEl = document.createElement('div');
-    centerColEl.append(statusBoxEl, talonEl);
+    centerColEl.append(trumpBoxEl, statusBoxEl, talonEl);
     const rightEl = document.createElement('div');
     const handEl = document.createElement('div');
     const selfStatsEl = document.createElement('div');
@@ -93,6 +95,7 @@ class GameScreen {
     this._talonEl = talonEl;
 
     this._statusBar = new StatusBar(statusBarEl);
+    this._trumpBox = new TrumpBox(trumpBoxEl);
     this._statusBox = new GameStatusBox(statusBoxEl);
     this._cardTable = new CardTable(antlion, tableEl);
     this._handView = new HandView(handEl, antlion);
@@ -519,6 +522,13 @@ class GameScreen {
   }
 
   _renderStatus(gameStatus) {
+    const ACTIVE_TRUMP_PHASES = new Set([
+      'Bidding', 'Declarer deciding', 'Selling', 'Card exchange', 'Trick play',
+    ]);
+    this._trumpBox.render(
+      gameStatus.currentTrumpSuit,
+      ACTIVE_TRUMP_PHASES.has(gameStatus.phase),
+    );
     // playerCount = seat count; lets the bar render count-aware text (FR-011/FR-020)
     const playerCount = this._seats?.players.length ?? 3;
     this._statusBar.render(gameStatus, this._sellWinnerNickname, playerCount);

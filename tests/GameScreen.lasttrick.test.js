@@ -37,6 +37,7 @@ before(() => {
     'thousand/DeclarerDecisionControls.js',
     'thousand/SellSelectionControls.js',
     'thousand/GameStatusBox.js',
+    'thousand/TrumpBox.js',
     'thousand/RoundReadyScreen.js',
     'thousand/CardExchangeView.js',
     'thousand/CollectedTricksStack.js',
