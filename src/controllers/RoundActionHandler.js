@@ -48,7 +48,10 @@ class RoundActionHandler {
   // seat resolution, action invocation, rejection handling, per-recipient broadcast.
   // `action(round, seat)` performs the state mutation and returns the result object.
   // `broadcast(pid, gameStatus, result, ctx)` emits whatever messages the action needs.
-  _runRoundAction(playerId, action, broadcast) {
+  // `record(history, seat, roundNumber, result)` (optional) appends a history entry
+  // (feature 012); it runs BEFORE the broadcast so the resolving action's own
+  // snapshot already carries the entry instead of it surfacing one snapshot late.
+  _runRoundAction(playerId, action, broadcast, record) {
     if (!this._rateLimiter.isAllowed(playerId)) {
       return;
     }
@@ -77,6 +80,11 @@ class RoundActionHandler {
       this._reject(playerId, result.reason);
       return;
     }
+    // Record before broadcasting: the snapshot embeds session.actionHistory, so
+    // the entry must exist by the time each viewer's view-model is built (FR-018).
+    if (record && game.session) {
+      record(game.session.actionHistory, seat, game.session.currentRoundNumber, result, round);
+    }
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);
       const gameStatus = round.getViewModelFor(pSeat);
@@ -90,7 +98,7 @@ class RoundActionHandler {
 
   // T027 + T044
   handleBid(playerId, amount) {
-    const outcome = this._runRoundAction(
+    this._runRoundAction(
       playerId,
       (round, seat) => round.submitBid(seat, amount),
       (pid, gameStatus, result, { round }) => {
@@ -104,13 +112,13 @@ class RoundActionHandler {
           this._store.sendToPlayer(pid, msg);
         }
       },
+      (history, seat, round) => history.recordBid(seat, amount, round),
     );
-    this._recordAuction(outcome, playerId, (history, seat, round) => history.recordBid(seat, amount, round));
   }
 
   // T028 + T044
   handlePass(playerId) {
-    const outcome = this._runRoundAction(
+    this._runRoundAction(
       playerId,
       (round, seat) => {
         if (round.phase !== 'bidding') {
@@ -129,18 +137,8 @@ class RoundActionHandler {
           this._store.sendToPlayer(pid, msg);
         }
       },
+      (history, seat, round) => history.recordPass(seat, round),
     );
-    this._recordAuction(outcome, playerId, (history, seat, round) => history.recordPass(seat, round));
-  }
-
-  // Append one auction history entry (feature 012) for a resolved bid/pass.
-  // No-op when the action was rejected/noop (outcome is undefined) or the game
-  // has no session yet. The seat is the actor's stable seat (FR-016).
-  _recordAuction(outcome, playerId, append) {
-    const session = outcome?.game?.session;
-    if (!session) { return; }
-    const seat = outcome.round.seatByPlayer.get(playerId);
-    append(session.actionHistory, seat, session.currentRoundNumber);
   }
 
   // T065
@@ -168,6 +166,9 @@ class RoundActionHandler {
         }
         this._store.sendToPlayer(pid, { type: 'sell_exposed', declarerId, exposedIds, identities, gameStatus });
       },
+      // The committed exposure (not the cancellable start) is the real "up for
+      // sale" event; log it here so a cancel never leaves a dangling entry.
+      (history, seat, roundNumber) => history.recordSellStart(seat, roundNumber),
     );
   }
 
@@ -198,6 +199,12 @@ class RoundActionHandler {
           });
         }
       },
+      (history, seat, roundNumber, result, round) => {
+        history.recordSellBid(seat, amount, roundNumber);
+        if (result.resolved && result.outcome === 'sold') {
+          history.recordSellSold(result.buyerSeat, round.currentHighBid, roundNumber);
+        }
+      },
     );
   }
 
@@ -222,6 +229,14 @@ class RoundActionHandler {
             msg.newDeclarerId = round.seatOrder[round.declarerSeat];
           }
           this._store.sendToPlayer(pid, msg);
+        }
+      },
+      (history, seat, roundNumber, result, round) => {
+        history.recordSellPass(seat, roundNumber);
+        if (result.resolved && result.outcome === 'sold') {
+          history.recordSellSold(result.buyerSeat, round.currentHighBid, roundNumber);
+        } else if (result.resolved) {
+          history.recordSellReturned(round.declarerSeat, roundNumber);
         }
       },
     );

@@ -23,6 +23,28 @@ class GameHistory {
     this._append('pass', seat, roundNumber, {});
   }
 
+  // Sell phase (feature 012 follow-up): the declarer exposes the contract, each
+  // opponent bids to buy or passes, and the auction resolves sold/returned.
+  recordSellStart(seat, roundNumber) {
+    this._append('sell-start', seat, roundNumber, {});
+  }
+
+  recordSellBid(seat, amount, roundNumber) {
+    this._append('sell-bid', seat, roundNumber, { amount });
+  }
+
+  recordSellPass(seat, roundNumber) {
+    this._append('sell-pass', seat, roundNumber, {});
+  }
+
+  recordSellSold(buyerSeat, amount, roundNumber) {
+    this._append('sell-sold', buyerSeat, roundNumber, { amount });
+  }
+
+  recordSellReturned(declarerSeat, roundNumber) {
+    this._append('sell-returned', declarerSeat, roundNumber, {});
+  }
+
   recordMarriage(seat, suit, bonus, roundNumber) {
     this._append('marriage', seat, roundNumber, { suit, bonus });
   }

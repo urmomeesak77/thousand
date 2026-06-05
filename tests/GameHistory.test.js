@@ -82,6 +82,46 @@ describe('GameHistory', () => {
     assert.equal(h.toView()[0].data.perSeat[0], 120);
   });
 
+  it('recordSellStart shape (declarer puts the contract up for sale)', () => {
+    const h = new GameHistory();
+    h.recordSellStart(0, 2);
+    assert.deepEqual(h.toView()[0], {
+      seq: 0, kind: 'sell-start', roundNumber: 2, seat: 0, data: {},
+    });
+  });
+
+  it('recordSellBid shape (opponent buy-bid)', () => {
+    const h = new GameHistory();
+    h.recordSellBid(1, 110, 3);
+    assert.deepEqual(h.toView()[0], {
+      seq: 0, kind: 'sell-bid', roundNumber: 3, seat: 1, data: { amount: 110 },
+    });
+  });
+
+  it('recordSellPass shape (opponent declines to buy)', () => {
+    const h = new GameHistory();
+    h.recordSellPass(2, 1);
+    assert.deepEqual(h.toView()[0], {
+      seq: 0, kind: 'sell-pass', roundNumber: 1, seat: 2, data: {},
+    });
+  });
+
+  it('recordSellSold shape (seat is the buyer)', () => {
+    const h = new GameHistory();
+    h.recordSellSold(1, 120, 4);
+    assert.deepEqual(h.toView()[0], {
+      seq: 0, kind: 'sell-sold', roundNumber: 4, seat: 1, data: { amount: 120 },
+    });
+  });
+
+  it('recordSellReturned shape (seat is the original declarer)', () => {
+    const h = new GameHistory();
+    h.recordSellReturned(0, 5);
+    assert.deepEqual(h.toView()[0], {
+      seq: 0, kind: 'sell-returned', roundNumber: 5, seat: 0, data: {},
+    });
+  });
+
   it('recordSpecial shape for four-nines / barrel / zeros', () => {
     const h = new GameHistory();
     h.recordSpecial('four-nines', 0, 100, 2);

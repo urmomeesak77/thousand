@@ -27,7 +27,7 @@ recorded server-side.
 ```jsonc
 {
   "seq": 0,                 // integer, 0-based, strictly +1 per entry, never reused
-  "kind": "bid",            // "bid"|"pass"|"marriage"|"trick"|"round-score"|"four-nines"|"barrel"|"zeros"
+  "kind": "bid",            // "bid"|"pass"|"sell-start"|"sell-bid"|"sell-pass"|"sell-sold"|"sell-returned"|"marriage"|"trick"|"round-score"|"four-nines"|"barrel"|"zeros"
   "roundNumber": 1,         // integer >= 1
   "seat": 0,                // integer 0..playerCount-1, or null for round-score
   "data": { }               // kind-specific (below)
@@ -39,6 +39,11 @@ recorded server-side.
 ```jsonc
 "bid":         { "amount": 110 }
 "pass":        { }
+"sell-start":    { }                 // seat = declarer who exposed the contract
+"sell-bid":      { "amount": 110 }   // seat = opponent buy-bidding
+"sell-pass":     { }                 // seat = opponent declining to buy
+"sell-sold":     { "amount": 110 }   // seat = buyer the contract sold to
+"sell-returned": { }                 // seat = original declarer kept the contract
 "marriage":    { "suit": "hearts", "bonus": 100 }
 "trick":       { "trickNumber": 3 }
 "round-score": { "perSeat": { "0": 120, "1": -60, "2": 0 }, "declarerSeat": 0, "bid": 110 }
@@ -53,6 +58,11 @@ recorded server-side.
 |---------|----------|------------|
 | Auction bid accepted | `RoundActionHandler` (bid path) | `bid` |
 | Auction pass | `RoundActionHandler.handlePass` | `pass` |
+| Contract exposed for sale | `RoundActionHandler.handleSellSelect` | `sell-start` |
+| Sell-auction buy-bid | `RoundActionHandler.handleSellBid` | `sell-bid` |
+| Sell-auction pass | `RoundActionHandler.handleSellPass` | `sell-pass` |
+| Sell resolved (sold) | `RoundActionHandler.handleSellBid` / `handleSellPass` | `sell-sold` |
+| Sell resolved (returned) | `RoundActionHandler.handleSellPass` | `sell-returned` |
 | Marriage declared | `TrickPlayActionHandler` / `RoundActionBroadcaster._broadcastMarriage` | `marriage` |
 | Trick resolved | `RoundActionBroadcaster.broadcastPlayCardResults` (`winnerSeat`) | `trick` |
 | Round end scored | `RoundActionBroadcaster.computeRoundEnd` | `round-score` |

@@ -29,6 +29,11 @@ function historyEntryText(entry, seats) {
   switch (entry.kind) {
     case 'bid': return `${who} bid ${entry.data.amount}`;
     case 'pass': return `${who} passed`;
+    case 'sell-start': return `${who} put the contract up for sale`;
+    case 'sell-bid': return `${who} bid ${entry.data.amount} to buy`;
+    case 'sell-pass': return `${who} passed on buying`;
+    case 'sell-sold': return `Contract sold to ${who} (${entry.data.amount})`;
+    case 'sell-returned': return `Contract returned to ${who}`;
     case 'marriage': return `${who} declared ${entry.data.suit} marriage (+${entry.data.bonus})`;
     case 'trick': return `Trick ${entry.data.trickNumber} won by ${who}`;
     case 'round-score': return roundScoreText(entry, seats);

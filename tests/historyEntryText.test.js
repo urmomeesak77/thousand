@@ -74,6 +74,35 @@ describe('historyEntryText', () => {
     );
   });
 
+  it('formats a sell-start (declarer puts the contract up for sale)', () => {
+    assert.equal(
+      fmt({ kind: 'sell-start', seat: 0, data: {} }),
+      'Ada put the contract up for sale',
+    );
+  });
+
+  it('formats a sell-bid (opponent buy-bid)', () => {
+    assert.equal(
+      fmt({ kind: 'sell-bid', seat: 1, data: { amount: 110 } }),
+      'Bot-Eve bid 110 to buy',
+    );
+  });
+
+  it('formats a sell-pass (opponent declines to buy)', () => {
+    assert.equal(fmt({ kind: 'sell-pass', seat: 2, data: {} }), 'Cara passed on buying');
+  });
+
+  it('formats a sell-sold (contract sold to the buyer)', () => {
+    assert.equal(
+      fmt({ kind: 'sell-sold', seat: 1, data: { amount: 120 } }),
+      'Contract sold to Bot-Eve (120)',
+    );
+  });
+
+  it('formats a sell-returned (contract returned to the declarer)', () => {
+    assert.equal(fmt({ kind: 'sell-returned', seat: 0, data: {} }), 'Contract returned to Ada');
+  });
+
   it('falls back to a stable seat label when the nickname is unknown (FR-016)', () => {
     const sparseSeats = { self: 0, players: [{ seat: 0, nickname: null }] };
     const text = dom.window.historyEntryText({ kind: 'bid', seat: 1, data: { amount: 100 } }, sparseSeats);
