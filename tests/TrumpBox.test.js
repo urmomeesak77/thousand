@@ -69,4 +69,13 @@ describe('TrumpBox', () => {
     box.render('♥', false);
     assert.ok(container.querySelector('.trump-box').classList.contains('hidden'));
   });
+
+  it('re-render is stateless: switching from red to black suit removes the red class', () => {
+    const { container, box } = mount();
+    box.render('♥', true);
+    box.render('♣', true);
+    const suit = container.querySelector('.trump-box__suit');
+    assert.ok(suit.classList.contains('trump-box__suit--black'));
+    assert.ok(!suit.classList.contains('trump-box__suit--red'));
+  });
 });

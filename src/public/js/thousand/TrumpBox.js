@@ -9,14 +9,14 @@ class TrumpBox {
     this._el = document.createElement('div');
     this._el.className = 'trump-box hidden';
 
-    this._labelEl = document.createElement('span');
-    this._labelEl.className = 'trump-box__label';
-    this._labelEl.textContent = 'Trump';
+    const labelEl = document.createElement('span');
+    labelEl.className = 'trump-box__label';
+    labelEl.textContent = 'Trump';
 
     this._suitEl = document.createElement('span');
     this._suitEl.className = 'trump-box__suit';
 
-    this._el.append(this._labelEl, this._suitEl);
+    this._el.append(labelEl, this._suitEl);
     container.appendChild(this._el);
   }
 
