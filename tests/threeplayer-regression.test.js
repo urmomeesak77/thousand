@@ -56,6 +56,15 @@ describe('3-player regression — exactly two exchange passes & 3-card tricks (F
       assert.equal(round.hands[s].length, 8, `seat ${s} holds 8`);
     }
 
+    // A random deal can leave one seat holding all four 9s, which opens the
+    // four-nines ack-gate at the trick-play transition and would block the
+    // declarer's lead. Close it — this test exercises trick width, not the bonus.
+    if (round.fourNinesAckPending) {
+      for (const s of [0, 1, 2]) {
+        round.recordFourNinesAck(s);
+      }
+    }
+
     // One trick resolves at 3 cards. Give each seat a distinct suit so no follow-suit
     // constraint applies and every play is trivially legal.
     const idOf = (rank, suit) => round.deck.find((c) => c.rank === rank && c.suit === suit).id;
