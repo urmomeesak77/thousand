@@ -17,6 +17,16 @@ const MARRIAGE_BONUS = {
   '♣': 100, '♠': 80, '♥': 60, '♦': 40,
 };
 
+// Realistic expected-capture weights (tunable). A declarer in a CONTESTED game does
+// not sweep all 120 trick points, so estimateMakeable values the points the hand can
+// actually win rather than assuming a full sweep.
+const ACE_OFFSUIT_FACTOR = 0.85;  // an off-trump ace can be ruffed away
+const TEN_BARE_FACTOR = 0.4;      // a ten with no same-suit ace usually loses to it
+const MARRIAGE_FACTOR = 0.9;      // a declared marriage is reliable but needs one lead
+const RUFF_PER_TRUMP = 8;         // each trump beyond the third ruffs an opponent point trick
+const HALF_MARRIAGE_NUDGE = 5;    // a hidden talon card may complete a half marriage
+const HALF_MARRIAGE_CAP = 10;
+
 function rankValue(rank) {
   return RANK_VALUE[rank] ?? 0;
 }
@@ -114,34 +124,63 @@ function hasTrumpControl(hand, context, trump) {
   return trumps.length > 0 && isBossCard(trumps[0], context, trump);
 }
 
-// Estimate the score a declarer can safely make against passive opponents: the
-// ~120 sweepable trick points (minus a buffer for a lost trick) plus the bonus of
-// every COMPLETE marriage held, with a small capped nudge for half-marriages a
-// talon might complete. Never inflates past the sweepable ceiling on its own.
+// The suit a declarer would make trump: the longest suit, breaking ties toward the
+// higher marriage bonus (so a K/Q-bearing suit wins a length tie). Returns null on an
+// empty/suitless hand.
+function chooseTrumpSuit(bySuit) {
+  let best = null;
+  let bestLen = 0;
+  let bestBonus = 0;
+  for (const suit of Object.keys(bySuit)) {
+    const len = bySuit[suit].size;
+    const bonus = MARRIAGE_BONUS[suit] ?? 0;
+    if (len > bestLen || (len === bestLen && bonus > bestBonus)) {
+      best = suit; bestLen = len; bestBonus = bonus;
+    }
+  }
+  return best;
+}
+
+// Estimate the points a declarer can realistically CAPTURE against contesting
+// opponents (not a full sweep): discounted aces/tens, ruffing power from a long
+// trump suit, and complete-marriage bonuses. Keeps the { value, complete, half }
+// shape its callers (bidding, selling, buying) read.
 function estimateMakeable(hand) {
   const bySuit = {};
   for (const c of hand) {
     if (!c.suit) { continue; }
     (bySuit[c.suit] ||= new Set()).add(c.rank);
   }
+  const trump = chooseTrumpSuit(bySuit);
+
+  let points = 0;
   let completeBonus = 0;
   let halfCount = 0;
   const complete = [];
+
   for (const suit of Object.keys(bySuit)) {
     const has = bySuit[suit];
+    const isTrump = suit === trump;
+    if (has.has('A')) {
+      points += isTrump ? RANK_VALUE.A : RANK_VALUE.A * ACE_OFFSUIT_FACTOR;
+    }
+    if (has.has('10')) {
+      const protectedTen = isTrump || has.has('A');
+      points += protectedTen ? RANK_VALUE['10'] : RANK_VALUE['10'] * TEN_BARE_FACTOR;
+    }
     if (has.has('K') && has.has('Q')) {
-      completeBonus += MARRIAGE_BONUS[suit];
+      completeBonus += MARRIAGE_BONUS[suit] * MARRIAGE_FACTOR;
       complete.push(suit);
     } else if (has.has('K') || has.has('Q')) {
       halfCount += 1;
     }
   }
-  // Competent nudge: a long trump-capable suit and surplus aces make a hand stronger.
-  // Small and capped so it never inflates a bid past the sweepable ceiling on its own.
-  const longestSuit = Math.max(0, ...Object.values(bySuit).map((s) => s.size));
-  const aceCount = hand.filter((c) => c.rank === 'A').length;
-  const nudge = Math.min((longestSuit >= 4 ? (longestSuit - 3) * 5 : 0) + Math.max(0, aceCount - 1) * 5, 20);
-  const value = 105 + completeBonus + Math.min(halfCount * 5, 10) + nudge;
+
+  const trumpLen = trump ? bySuit[trump].size : 0;
+  const ruffBonus = Math.max(0, trumpLen - 3) * RUFF_PER_TRUMP;
+  const halfNudge = Math.min(halfCount * HALF_MARRIAGE_NUDGE, HALF_MARRIAGE_CAP);
+
+  const value = Math.round(points + completeBonus + ruffBonus + halfNudge);
   return { value, complete, half: halfCount };
 }
 

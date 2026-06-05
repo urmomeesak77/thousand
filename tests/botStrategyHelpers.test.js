@@ -73,16 +73,22 @@ describe('botStrategyHelpers.bestCenterCard / cardBeats', () => {
 });
 
 describe('botStrategyHelpers.estimateMakeable', () => {
-  it('adds complete-marriage bonus on top of the sweep floor', () => {
+  it('reports a complete marriage in `complete` and values it near its bonus', () => {
     const hand = [card(0, 'K', 'C'), card(1, 'Q', 'C'), card(2, 'A', 'S')];
     const est = H.estimateMakeable(hand);
-    assert.equal(est.value, 105 + 100); // clubs marriage = 100
     assert.deepEqual(est.complete, ['C']);
+    // Clubs marriage (100) dominates; an off-suit ace adds a little. Realistic, not a sweep.
+    assert.ok(est.value >= 90 && est.value <= 115, `value ${est.value} in [90,115]`);
   });
 
-  it('caps the half-marriage nudge at 10', () => {
-    const hand = [card(0, 'K', 'C'), card(1, 'K', 'S'), card(2, 'K', 'H')]; // 3 half-marriages
-    assert.equal(H.estimateMakeable(hand).value, 105 + 10);
+  it('values a marriage-less weak hand well below the 100 minimum bid', () => {
+    const weak = [card(0, '9', 'D'), card(1, 'J', 'D'), card(2, '9', 'S'), card(3, 'J', 'H')];
+    assert.ok(H.estimateMakeable(weak).value < 60, 'weak hand reads weak');
+  });
+
+  it('keeps the half-marriage nudge small (a talon might complete it)', () => {
+    const halves = [card(0, 'K', 'C'), card(1, 'K', 'S'), card(2, 'K', 'H')]; // 3 half-marriages
+    assert.ok(H.estimateMakeable(halves).value <= 20, 'half-marriage-only hand stays low');
   });
 });
 
@@ -157,24 +163,24 @@ describe('hasTrumpControl', () => {
   });
 });
 
-describe('estimateMakeable — trump length + extra aces nudge (FR-competent)', () => {
+describe('estimateMakeable — realistic capture model', () => {
   const hand = (cards) => cards.map(([rank, suit]) => ({ rank, suit }));
 
   it('values surplus aces above an otherwise-flat hand', () => { // per competent-play
     const flat = hand([['J', 'H'], ['9', 'S'], ['J', 'D'], ['9', 'C']]); // no aces, no long suit
-    const aces = hand([['A', 'C'], ['A', 'S'], ['A', 'H'], ['9', 'D']]); // 3 aces ⇒ +10 nudge
+    const aces = hand([['A', 'C'], ['A', 'S'], ['A', 'H'], ['9', 'D']]); // captures with its aces
     assert.ok(H.estimateMakeable(aces).value > H.estimateMakeable(flat).value);
   });
 
-  it('values a long suit above a flat hand', () => { // per competent-play
+  it('values a long trump suit above a flat hand (ruffing power)', () => { // per competent-play
     const flat = hand([['J', 'H'], ['9', 'S'], ['J', 'D'], ['9', 'C']]);
     const long = hand([['J', 'C'], ['9', 'C'], ['Q', 'C'], ['10', 'C'], ['J', 'H']]); // 4-long clubs
     assert.ok(H.estimateMakeable(long).value > H.estimateMakeable(flat).value);
   });
 
-  it('caps the nudge at 20 (never runs away on its own)', () => { // per competent-play
-    // 4 aces + a 4-long suit, no complete marriage: nudge maxes at 20, half-marriage ≤ 10.
-    const huge = hand([['A', 'C'], ['A', 'S'], ['A', 'H'], ['A', 'D'], ['10', 'C'], ['9', 'C'], ['K', 'C']]);
-    assert.ok(H.estimateMakeable(huge).value <= 105 + 10 + 20);
+  it('discounts a bare ten (no same-suit ace) below a protected ten', () => { // per competent-play
+    const bare = hand([['10', 'H'], ['9', 'S'], ['J', 'D']]);        // 10♥ with no A♥
+    const protectedTen = hand([['10', 'H'], ['A', 'H'], ['J', 'D']]); // 10♥ guarded by A♥
+    assert.ok(H.estimateMakeable(protectedTen).value > H.estimateMakeable(bare).value);
   });
 });
