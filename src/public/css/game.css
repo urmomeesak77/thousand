@@ -1527,3 +1527,90 @@
   font-size: 1.1rem;
   margin-bottom: 1.25rem;
 }
+
+/* ============================================================
+   Game history panel (bottom-left overlay) — feature 012.
+   Base shell + anchor only; row/list, collapsed, and fixed-height
+   scroll variants are layered in by later tasks.
+   ============================================================ */
+.history-panel {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  z-index: 50;
+  width: 16rem;
+  max-width: calc(100vw - 1rem);
+  background: rgba(20, 18, 38, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: #e8e6f5;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.history-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: default;
+}
+
+.history-panel__title {
+  font-weight: 600;
+}
+
+.history-panel__toggle {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Fixed-footprint body: ~10 rows tall, older entries reachable by scrolling so
+   the box never grows and displaces other game-screen UI (FR-011/FR-013). */
+.history-panel__scroll {
+  height: 14rem;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.history-panel__row,
+.history-panel__empty {
+  padding: 0.2rem 0.6rem;
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.history-panel__row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.history-panel__empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Collapsed: hide the log body, leaving only the compact header handle. */
+.history-panel--collapsed .history-panel__body {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .history-panel {
+    width: 11rem;
+    font-size: 0.72rem;
+  }
+
+  .history-panel__scroll {
+    height: 9rem;
+  }
+}

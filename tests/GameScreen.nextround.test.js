@@ -48,6 +48,8 @@ before(() => {
     'thousand/SellPhaseView.js',
     'thousand/statusText.js',
     'thousand/ScoreboardPanel.js',
+    'thousand/historyEntryText.js',
+    'thousand/HistoryPanel.js',
     'thousand/FourNinesPrompt.js',
     'thousand/MarriageNotice.js',
     'thousand/TurnReminder.js',

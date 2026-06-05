@@ -136,6 +136,9 @@ function buildViewModel(round, seat) {
     currentTrumpSuit: round.currentTrumpSuit ?? null,
     cumulativeScores: session ? session.cumulativeScores : initSeatMap(n, 0),
     scoreHistory: compactScoreHistory(session),
+    // Server-authoritative event log for the history panel (feature 012); the
+    // full game log, identical for every viewer, present on every snapshot.
+    actionHistory: session?.actionHistory?.toView() ?? [],
     collectedTrickCounts: round.collectedTrickCounts ?? initSeatMap(n, 0),
     roundPoints: (round.phase === 'trick-play' || round.phase === 'round-summary')
       ? Scoring.roundScores(round)

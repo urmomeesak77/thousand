@@ -4,6 +4,7 @@
 
 import StatusBar from './StatusBar.js';
 import ScoreboardPanel from './ScoreboardPanel.js';
+import HistoryPanel from './HistoryPanel.js';
 import GameStatusBox from './GameStatusBox.js';
 import TrumpBox from './TrumpBox.js';
 import CardTable from './CardTable.js';
@@ -95,14 +96,16 @@ class GameScreen {
 
     tableEl.append(leftEl, acrossEl, centerColEl, rightEl, lastActionEl, selfStatsEl, handEl);
     const scoreboardEl = document.createElement('div');
+    const historyEl = document.createElement('div');
     const fourNinesEl = document.createElement('div');
     fourNinesEl.style.display = 'none';
     const marriageNoticeEl = document.createElement('div');
     marriageNoticeEl.style.display = 'none';
     container.append(
-      statusBarEl, tableEl, this._controlsEl, scoreboardEl, fourNinesEl, marriageNoticeEl,
+      statusBarEl, tableEl, this._controlsEl, scoreboardEl, historyEl, fourNinesEl, marriageNoticeEl,
     );
     this._scoreboard = new ScoreboardPanel(scoreboardEl, antlion);
+    this._history = new HistoryPanel(historyEl, antlion);
     this._fourNinesEl = fourNinesEl;
     this._marriageNoticeEl = marriageNoticeEl;
 
@@ -559,6 +562,7 @@ class GameScreen {
         gameStatus.cumulativeScores ?? {},
         this._seats,
       );
+      this._history.render(gameStatus.actionHistory ?? [], this._seats);
     }
     this._renderRoundStats(gameStatus);
     if (this._statusOverride) { return; }

@@ -160,12 +160,16 @@ class TrickPlayActionHandler {
         return;
       }
     }
+    // The played-into trick number, captured before playCard resolves and
+    // increments it, so a resolved trick is logged under its own number (T008).
+    const trickNumberAtPlay = round.trickNumber;
     const result = round.playCard(seat, cardId);
     if (!result || result.noop) { return; }
     if (result.rejected) {
       this._reject(playerId, result.reason);
       return;
     }
+    this._recordPlayHistory(game, seat, marriageResult, result, trickNumberAtPlay);
     const isRoundComplete = result.trickResolved && result.roundComplete;
     const { victoryReached, finalResults } = isRoundComplete
       ? this._broadcaster.computeRoundEnd(game, round)
@@ -179,6 +183,19 @@ class TrickPlayActionHandler {
     // Drives the next trick-play turn, the round-summary continue presses, or
     // (after victory cleanup) safely no-ops because the game is gone.
     this._store.notifyTurnAdvanced?.(game);
+  }
+
+  // Feature 012: append history entries for a resolved play_card — a marriage
+  // declaration (T007) and/or a trick win (T008). No-op without a session.
+  _recordPlayHistory(game, seat, marriageResult, result, trickNumber) {
+    const session = game.session;
+    if (!session) { return; }
+    if (marriageResult) {
+      session.actionHistory.recordMarriage(seat, marriageResult.suit, marriageResult.bonus, session.currentRoundNumber);
+    }
+    if (result.trickResolved) {
+      session.actionHistory.recordTrick(result.winnerSeat, trickNumber, session.currentRoundNumber);
+    }
   }
 
   // FR-003/FR-004/FR-006/FR-007: a single crawl_commit serves the declarer's
@@ -202,6 +219,11 @@ class TrickPlayActionHandler {
     if (result.rejected) {
       this._reject(playerId, result.reason);
       return;
+    }
+    // The crawl is always the first trick; log its winner so the trick history
+    // has no gap before normal play_card resolutions take over (T008/FR-005).
+    if (result.crawlResolved && game.session) {
+      game.session.actionHistory.recordTrick(result.winnerSeat, 1, game.session.currentRoundNumber);
     }
     for (const pid of game.players) {
       const pSeat = round.seatByPlayer.get(pid);

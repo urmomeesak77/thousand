@@ -4,6 +4,7 @@ const {
   BARREL_MIN, BARREL_MAX, SPECIAL_PENALTY, BARREL_ROUND_LIMIT, ZERO_ROUND_LIMIT, FOUR_NINES_BONUS,
 } = require('./GameRules');
 const { initSeatMap } = require('./Seats');
+const GameHistory = require('./GameHistory');
 
 class Game {
   constructor({ gameId, seatOrder, dealerSeat, playerCount = 3 }) {
@@ -17,6 +18,9 @@ class Game {
     this.consecutiveZeros = initSeatMap(playerCount, 0);
     this.continuePresses = new Set();
     this.history = [];
+    // Server-authoritative event log for the history panel (feature 012);
+    // fresh and empty per game, lives as long as the game session (FR-018/FR-019).
+    this.actionHistory = new GameHistory();
     this.gameStatus = 'in-progress';
     this.nicknames = {};
     // Four-nines award banked this round (FR-002), pending the round-end history
@@ -30,6 +34,7 @@ class Game {
   applyFourNinesBonus(seat) {
     this.cumulativeScores[seat] += FOUR_NINES_BONUS;
     this.pendingFourNinesAward = { seat, amount: FOUR_NINES_BONUS };
+    this.actionHistory.recordSpecial('four-nines', seat, FOUR_NINES_BONUS, this.currentRoundNumber);
   }
 
   applyRoundEnd(roundDeltas, summaryEntry) {
@@ -48,6 +53,7 @@ class Game {
         const score = this.cumulativeScores[seat];
         if (score >= BARREL_MIN && score < BARREL_MAX) {
           this.cumulativeScores[seat] -= SPECIAL_PENALTY;
+          this.actionHistory.recordSpecial('barrel', Number(seat), -SPECIAL_PENALTY, this.currentRoundNumber);
         }
         this.barrelState[seat].barrelRoundsUsed = 0;
       }
@@ -65,6 +71,7 @@ class Game {
 
       if (this.consecutiveZeros[seat] === ZERO_ROUND_LIMIT) {
         this.cumulativeScores[seat] -= SPECIAL_PENALTY;
+        this.actionHistory.recordSpecial('zeros', Number(seat), -SPECIAL_PENALTY, this.currentRoundNumber);
         this.consecutiveZeros[seat] = 0;
       }
     }

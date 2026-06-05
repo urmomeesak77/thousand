@@ -168,11 +168,12 @@ Features 001–010 have all landed on `master` (the full game is playable end-to
 - **008 four-player-variant** — the 3-/4-player generalization (`playerCount` threaded through the engine; `Seats.js`).
 - **009 ai-opponents** + **010 bot-card-memory** — server-side bots under `src/services/bots/` (host adds/removes them in the waiting room): competent bidding/selling/trick play plus an imperfect, decaying per-round card memory (`BotMemory.js`).
 - **011 sound-effects** — three one-shot in-game cues routed through the Antlion bus (`sound:card|flip|turn`): card-handling on every card movement, flip on every face-up reveal, turn on every active-player change. A `SoundManager` plays cloned preloaded `Audio` (no-op when muted); a `MuteButton` next to the rules icon toggles all sound; `MutePreferenceStore` persists the choice in `localStorage` (default unmuted).
+- **012 history-panel** — a bottom-left collapsible log of game events. Server-authoritative: a session-scoped `GameHistory` (`src/services/GameHistory.js`, owned by `Game`) records bids/passes/marriages/trick wins/round scores/special scoring at the action-resolution sites (`RoundActionHandler`, `TrickPlayActionHandler`, `RoundActionBroadcaster`, `Game`); the full ordered log ships on every snapshot as `gameStatus.actionHistory` (`RoundSnapshot.buildViewModel`), so reconnecting/late players see the identical log (no new WS message type). Frontend `HistoryPanel.js` (mounted by `GameScreen`, mirrors `ScoreboardPanel`) renders entries chat-style (newest at the bottom, auto-scroll) via the pure `historyEntryText.js` formatter, keeps a fixed footprint with an inner scrollbar, and persists its collapsed/expanded choice in `localStorage` (`thousand_history_open`) with a responsive default.
 
 Post-feature UI enhancements (no separate spec dir — design/plan docs live under `docs/superpowers/`): collapsible live scoreboard (`ScoreboardPanel.js` + `scoreHistory`), per-seat round-stats label (`roundStatsText.js` + `roundPoints`), the trump-suit box (`TrumpBox.js`), a rules modal, lobby logout, and multi-tab single-player support.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/011-sound-effects/plan.md`.
+at `specs/012-history-panel/plan.md`.
 <!-- SPECKIT END -->

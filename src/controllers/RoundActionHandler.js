@@ -90,7 +90,7 @@ class RoundActionHandler {
 
   // T027 + T044
   handleBid(playerId, amount) {
-    this._runRoundAction(
+    const outcome = this._runRoundAction(
       playerId,
       (round, seat) => round.submitBid(seat, amount),
       (pid, gameStatus, result, { round }) => {
@@ -105,11 +105,12 @@ class RoundActionHandler {
         }
       },
     );
+    this._recordAuction(outcome, playerId, (history, seat, round) => history.recordBid(seat, amount, round));
   }
 
   // T028 + T044
   handlePass(playerId) {
-    this._runRoundAction(
+    const outcome = this._runRoundAction(
       playerId,
       (round, seat) => {
         if (round.phase !== 'bidding') {
@@ -129,6 +130,17 @@ class RoundActionHandler {
         }
       },
     );
+    this._recordAuction(outcome, playerId, (history, seat, round) => history.recordPass(seat, round));
+  }
+
+  // Append one auction history entry (feature 012) for a resolved bid/pass.
+  // No-op when the action was rejected/noop (outcome is undefined) or the game
+  // has no session yet. The seat is the actor's stable seat (FR-016).
+  _recordAuction(outcome, playerId, append) {
+    const session = outcome?.game?.session;
+    if (!session) { return; }
+    const seat = outcome.round.seatByPlayer.get(playerId);
+    append(session.actionHistory, seat, session.currentRoundNumber);
   }
 
   // T065

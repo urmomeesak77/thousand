@@ -39,6 +39,11 @@ class RoundActionBroadcaster {
         seatRange(round.playerCount).map((s) => [s, { ...round.summary.perPlayer[s] }])
       ),
     };
+    // Feature 012 (T009): log the per-seat round result before applyRoundEnd so
+    // this row precedes any barrel/zeros penalty rows applyRoundEnd may record.
+    session.actionHistory.recordRoundScore(
+      session.currentRoundNumber, round.roundDeltas, round.declarerSeat, round.currentHighBid,
+    );
     session.applyRoundEnd(round.roundDeltas, summaryEntry);
     // cumulativeAfter must be read after applyRoundEnd so barrel/zero penalties are reflected
     for (const s of seatRange(round.playerCount)) {
