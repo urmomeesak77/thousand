@@ -383,6 +383,9 @@ class ThousandApp {
   onMarriageDeclared(msg) {
     this._gameScreen.updateStatus(msg.gameStatus);
     this._gameScreen.notifyMarriageDeclared(msg);
+    if (msg.easterEgg) {
+      this._antlion.emit('sound:clubs-easter');
+    }
   }
 
   onTrumpChanged(msg) {
