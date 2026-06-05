@@ -88,6 +88,15 @@ async function main() {
   console.log(`avg declarer delta : ${(sum(deltas) / n).toFixed(1)}`);
   console.log(`avg winning bid    : ${(sum(decl.map((r) => r.bid)) / n).toFixed(1)}`);
   console.log(`negative rounds    : ${negs.length} (avg ${(sum(negs) / (negs.length || 1)).toFixed(0)})`);
+  const buckets = { '100': 0, '105-115': 0, '120-145': 0, '150-195': 0, '200+': 0 };
+  for (const r of decl) {
+    if (r.bid <= 100) { buckets['100']++; }
+    else if (r.bid <= 115) { buckets['105-115']++; }
+    else if (r.bid <= 145) { buckets['120-145']++; }
+    else if (r.bid <= 195) { buckets['150-195']++; }
+    else { buckets['200+']++; }
+  }
+  console.log('bid distribution   :', Object.entries(buckets).map(([k, v]) => `${k}=${(100 * v / n).toFixed(0)}%`).join('  '));
   console.log('══════════════════════════════════\n');
   process.exit(0);
 }
