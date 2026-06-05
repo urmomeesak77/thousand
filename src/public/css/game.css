@@ -1618,6 +1618,15 @@
   display: none;
 }
 
+/* The centred bid controls reach the left edge (where the panel is anchored)
+   around ~580px, so drop the "History" word below 640px — the header becomes
+   an icon-only handle and never grows into a bar over the bottom controls. */
+@media (max-width: 640px) {
+  .history-panel__title-text {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .history-panel {
     width: 11rem;
@@ -1626,11 +1635,5 @@
 
   .history-panel__scroll {
     height: 9rem;
-  }
-
-  /* On small screens the header is icon-only (expanded or collapsed) — drop the
-     word so it never grows into a wide bar over the bid controls / bottom UI. */
-  .history-panel__title-text {
-    display: none;
   }
 }
