@@ -6,8 +6,9 @@ import { SUIT_LETTER } from './cardSymbols.js';
 
 // Suit order: ♣(100) → ♠(80) → ♥(60) → ♦(40), descending by marriage value
 const SUIT_ORDER = { '♣': 0, '♠': 1, '♥': 2, '♦': 3 };
-// Ten outranks K and Q; only the Ace is higher (matches trick-winner RANK_ORDER)
-const RANK_ORDER = { '9': 0, 'J': 1, 'Q': 2, 'K': 3, '10': 4, 'A': 5 };
+// Ten outranks K and Q; only the Ace is higher (matches trick-winner RANK_ORDER).
+// Includes 7/8 for the 4-player deck so those cards sort within their suit.
+const RANK_ORDER = { '7': 0, '8': 1, '9': 2, 'J': 3, 'Q': 4, 'K': 5, '10': 6, 'A': 7 };
 
 class HandView {
   constructor(container, antlion = null) {
