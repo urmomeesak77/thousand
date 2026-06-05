@@ -1628,9 +1628,9 @@
     height: 9rem;
   }
 
-  /* On small screens the collapsed handle is icon-only — drop the word so it
-     becomes a compact button instead of a wide bar over the bid controls. */
-  .history-panel--collapsed .history-panel__title-text {
+  /* On small screens the header is icon-only (expanded or collapsed) — drop the
+     word so it never grows into a wide bar over the bid controls / bottom UI. */
+  .history-panel__title-text {
     display: none;
   }
 }
