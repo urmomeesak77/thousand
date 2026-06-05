@@ -49,6 +49,11 @@ class FinalResultsScreen {
     const table = document.createElement('table');
     table.className = 'final-results__history-table';
 
+    const header = this._renderHistoryHeader(history);
+    if (header) {
+      table.appendChild(header);
+    }
+
     const tbody = document.createElement('tbody');
     for (const round of history) {
       tbody.appendChild(this._renderHistoryRow(round));
@@ -61,6 +66,48 @@ class FinalResultsScreen {
 
     table.appendChild(tbody);
     this._container.appendChild(table);
+  }
+
+  _renderHistoryHeader(history) {
+    const firstRound = history[0];
+    if (!firstRound) {
+      return null;
+    }
+
+    const thead = document.createElement('thead');
+    const players = Object.values(firstRound.perPlayer);
+
+    // Top row: fixed-column labels + each player's name above their two columns.
+    const labelRow = document.createElement('tr');
+    labelRow.className = 'final-results__history-head-row';
+    labelRow.appendChild(this._headerCell('#', 'final-results__history-round'));
+    labelRow.appendChild(this._headerCell('Declarer', 'final-results__history-declarer'));
+    labelRow.appendChild(this._headerCell('Bid', 'final-results__history-bid'));
+    for (const playerData of players) {
+      labelRow.appendChild(this._headerCell(playerData.nickname, 'final-results__history-player'));
+    }
+
+    // Sub row: clarifies the two columns under each player name.
+    const subRow = document.createElement('tr');
+    subRow.className = 'final-results__history-head-row final-results__history-head-row--sub';
+    subRow.appendChild(this._headerCell('', 'final-results__history-round'));
+    subRow.appendChild(this._headerCell('', 'final-results__history-declarer'));
+    subRow.appendChild(this._headerCell('', 'final-results__history-bid'));
+    for (let i = 0; i < players.length; i += 1) {
+      subRow.appendChild(this._headerCell('Round', 'final-results__history-delta'));
+      subRow.appendChild(this._headerCell('Total', 'final-results__history-cumulative'));
+    }
+
+    thead.appendChild(labelRow);
+    thead.appendChild(subRow);
+    return thead;
+  }
+
+  _headerCell(text, className) {
+    const th = document.createElement('th');
+    th.className = className;
+    th.textContent = text;
+    return th;
   }
 
   _renderHistoryRow(round) {
