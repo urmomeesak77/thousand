@@ -27,6 +27,10 @@ class TrickPlay {
     // commitCrawlCard) so crawl funnelling never double-logs.
     this.playedLog = [];
 
+    // Append-only lead timeline: one { seat, cardId, trickNumber } per trick-lead.
+    // Used by the clubs-combo easter-egg detection in declareMarriage.
+    this.leadLog = [];
+
     // Crawl sub-state (feature 007). Only ever active during trick 1 when an
     // ace-less declarer crawls. Commits accumulate here — never in the
     // face-exposing `currentTrick` — until the third lands (R-202).
@@ -98,6 +102,9 @@ class TrickPlay {
 
     hands[seat] = hands[seat].filter(id => id !== cardId);
     this.playedLog.push({ cardId, trickNumber: this.trickNumber });
+    if (this.currentTrick.length === 0) {
+      this.leadLog.push({ seat, cardId, trickNumber: this.trickNumber });
+    }
     this.currentTrick.push({ seat, cardId });
     this.currentTurnSeat = (seat + 1) % this.playerCount;
 
@@ -167,7 +174,19 @@ class TrickPlay {
     this.declaredMarriages.push({ playerSeat: seat, suit, bonus, trickNumber: this.trickNumber });
     this.currentTrumpSuit = suit;
 
-    return { rejected: false, suit, bonus, newTrumpSuit: suit };
+    const easterEgg = suit === '♣' && this._isClubsCombo(seat);
+    return { rejected: false, suit, bonus, newTrumpSuit: suit, easterEgg };
+  }
+
+  _isClubsCombo(seat) {
+    const t = this.trickNumber;
+    const leadAt = (n) => this.leadLog.find(e => e.trickNumber === n && e.seat === seat);
+    const prev = leadAt(t - 1);
+    const prev2 = leadAt(t - 2);
+    if (!prev || !prev2) { return false; }
+    const card = (id) => this.deck[id];
+    return card(prev.cardId).suit === '♣' && card(prev.cardId).rank === '10'
+      && card(prev2.cardId).suit === '♣' && card(prev2.cardId).rank === 'A';
   }
 
   _resolveTrick() {
