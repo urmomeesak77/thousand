@@ -51,13 +51,13 @@ Web app, single existing layout: frontend under `src/public/js/`, styles under `
 
 **Independent Test**: Play a round with bots (default unmuted) and confirm card/flip/turn cues fire at the right moments with no duplicate cue for the same individual card/flip/turn (SC-001).
 
-- [ ] T006 [P] [US1] In `src/public/js/thousand/DealAnimation.js`, emit `this._antlion.emit('sound:card')` once per launched card inside `_launchCard()` (24 staggered cues per deal).
-- [ ] T007 [P] [US1] In `src/public/js/thousand/CardFlightAnimator.js`, emit `this._antlion.emit('sound:card')` once per flight inside `spawn()` (covers play-to-centre and collect-to-winner flights).
-- [ ] T008 [P] [US1] In `src/public/js/thousand/CardExchangeView.js`, emit `this._antlion.emit('sound:card')` once per card passed during the exchange.
-- [ ] T009 [P] [US1] In `src/public/js/thousand/SellPhaseView.js`, emit `gs._antlion.emit('sound:flip')` once per exposed card in the expose animation path (`_animateSprites` for the sell exposure).
-- [ ] T010 [US1] In `src/public/js/thousand/GameScreen.js`, add turn-change detection: in the status-render path (`_renderStatus` / `updateStatus`), compare the previous `activePlayer.seat` (from `_lastGameStatus`) against the incoming `gameStatus.activePlayer.seat`; when it changes to a non-null seat, emit `'sound:turn'`. Compute the comparison BEFORE `_lastGameStatus` is reassigned.
-- [ ] T011 [US1] In `src/public/js/thousand/GameScreen.js` (same file, after T010), emit `'sound:flip'` once per revealed card when the talon transitions from face-down to face-up, and once per crawl card revealed in the crawl-reveal path (`revealCrawl`).
-- [ ] T012 [US1] Audit any remaining single-card movement animations not covered above (notably the talon-absorb animation when the declarer takes the talon, and any other sprite flight) and emit `'sound:card'` once per card at each; record the file paths touched in the PR description.
+- [X] T006 [P] [US1] In `src/public/js/thousand/DealAnimation.js`, emit `this._antlion.emit('sound:card')` once per launched card inside `_launchCard()` (24 staggered cues per deal).
+- [X] T007 [P] [US1] In `src/public/js/thousand/CardFlightAnimator.js`, emit `this._antlion.emit('sound:card')` once per flight inside `spawn()` (covers play-to-centre and collect-to-winner flights).
+- [X] T008 [P] [US1] In `src/public/js/thousand/CardExchangeView.js`, emit `this._antlion.emit('sound:card')` once per card passed during the exchange.
+- [X] T009 [P] [US1] In `src/public/js/thousand/SellPhaseView.js`, emit `gs._antlion.emit('sound:flip')` once per exposed card in the expose animation path (`_animateSprites` for the sell exposure).
+- [X] T010 [US1] In `src/public/js/thousand/GameScreen.js`, add turn-change detection: in the status-render path (`_renderStatus` / `updateStatus`), compare the previous `activePlayer.seat` (from `_lastGameStatus`) against the incoming `gameStatus.activePlayer.seat`; when it changes to a non-null seat, emit `'sound:turn'`. Compute the comparison BEFORE `_lastGameStatus` is reassigned.
+- [X] T011 [US1] In `src/public/js/thousand/GameScreen.js` (same file, after T010), emit `'sound:flip'` once per revealed card when the talon transitions from face-down to face-up, and once per crawl card revealed in the crawl-reveal path (`revealCrawl`).
+- [X] T012 [US1] Audit any remaining single-card movement animations not covered above (notably the talon-absorb animation when the declarer takes the talon, and any other sprite flight) and emit `'sound:card'` once per card at each; record the file paths touched in the PR description.
 
 **Checkpoint**: All three cues are audible end-to-end; MVP complete and independently demoable.
 

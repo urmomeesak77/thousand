@@ -39,6 +39,7 @@ function makeMockAntlion() {
       tickHandler = handler;
       return () => { tickHandler = null; };
     },
+    emit() {},
     _tick() { if (tickHandler) {tickHandler();} },
     get _hasTick() { return tickHandler !== null; },
   };

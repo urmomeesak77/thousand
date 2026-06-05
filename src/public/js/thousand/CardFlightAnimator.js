@@ -72,6 +72,8 @@ class CardFlightAnimator {
   }
 
   spawn({ fromRect, toRect, rank, suit, duration, onDone }) {
+    // One card-handling cue per flight — covers play-to-centre and collect-to-winner (FR-001).
+    this._antlion.emit('sound:card');
     const clone = document.createElement('div');
     clone.className = `card-sprite card-sprite--up card--${rank}${SUIT_LETTER[suit]} card-flight-clone`;
     clone.style.position = 'fixed';

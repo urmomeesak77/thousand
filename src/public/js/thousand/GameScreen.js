@@ -34,6 +34,9 @@ class GameScreen {
     this._seats = null;
     this._isControlsLocked = false;
     this._lastGameStatus = null;
+    // Tracks the active seat across status renders so a change fires exactly one
+    // turn cue (independent of _lastGameStatus, which is reassigned before render).
+    this._lastActiveSeat = null;
     this._lastMountedPhase = null;
     this._pendingMountStatus = null;
     this._lastSnapshot = null;
@@ -436,6 +439,8 @@ class GameScreen {
 
   // crawl_revealed (feature 007): run the reveal/collect animation, then refresh.
   onCrawlRevealed(msg) {
+    // Each face-down crawl card turns face-up — one flip cue per revealed card (FR-002).
+    for (let i = 0; i < msg.commits.length; i++) { this._antlion.emit('sound:flip'); }
     this._controls.revealCrawl(msg.commits, msg.winnerSeat, msg.gameStatus);
     this.updateStatus(msg.gameStatus);
   }
@@ -536,6 +541,7 @@ class GameScreen {
   }
 
   _renderStatus(gameStatus) {
+    this._emitTurnCueOnChange(gameStatus);
     this._trumpBox.render(
       gameStatus.currentTrumpSuit,
       ACTIVE_TRUMP_PHASES.has(gameStatus.phase),
@@ -557,6 +563,16 @@ class GameScreen {
       sellSubPhase: this._sellSubPhase,
     });
     this._statusBox.setText(text, isActive);
+  }
+
+  // Fire one turn cue when the active player changes to a real seat. All status
+  // renders funnel through here, so this is the single de-duplication point (FR-003).
+  _emitTurnCueOnChange(gameStatus) {
+    const seat = gameStatus.activePlayer?.seat ?? null;
+    if (seat !== this._lastActiveSeat && seat !== null) {
+      this._antlion.emit('sound:turn');
+    }
+    this._lastActiveSeat = seat;
   }
 
   setStatusOverride(text, durationMs) {

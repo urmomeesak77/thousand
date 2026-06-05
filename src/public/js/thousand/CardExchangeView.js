@@ -34,6 +34,8 @@ class CardExchangeView {
       this._handView.setSingleSelected(null);
       this._handView.markLeaving(cardId, direction);
       this._removeDestRow();
+      // One card-handling cue per card passed during the exchange (FR-001).
+      this._antlion.emit('sound:card');
       this._dispatcher.sendExchangePass(cardId, toSeat);
     };
     this._antlion.bindInput(this._el, 'click', 'card-exchange-dest-click');

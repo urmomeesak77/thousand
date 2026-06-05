@@ -68,6 +68,9 @@ class SellPhaseView {
     const fromSlot = (declarerSeat != null ? slots[declarerSeat] : null) ?? gs._cardTable.getSlot('talon');
     const toSlot = gs._cardTable.getSlot('talon');
 
+    // Each exposed sell card turns face-up — one flip cue per card (FR-002/FR-004).
+    for (let i = 0; i < exposedIds.length; i++) { gs._antlion.emit('sound:flip'); }
+
     this._animateSprites(exposedIds, fromSlot, toSlot, () => {
       const talonCards = exposedIds.map(id => gs._cardsById[id]).filter(Boolean);
       gs._talonView.setCards(talonCards);
@@ -102,6 +105,9 @@ class SellPhaseView {
     const destSlot = (destSeat != null ? slots[destSeat] : null) ?? talonSlot;
 
     gs._talonView.clear();
+
+    // The exposed cards move back to a hand — one card-handling cue per card (FR-001).
+    for (let i = 0; i < exposedIds.length; i++) { gs._antlion.emit('sound:card'); }
 
     this._animateSprites(exposedIds, talonSlot, destSlot, () => {
       this._applySellResolved(outcome, exposedIds, oldDeclarerSeat, newDeclarerSeat, viewerSeat);
@@ -160,6 +166,9 @@ class SellPhaseView {
     const talonSlot = gs._cardTable.getSlot('talon');
     const slots = gs._cardTable.slotsForSeat(viewerSeat, gs._seats.players.length);
     const destSlot = slots[declarerSeat] ?? talonSlot;
+
+    // Declarer takes the talon — one card-handling cue per talon card (FR-001, talon absorb).
+    for (let i = 0; i < talonIds.length; i++) { gs._antlion.emit('sound:card'); }
 
     this._animateSprites(talonIds, talonSlot, destSlot, () => {
       if (viewerIsDeclarer) {

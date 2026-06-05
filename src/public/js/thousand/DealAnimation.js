@@ -104,6 +104,9 @@ class DealAnimation {
 
     this._container.appendChild(sprite.element);
     this._sprites.push(sprite);
+
+    // One card-handling cue per launched card; staggered launches overlap (FR-001/FR-004).
+    this._antlion.emit('sound:card');
   }
 
   _getDestSlot(to) {
