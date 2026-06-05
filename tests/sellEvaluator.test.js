@@ -19,6 +19,10 @@ describe('sellEvaluator.takeOrSell (FR-competent)', () => {
     const weak = hand([['9', 'D'], ['J', 'D']]);
     assert.equal(sellEvaluator.takeOrSell(weak, 200, 0.5, 0).kind, 'startGame');
   });
+  it('sells when the talon did not lift the hand to the bid', () => { // per competent-play
+    const starved = hand([['A', 'S'], ['10', 'S'], ['J', 'H'], ['9', 'D']]); // ~21 expected
+    assert.equal(sellEvaluator.takeOrSell(starved, 200, 0.5, 1).kind, 'sellStart');
+  });
   it('a bolder bot takes a thinner hand than a cautious one', () => { // per competent-play
     const marginal = hand([['K', 'S'], ['Q', 'S'], ['9', 'D'], ['J', 'H']]);
     const cautious = sellEvaluator.takeOrSell(marginal, 130, 0, 1).kind;
@@ -52,5 +56,12 @@ describe('sellEvaluator.chooseSellExposure (FR-competent)', () => {
     assert.ok(ids.includes(4)); // 10♣ (10)
     assert.ok(ids.includes(2)); // K♣ (4)
     assert.ok(!ids.includes(1)); // not the 9♦ (0)
+  });
+  it('exposes a K/Q ahead of a high-point ten to bait a marriage', () => { // per competent-play
+    const h = [['A', 'S'], ['10', 'H'], ['10', 'C'], ['Q', 'D']]
+      .map(([rank, suit], cardId) => ({ cardId, rank, suit }));
+    const ids = sellEvaluator.chooseSellExposure(h, 3);
+    assert.ok(ids.includes(3), 'Q♦ exposed as marriage bait');   // the queen
+    assert.ok(!ids.includes(2), '10♣ dropped to make room for the queen');
   });
 });
