@@ -473,14 +473,14 @@
 }
 
 .trump-box__label {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
 }
 
 .trump-box__suit {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -495,7 +495,7 @@
 }
 
 .trump-box__suit--none {
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 400;
   color: var(--color-text-muted);
 }
