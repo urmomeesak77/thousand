@@ -22,7 +22,10 @@ const MARRIAGE_BONUS = {
 // actually win rather than assuming a full sweep.
 const ACE_OFFSUIT_FACTOR = 0.85;  // an off-trump ace can be ruffed away
 const TEN_BARE_FACTOR = 0.4;      // a ten with no same-suit ace usually loses to it
-const MARRIAGE_FACTOR = 0.9;      // a declared marriage is reliable but needs one lead
+const MARRIAGE_FACTOR = 1.0;      // a declared marriage is the declarer's most reliable
+                                  // points — it controls when to declare and holds the
+                                  // K/Q trick to do it on, so value it in full (a K+Q
+                                  // clubs hand must clear the 100 floor, not pass)
 const RUFF_PER_TRUMP = 8;         // each trump beyond the third ruffs an opponent point trick
 const HALF_MARRIAGE_NUDGE = 5;    // a hidden talon card may complete a half marriage
 const HALF_MARRIAGE_CAP = 10;

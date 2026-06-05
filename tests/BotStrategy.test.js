@@ -43,6 +43,15 @@ describe('BotStrategy.decideBid', () => {
     }
   });
 
+  it('even the most cautious bot bids on a bare K+Q marriage hand', () => {
+    // Regression: a K+Q clubs marriage (100 bonus) plus junk must clear the 100
+    // floor rather than pass — the safety margin previously knocked it to 95.
+    const clubsMarriage = handObjs([['K', 'C'], ['Q', 'C'], ['J', 'S'], ['9', 'D'], ['9', 'H']]);
+    const d = BotStrategy.decideBid(clubsMarriage, 0, 100);
+    assert.equal(d.kind, 'bid');
+    assert.ok(d.amount >= 100, `bid ${d.amount} >= 100`);
+  });
+
   it('a cautious bot with a weak hand passes below the floor', () => {
     const weak = handObjs([['J', 'H'], ['9', 'S'], ['J', 'D']]);
     assert.equal(BotStrategy.decideBid(weak, 0, 150).kind, 'pass');

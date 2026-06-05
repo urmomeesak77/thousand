@@ -44,8 +44,12 @@ class BotStrategy {
     const gamble = Math.round(aggressiveness * MAX_TALON_GAMBLE);
     // Bid below the mean expectation by a safety margin; aggressiveness erodes it.
     const target = roundDownToStep(expected - SAFETY_MARGIN + gamble, BID_STEP);
-    if (target >= floor) {
-      return { kind: 'bid', amount: Math.min(target, MAX_BID) };
+    // The safety margin caps the UPSIDE — it must not talk a floor-worthy hand out
+    // of the auction. A hand whose reliable estimate already meets the floor (e.g. a
+    // K+Q clubs marriage ≈ 100) bids at least the floor instead of passing.
+    const bid = expected >= floor ? Math.max(target, floor) : target;
+    if (bid >= floor) {
+      return { kind: 'bid', amount: Math.min(bid, MAX_BID) };
     }
     if (forced) {
       return { kind: 'bid', amount: Math.min(floor, MAX_BID) };
