@@ -27,7 +27,7 @@ function seatBots(store, count) {
 // legal actions and valid scores, with zero human input.
 describe('bots autoplay integration', () => {
   it('three bots play a full round to a scored round-summary', (t) => {
-    t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+    t.mock.timers.enable(['setTimeout', 'Date']);
     const store = new ThousandStore();
     const gameId = seatBots(store, 3);
 
@@ -59,7 +59,7 @@ describe('bots autoplay integration', () => {
 
   // per FR-011 — bots are supported in both the 3- and 4-player variants.
   it('four bots also complete a round (4-player variant)', (t) => {
-    t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+    t.mock.timers.enable(['setTimeout', 'Date']);
     const store = new ThousandStore();
     const gameId = seatBots(store, 4);
 
