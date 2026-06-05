@@ -170,5 +170,5 @@ Post-feature UI enhancements (no separate spec dir — design/plan docs live und
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/010-bot-card-memory/plan.md`.
+at `specs/011-sound-effects/plan.md`.
 <!-- SPECKIT END -->
