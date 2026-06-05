@@ -184,9 +184,9 @@ class TrickPlay {
     const prev = leadAt(t - 1);
     const prev2 = leadAt(t - 2);
     if (!prev || !prev2) { return false; }
-    const card = (id) => this.deck[id];
-    return card(prev.cardId).suit === '♣' && card(prev.cardId).rank === '10'
-      && card(prev2.cardId).suit === '♣' && card(prev2.cardId).rank === 'A';
+    const cardOf = (id) => this.deck[id];
+    return cardOf(prev.cardId).suit === '♣' && cardOf(prev.cardId).rank === '10'
+      && cardOf(prev2.cardId).suit === '♣' && cardOf(prev2.cardId).rank === 'A';
   }
 
   _resolveTrick() {

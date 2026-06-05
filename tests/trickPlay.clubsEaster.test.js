@@ -101,4 +101,15 @@ describe('TrickPlay clubs-combo easter egg', () => {
     const res = declare(tp, hands, 0, idOf('K', '♣'), 3);
     assert.ok(!res.easterEgg);
   });
+
+  it('marriage on trick 2 (minimum) with no t-2 lead -> no easterEgg', () => {
+    const tp = new TrickPlay(0, DECK);
+    const hands = {
+      0: [idOf('10', '♣'), idOf('K', '♣'), idOf('Q', '♣')],
+      1: [], 2: [],
+    };
+    lead(tp, hands, 0, idOf('10', '♣'), 1);
+    const res = declare(tp, hands, 0, idOf('K', '♣'), 2);
+    assert.ok(!res.easterEgg);
+  });
 });
