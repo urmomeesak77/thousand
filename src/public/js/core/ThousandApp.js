@@ -106,6 +106,11 @@ class ThousandApp {
   }
 
   _showScreen(name) {
+    // Leaving the game screen (lobby / nickname) must disarm the turn reminder,
+    // since no further snapshot arrives to flip viewerIsActive false.
+    if (name !== 'game-screen') {
+      this._gameScreen?.stopTurnReminder();
+    }
     this._nicknameScreen.hide();
     this._lobbyContainer.hide();
     this._gameContainer.hide();

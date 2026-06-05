@@ -579,6 +579,13 @@ class GameScreen {
     this._lastActiveSeat = seat;
   }
 
+  // Disarm the turn reminder when the game screen is abandoned (leave / logout /
+  // game over); otherwise no further snapshot would flip viewerIsActive false and
+  // the wakeup cue would keep firing in the lobby.
+  stopTurnReminder() {
+    this._turnReminder.stop();
+  }
+
   setStatusOverride(text, durationMs) {
     if (this._statusOverrideScheduleId != null) {
       this._antlion.cancelScheduled?.(this._statusOverrideScheduleId);
