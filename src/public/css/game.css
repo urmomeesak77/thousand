@@ -102,16 +102,21 @@
   font-size: 0.8rem;
 }
 
-/* Card table area: center + opponent zones */
+/* Card table area: center + opponent zones.
+   The flexible row uses minmax(min-content, 1fr) so it fills spare space on tall
+   screens but never collapses below its content on short ones — that collapse is
+   what made rows render on top of each other. min-height:0 keeps the table inside
+   its round-screen track so overflow-y can scroll it instead of overlapping. */
 .game-table {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: minmax(min-content, 1fr) auto auto;
   gap: 0.5rem;
   padding: 1rem;
-  min-height: 300px;
-  overflow: hidden;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Prevent grid items from forcing column expansion beyond 1fr */
@@ -134,7 +139,7 @@
    Scoped under .game-table--four so 3-player is untouched.
    ------------------------------------------------------------ */
 .game-table--four {
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto minmax(min-content, 1fr) auto auto;
 }
 
 .game-table--four > .across-zone {
