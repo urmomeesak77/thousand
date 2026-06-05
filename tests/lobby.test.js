@@ -65,6 +65,7 @@ before(() => {
     path.join(publicDir, 'js', 'thousand', 'ScoreboardPanel.js'),
     path.join(publicDir, 'js', 'thousand', 'FourNinesPrompt.js'),
     path.join(publicDir, 'js', 'thousand', 'MarriageNotice.js'),
+    path.join(publicDir, 'js', 'thousand', 'TurnReminder.js'),
     path.join(publicDir, 'js', 'thousand', 'GameScreen.js'),
     path.join(publicDir, 'js', 'thousand', 'SoundManager.js'),
     path.join(publicDir, 'js', 'thousand', 'MuteButton.js'),

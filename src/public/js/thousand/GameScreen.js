@@ -16,6 +16,7 @@ import GameScreenControls from './GameScreenControls.js';
 import SellPhaseView from './SellPhaseView.js';
 import FourNinesPrompt from './FourNinesPrompt.js';
 import MarriageNotice from './MarriageNotice.js';
+import TurnReminder from './TurnReminder.js';
 import { computeStatusText } from './statusText.js';
 import { formatRoundStats } from './roundStatsText.js';
 
@@ -37,6 +38,8 @@ class GameScreen {
     // Tracks the active seat across status renders so a change fires exactly one
     // turn cue (independent of _lastGameStatus, which is reassigned before render).
     this._lastActiveSeat = null;
+    // Replays the wakeup cue every 30s while it is the viewer's turn (FR turn-reminder).
+    this._turnReminder = new TurnReminder(antlion);
     this._lastMountedPhase = null;
     this._pendingMountStatus = null;
     this._lastSnapshot = null;
@@ -542,6 +545,7 @@ class GameScreen {
 
   _renderStatus(gameStatus) {
     this._emitTurnCueOnChange(gameStatus);
+    this._turnReminder.update(gameStatus.viewerIsActive);
     this._trumpBox.render(
       gameStatus.currentTrumpSuit,
       ACTIVE_TRUMP_PHASES.has(gameStatus.phase),
