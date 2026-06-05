@@ -8,6 +8,7 @@ const CUE_FILES = {
   card: 'sound/playing-card2.mp3',
   flip: 'sound/flipcard.mp3',
   turn: 'sound/turn.mp3',
+  wakeup: 'sound/wakeup.mp3',
 };
 
 class SoundManager {
@@ -26,6 +27,7 @@ class SoundManager {
     antlion.onInput('sound:card', () => this.play('card'));
     antlion.onInput('sound:flip', () => this.play('flip'));
     antlion.onInput('sound:turn', () => this.play('turn'));
+    antlion.onInput('sound:wakeup', () => this.play('wakeup'));
   }
 
   isMuted() {

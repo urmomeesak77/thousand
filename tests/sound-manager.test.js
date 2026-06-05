@@ -87,6 +87,19 @@ describe('SoundManager', () => {
     assert.equal(audioFactory.totalPlays(), 3);
   });
 
+  it('plays the wakeup cue via sound:wakeup', () => {
+    const { antlion, audioFactory } = make();
+    antlion.emit('sound:wakeup');
+    assert.equal(audioFactory.totalPlays(), 1);
+  });
+
+  it('does not play wakeup when muted', () => {
+    const { mgr, antlion, audioFactory } = make();
+    mgr.toggleMute();
+    antlion.emit('sound:wakeup');
+    assert.equal(audioFactory.totalPlays(), 0);
+  });
+
   it('does not play when muted', () => {
     const { mgr, audioFactory } = make();
     mgr.toggleMute();
