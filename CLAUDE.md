@@ -31,10 +31,13 @@ src/services/
   GameRules.js                         # numeric rule constants (barrel thresholds, victory threshold, special penalty)
   Seats.js                             # seat-range helpers (`seatRange`, `initSeatMap`) used by the playerCount generalization
   Deck.js                              # deck creation and shuffle
-  bots/                                # server-side AI opponents (feature 009)
-    BotStrategy.js                     # decides one legal action per (round, seat); bidding scaled by per-bot aggressiveness (FR-016/017)
-    botStrategyHelpers.js              # pure card-evaluation utilities (ported from tests/e2e-live-smart.js)
-    BotTurnDriver.js                   # detects a bot's pending turn, schedules a randomized 1–3 s timer, executes one action via RoundActionHandler
+  bots/                                # server-side AI opponents (features 009 + 010)
+    BotStrategy.js                     # decides one legal action per (round, seat); bidding scaled by per-bot aggressiveness (FR-016/017); routes trick play through trickPlanner and selling through sellEvaluator; uses recalled-gone knowledge to cash boss cards
+    botStrategyHelpers.js              # pure card-evaluation utilities (ported from tests/e2e-live-smart.js); includes boss-card / remaining-beaters helpers
+    trickPlanner.js                    # competent trick play — chooseLead/chooseFollow (boss-card cashing, draw trumps, win/duck point tricks, marriage timing)
+    sellEvaluator.js                   # take-vs-sell, buy-vs-pass, and which cards to expose when selling
+    BotMemory.js                       # per-bot imperfect, decaying per-round card memory (Fourier low-pass recall model + deterministic per-card draw) → recalled-gone card set (feature 010)
+    BotTurnDriver.js                   # detects a bot's pending turn, schedules a randomized 1–3 s timer, builds the bot's recalled-gone set via BotMemory, executes one action via RoundActionHandler
     botNames.js                        # themed unique bot-name pool + picker ("Robo-Ada", …)
     botConstants.js                    # bid range + MAX_TALON_GAMBLE (bot-specific numeric constants)
 src/controllers/
@@ -152,11 +155,17 @@ See `docs/CODING_CONVENTIONS.md` for the full reference. Key points:
 - `core/ThousandApp.js` is the app coordinator; `network/ThousandSocket.js` wraps the WebSocket connection.
 - Game-specific UI lives under `src/public/js/thousand/`; `GameScreen.js` is the root component.
 
-## Active Feature Branch
+## Feature Status
 
-**005-play-phase-scoring** (feature complete; all four user stories landed): Implements the full gameplay loop on top of feature 004 — card exchange, 8-trick play with follow-suit/trump/marriages, made/missed scoring, multi-round flow with dealer rotation and cumulative carry-over, victory at 1000+, and special scoring (barrel + three-consecutive-zeros). Server-side this added the persists-across-rounds `Game.js` entity, the `TrickPlay.js` state machine, the pure-function `Scoring.js` module, and the `GameRules.js` constants. The frontend gained `CardExchangeView`, `TrickPlayView`, `MarriageDeclarationPrompt`, `CollectedTricksStack`, `RoundSummaryScreen`, and `FinalResultsScreen`. Branches 002 (Antlion engine), 003 (persistent identity), and 004 (round/bidding/selling) are fully merged in.
+Features 001–010 have all landed on `master` (the full game is playable end-to-end against humans and bots; 1070 tests pass). Briefly, in order:
 
-Post-feature enhancements (landed on this branch, no separate spec dir — design/plan docs live under `docs/superpowers/`): a collapsible live scoreboard (`ScoreboardPanel.js`, fed by a compact `scoreHistory` view-model field) and a per-seat round-stats label (`roundStatsText.js`, fed by the `roundPoints` view-model field).
+- **001 card-game-lobby**, **002 antlion-engine**, **003 persistent-identity**, **004 round/bidding/selling** — lobby, engine layer, reconnect identity, and the auction/sell phases.
+- **005 play-phase-scoring** — the full gameplay loop: card exchange, 8-trick play with follow-suit/trump/marriages, made/missed scoring, multi-round flow with dealer rotation and cumulative carry-over, victory at 1000+, and special scoring (barrel + three-consecutive-zeros). Added the persists-across-rounds `Game.js`, the `TrickPlay.js` state machine, pure-function `Scoring.js`, and `GameRules.js`; frontend gained `CardExchangeView`, `TrickPlayView`, `MarriageDeclarationPrompt`, `CollectedTricksStack`, `RoundSummaryScreen`, `FinalResultsScreen`.
+- **006 four-nines-bonus**, **007 crawling** — the +100 four-nines bonus (with a 5-second auto-acknowledge) and the no-ace face-down "crawl" first trick.
+- **008 four-player-variant** — the 3-/4-player generalization (`playerCount` threaded through the engine; `Seats.js`).
+- **009 ai-opponents** + **010 bot-card-memory** — server-side bots under `src/services/bots/` (host adds/removes them in the waiting room): competent bidding/selling/trick play plus an imperfect, decaying per-round card memory (`BotMemory.js`).
+
+Post-feature UI enhancements (no separate spec dir — design/plan docs live under `docs/superpowers/`): collapsible live scoreboard (`ScoreboardPanel.js` + `scoreHistory`), per-seat round-stats label (`roundStatsText.js` + `roundPoints`), the trump-suit box (`TrumpBox.js`), a rules modal, lobby logout, and multi-tab single-player support.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,

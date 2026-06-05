@@ -64,6 +64,20 @@ The first player to reach **1000+** wins, at the end of that round. Ties are bro
 
 > Full rulebook: [`docs/1000_Card_Game_Rules.txt`](docs/1000_Card_Game_Rules.txt)
 
+## AI opponents (bots)
+
+You don't need a full table of humans. In the waiting room the **host** can press
+**Add Bot** to drop a computer opponent into any empty seat (and **Remove** it again
+while the seat is still open), so a table can be filled out — or played solo — against
+bots. Bots carry a themed name (`Robo-Ada`, `Robo-Max`, …) and a clear **BOT** badge so
+nobody mistakes one for another player.
+
+Bots play the whole game, not just trick-following: they **bid**, **sell or buy** the
+contract, run the **card exchange**, time **marriage** declarations, and choose their
+**leads and follows**. Each bot has its own **aggressiveness**, so some push bids higher
+than others, and an **imperfect, decaying memory** of the cards already played — a bot can
+forget a card that's gone and miss a guaranteed winner, which keeps them beatable.
+
 ## Running
 
 Requires **Node.js 18+**. No build step — vanilla JS frontend (ES modules) and a Node.js + WebSocket backend.
