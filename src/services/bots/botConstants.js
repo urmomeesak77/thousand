@@ -25,4 +25,11 @@ const SAFETY_MARGIN = 5;
 const SELL_CUSHION = 30;
 const BUY_MARGIN = 20;
 
-module.exports = { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE, SAFETY_MARGIN, SELL_CUSHION, BUY_MARGIN };
+// How many sell attempts a declarer is allowed before it must take the hand (mirrors
+// Round.js MAX_SELL_ATTEMPTS). Each attempt must expose a different set of cards.
+const MAX_SELL_ATTEMPTS = 3;
+
+module.exports = {
+  MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE,
+  SAFETY_MARGIN, SELL_CUSHION, BUY_MARGIN, MAX_SELL_ATTEMPTS,
+};

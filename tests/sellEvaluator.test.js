@@ -72,4 +72,23 @@ describe('sellEvaluator.chooseSellExposure (FR-competent)', () => {
     assert.ok(kq <= 1, `exposed ${kq} K/Q cards, want at most 1`);
     assert.ok(exposed.some((c) => c.rank === 'A'), 'fills with strong point cards (an ace)');
   });
+  it('never baits with a K/Q from a marriage the declarer holds complete', () => { // per competent-play
+    // K♣+Q♣ is a complete marriage; its partner stays with the declarer, so a buyer
+    // can never complete it — exposing either half only reveals/breaks the marriage.
+    const h = [['K', 'C'], ['Q', 'C'], ['A', 'S'], ['A', 'H'], ['10', 'D']]
+      .map(([rank, suit], cardId) => ({ cardId, rank, suit }));
+    const exposed = sellEvaluator.chooseSellExposure(h, 3).map((id) => h.find((c) => c.cardId === id));
+    assert.ok(
+      !exposed.some((c) => c.suit === 'C' && (c.rank === 'K' || c.rank === 'Q')),
+      'a complete-marriage K/Q is held back, not exposed as bait',
+    );
+  });
+  it('varies the exposed set on a retry so it differs from a prior attempt (FR-016)', () => { // per competent-play
+    const h = [['A', 'S'], ['A', 'H'], ['10', 'D'], ['K', 'C'], ['9', 'S'], ['J', 'H']]
+      .map(([rank, suit], cardId) => ({ cardId, rank, suit }));
+    const first = sellEvaluator.chooseSellExposure(h, 3);
+    const second = sellEvaluator.chooseSellExposure(h, 3, [first]);
+    const key = (ids) => [...ids].sort((a, b) => a - b).join(',');
+    assert.notEqual(key(second), key(first), 'a second attempt exposes a different set');
+  });
 });

@@ -215,6 +215,53 @@ describe('BotStrategy.decide — selling (FR-competent)', () => {
     assert.equal(BotStrategy.decide(round, 0, 0.5).kind, 'startGame');
   });
 
+  it('post-bid: declarer keeps selling after a returned attempt (attempts remain)', () => { // per competent-play
+    const { deck } = deckHand([['9', 'D'], ['J', 'D'], ['9', 'S'], ['J', 'H']]);
+    const round = {
+      phase: 'post-bid-decision', declarerSeat: 0, currentTurnSeat: 0,
+      currentHighBid: 200, hands: { 0: [0, 1, 2, 3] }, deck, _game: {},
+      attemptCount: 1, attemptHistory: [{ outcome: 'returned', exposedIds: [0, 1, 2] }],
+    };
+    assert.equal(BotStrategy.decide(round, 0, 0.5).kind, 'sellStart');
+  });
+
+  it('post-bid: declarer is forced to take after the last sell attempt is used', () => { // per competent-play
+    const { deck } = deckHand([['9', 'D'], ['J', 'D'], ['9', 'S'], ['J', 'H']]);
+    const round = {
+      phase: 'post-bid-decision', declarerSeat: 0, currentTurnSeat: 0,
+      currentHighBid: 200, hands: { 0: [0, 1, 2, 3] }, deck, _game: {},
+      attemptCount: 3, attemptHistory: [],
+    };
+    assert.equal(BotStrategy.decide(round, 0, 0.5).kind, 'startGame');
+  });
+
+  it('post-bid: declarer does not resell once an attempt has sold', () => { // per competent-play
+    const { deck } = deckHand([['9', 'D'], ['J', 'D'], ['9', 'S'], ['J', 'H']]);
+    const round = {
+      phase: 'post-bid-decision', declarerSeat: 0, currentTurnSeat: 0,
+      currentHighBid: 200, hands: { 0: [0, 1, 2, 3] }, deck, _game: {},
+      attemptCount: 0, attemptHistory: [{ outcome: 'sold', exposedIds: [0, 1, 2] }],
+    };
+    assert.equal(BotStrategy.decide(round, 0, 0.5).kind, 'startGame');
+  });
+
+  it('selling-selection: a retry exposes a different set than a prior attempt (FR-016)', () => { // per competent-play
+    const { deck } = deckHand([['A', 'S'], ['A', 'H'], ['10', 'D'], ['K', 'C'], ['9', 'S']]);
+    const first = BotStrategy.decide(
+      { phase: 'selling-selection', declarerSeat: 0, playerCount: 3, hands: { 0: [0, 1, 2, 3, 4] }, deck },
+      0, 0.5,
+    ).cardIds;
+    const second = BotStrategy.decide(
+      {
+        phase: 'selling-selection', declarerSeat: 0, playerCount: 3, hands: { 0: [0, 1, 2, 3, 4] }, deck,
+        attemptHistory: [{ outcome: 'returned', exposedIds: first }],
+      },
+      0, 0.5,
+    ).cardIds;
+    const key = (ids) => [...ids].sort((a, b) => a - b).join(',');
+    assert.notEqual(key(second), key(first));
+  });
+
   it('selling-selection: declarer exposes exactly playerCount cards', () => { // per competent-play
     const { deck } = deckHand([['A', 'S'], ['9', 'D'], ['K', 'C'], ['J', 'H']]);
     const round = {

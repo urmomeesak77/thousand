@@ -1,6 +1,6 @@
 'use strict';
 
-const { estimateMakeable, roundDownToStep, rankValue } = require('./botStrategyHelpers');
+const { estimateMakeable, roundDownToStep, rankValue, findMarriages } = require('./botStrategyHelpers');
 const { MIN_BID, MAX_BID, BID_STEP, SELL_CUSHION, BUY_MARGIN } = require('./botConstants');
 
 // Declarer's post-bid decision: take a makeable hand, else sell. Bolder bots tolerate a
@@ -25,20 +25,44 @@ function buyOrPass(hand, exposedCards, bid, aggressiveness, currentHighBid) {
   return { kind: 'sellBid', amount };
 }
 
-// Expose `count` cards to entice a buyer: ONE king/queen as marriage bait (a buyer
-// holding the matching half can complete a marriage), then the strongest point cards
-// to show real winning power. Never expose an all-K/Q hand — that reveals only marriage
-// halves and tips opponents to your marriages. Extra K/Q are used only to fill the count.
-function chooseSellExposure(hand, count) {
-  const isMarriageHalf = (c) => c.rank === 'K' || c.rank === 'Q';
+// Expose `count` cards to entice a buyer. A buyer is enticed by cards that lift its OWN
+// hand: real point cards, and a genuine marriage HALF it can pair with its matching card.
+// A K/Q from a marriage the declarer holds COMPLETE is useless as bait — its partner
+// stays with the declarer, so no buyer can ever complete it — and exposing it only reveals
+// (and on a sale breaks) the declarer's best asset; those cards are exposed last, to fill
+// the count. `priorExposedSets` are the id-sets used in earlier sell attempts this round;
+// the chosen set must differ from each (FR-016) or the retry would be rejected.
+function chooseSellExposure(hand, count, priorExposedSets = []) {
+  const marriageSuits = findMarriages(hand);
+  const isKQ = (c) => c.rank === 'K' || c.rank === 'Q';
   const byPoints = (a, b) => rankValue(b.rank) - rankValue(a.rank);
-  const baits = hand.filter(isMarriageHalf).sort(byPoints);
-  const others = hand.filter((c) => !isMarriageHalf(c)).sort(byPoints);
-  const chosen = [];
-  if (baits.length > 0) { chosen.push(baits[0]); }
-  for (const c of others) { if (chosen.length >= count) { break; } chosen.push(c); }
-  for (const c of baits.slice(1)) { if (chosen.length >= count) { break; } chosen.push(c); }
-  return chosen.slice(0, count).map((c) => c.cardId);
+  const halfBaits = hand.filter((c) => isKQ(c) && !marriageSuits.includes(c.suit)).sort(byPoints);
+  const others = hand.filter((c) => !isKQ(c)).sort(byPoints);
+  const completeCards = hand.filter((c) => isKQ(c) && marriageSuits.includes(c.suit)).sort(byPoints);
+  // Best exposure first: one genuine half as marriage bait, the strongest point cards,
+  // then any remaining halves, and complete-marriage cards only as a last resort.
+  const ordered = [...halfBaits.slice(0, 1), ...others, ...halfBaits.slice(1), ...completeCards];
+  const key = (ids) => [...ids].sort((a, b) => a - b).join(',');
+  const prior = new Set(priorExposedSets.map(key));
+  for (const set of exposureCandidates(ordered, count)) {
+    const ids = set.map((c) => c.cardId);
+    if (!prior.has(key(ids))) { return ids; }
+  }
+  return ordered.slice(0, count).map((c) => c.cardId);
+}
+
+// Candidate exposure sets in preference order: the strongest `count`, then sets that swap
+// one chosen card (weakest first) for a lower-priority one — ample distinct sets to vary
+// across the few allowed sell retries.
+function* exposureCandidates(ordered, count) {
+  yield ordered.slice(0, count);
+  for (let i = count - 1; i >= 0; i--) {
+    for (let j = count; j < ordered.length; j++) {
+      const set = ordered.slice(0, count);
+      set[i] = ordered[j];
+      yield set;
+    }
+  }
 }
 
 module.exports = { takeOrSell, buyOrPass, chooseSellExposure };

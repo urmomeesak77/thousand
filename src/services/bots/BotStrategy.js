@@ -6,7 +6,9 @@ const sellEvaluator = require('./sellEvaluator');
 const {
   roundDownToStep, pickCard, estimateMakeable, pickExchangeCard,
 } = require('./botStrategyHelpers');
-const { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE, SAFETY_MARGIN } = require('./botConstants');
+const {
+  MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE, SAFETY_MARGIN, MAX_SELL_ATTEMPTS,
+} = require('./botConstants');
 
 // Maps the bot's current obligation in authoritative round state to a single legal
 // action (a Bot Decision, see data-model.md). Every action it returns is validated
@@ -67,19 +69,22 @@ class BotStrategy {
   }
 
   // Declarer's post-bid decision: take a makeable hand, else start selling (FR-competent).
-  // Sell at most once and never when the round has already disallowed it — a prior returned
-  // auction bumps attemptCount and a prior sale blocks selling outright; re-selling there
-  // would be silently rejected and stall the bot, so just take the hand.
+  // A returned auction leaves attempts to retry (selecting a different exposure each time),
+  // so the bot keeps offering until MAX_SELL_ATTEMPTS is spent. A prior sale blocks selling
+  // outright — re-selling there would be rejected — so once sold the bot just takes the hand.
   static _decidePostBid(round, seat, aggressiveness) {
     if (seat !== round.declarerSeat) { return null; }
     const sold = (round.attemptHistory || []).some((a) => a.outcome === 'sold');
-    const attemptsLeft = (round.attemptCount || 0) > 0 || sold ? 0 : 1;
+    const attemptsLeft = sold ? 0 : Math.max(0, MAX_SELL_ATTEMPTS - (round.attemptCount || 0));
     return sellEvaluator.takeOrSell(handCards(round, seat), round.currentHighBid, aggressiveness, attemptsLeft);
   }
 
-  // Declarer exposes its strongest cards (playerCount of them) to entice a buyer.
+  // Declarer exposes its strongest cards (playerCount of them) to entice a buyer. On a
+  // retry the exposure must differ from every prior attempt (FR-016), so prior exposed
+  // sets are passed through.
   static _decideSellSelection(round, seat) {
-    const cardIds = sellEvaluator.chooseSellExposure(handCards(round, seat), round.playerCount);
+    const priorSets = (round.attemptHistory || []).map((a) => a.exposedIds);
+    const cardIds = sellEvaluator.chooseSellExposure(handCards(round, seat), round.playerCount, priorSets);
     return cardIds.length === round.playerCount ? { kind: 'sellSelect', cardIds } : null;
   }
 
