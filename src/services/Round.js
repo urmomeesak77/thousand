@@ -67,6 +67,7 @@ class Round {
     this.collectedTricks = initSeatMap(this.playerCount, () => []);
     this.collectedTrickCounts = initSeatMap(this.playerCount, 0);
     this.playedLog = [];  // feature 010: cards-already-gone timeline, mirrored from TrickPlay
+    this.leadLog = [];    // clubs-combo easter egg: per-trick lead cards, mirrored from TrickPlay
     this.exchangePassesCommitted = 0;
     this._usedExchangeDestSeats = new Set();
     this.roundScores = null;
@@ -296,6 +297,7 @@ class Round {
     this._trickPlay.currentTrumpSuit = this.currentTrumpSuit;
     this._trickPlay.declaredMarriages = this.declaredMarriages;
     this._trickPlay.playedLog = this.playedLog;
+    this._trickPlay.leadLog = this.leadLog;
   }
 
   // T044 — delegate to TrickPlay.declareMarriage
@@ -355,6 +357,7 @@ class Round {
     this.crawlActive = this._trickPlay.crawlActive;
     this.crawlCommits = this._trickPlay.crawlCommits;
     this.playedLog = this._trickPlay.playedLog;
+    this.leadLog = this._trickPlay.leadLog;
   }
 
   // FR-003: arm the crawl for an eligible ace-less declarer. The trick-1/leader
