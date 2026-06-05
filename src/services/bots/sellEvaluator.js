@@ -25,18 +25,20 @@ function buyOrPass(hand, exposedCards, bid, aggressiveness, currentHighBid) {
   return { kind: 'sellBid', amount };
 }
 
-// Expose `count` cards most likely to entice a buyer. Kings and queens go first — a
-// buyer holding the matching half can complete a marriage — then the highest-point
-// cards. (buyOrPass re-estimates the merged hand, so exposed marriage bait pays off.)
+// Expose `count` cards to entice a buyer: ONE king/queen as marriage bait (a buyer
+// holding the matching half can complete a marriage), then the strongest point cards
+// to show real winning power. Never expose an all-K/Q hand — that reveals only marriage
+// halves and tips opponents to your marriages. Extra K/Q are used only to fill the count.
 function chooseSellExposure(hand, count) {
   const isMarriageHalf = (c) => c.rank === 'K' || c.rank === 'Q';
-  const sorted = hand.slice().sort((a, b) => {
-    const am = isMarriageHalf(a) ? 1 : 0;
-    const bm = isMarriageHalf(b) ? 1 : 0;
-    if (am !== bm) { return bm - am; }
-    return rankValue(b.rank) - rankValue(a.rank);
-  });
-  return sorted.slice(0, count).map((c) => c.cardId);
+  const byPoints = (a, b) => rankValue(b.rank) - rankValue(a.rank);
+  const baits = hand.filter(isMarriageHalf).sort(byPoints);
+  const others = hand.filter((c) => !isMarriageHalf(c)).sort(byPoints);
+  const chosen = [];
+  if (baits.length > 0) { chosen.push(baits[0]); }
+  for (const c of others) { if (chosen.length >= count) { break; } chosen.push(c); }
+  for (const c of baits.slice(1)) { if (chosen.length >= count) { break; } chosen.push(c); }
+  return chosen.slice(0, count).map((c) => c.cardId);
 }
 
 module.exports = { takeOrSell, buyOrPass, chooseSellExposure };

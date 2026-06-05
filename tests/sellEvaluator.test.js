@@ -64,4 +64,12 @@ describe('sellEvaluator.chooseSellExposure (FR-competent)', () => {
     assert.ok(ids.includes(3), 'Q♦ exposed as marriage bait');   // the queen
     assert.ok(!ids.includes(2), '10♣ dropped to make room for the queen');
   });
+  it('exposes at most one K/Q so it never reveals an all-marriage hand', () => { // per competent-play
+    const h = [['K', 'C'], ['Q', 'S'], ['K', 'H'], ['A', 'D'], ['A', 'C']]
+      .map(([rank, suit], cardId) => ({ cardId, rank, suit }));
+    const exposed = sellEvaluator.chooseSellExposure(h, 3).map((id) => h.find((c) => c.cardId === id));
+    const kq = exposed.filter((c) => c.rank === 'K' || c.rank === 'Q').length;
+    assert.ok(kq <= 1, `exposed ${kq} K/Q cards, want at most 1`);
+    assert.ok(exposed.some((c) => c.rank === 'A'), 'fills with strong point cards (an ace)');
+  });
 });
