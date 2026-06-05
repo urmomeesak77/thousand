@@ -1542,7 +1542,7 @@
      50vw − 19rem, 8 cards max), leaving a small gap, but never grow past the
      16rem uncollapsed default. On narrow viewports it shrinks to an icon-only
      handle. So: as wide as fits without overlap, capped at the expanded width. */
-  width: clamp(3.5rem, calc(50vw - 20rem), 16rem);
+  width: clamp(4.75rem, calc(50vw - 20rem), 16rem);
   max-width: calc(100vw - 1rem);
   background: rgba(20, 18, 38, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1581,6 +1581,7 @@
 }
 
 .history-panel__toggle {
+  flex: none;
   min-width: 1.75rem;
   min-height: 1.75rem;
   border: none;
