@@ -6,9 +6,9 @@ import CardExchangeView from './CardExchangeView.js';
 import TrickPlayView from './TrickPlayView.js';
 import RoundSummaryScreen from './RoundSummaryScreen.js';
 import FinalResultsScreen from './FinalResultsScreen.js';
+import { MAX_SELL_ATTEMPTS } from './constants.js';
 
 const SELL_BID_DEFAULT = 100;
-const SELL_DISABLED_ATTEMPT = 3;
 
 class GameScreenControls {
   constructor(gameScreen, antlion, controlsEl, handView, dispatcher) {
@@ -196,8 +196,12 @@ class GameScreenControls {
   }
 
   _declarerMode(gameStatus) {
+    // sellAttempt is the number the NEXT sell would have (attemptCount + 1); the
+    // server only rejects startSelling once attemptCount >= MAX_SELL_ATTEMPTS, so
+    // Sell stays offerable through sellAttempt === MAX_SELL_ATTEMPTS and is disabled
+    // only once the next attempt would exceed it.
     const { sellAttempt } = gameStatus;
-    if (sellAttempt === SELL_DISABLED_ATTEMPT) {return 'sell-disabled';}
+    if (sellAttempt != null && sellAttempt > MAX_SELL_ATTEMPTS) {return 'sell-disabled';}
     if (this._gs._viewerIsNewDeclarer) {return 'sell-hidden';}
     return 'full';
   }

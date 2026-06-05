@@ -188,16 +188,29 @@ describe('GameScreen.gating — Declarer deciding: opponents see .waiting div (F
 });
 
 describe('GameScreen.gating — Declarer deciding: 3 failed attempts disables Sell (FR-018)', () => {
-  it('sellAttempt === 3 sets mode to sell-disabled', () => {
+  // sellAttempt in post-bid-decision is the number the NEXT sell would have
+  // (attemptCount + 1). The server allows 3 attempts (attemptCount 0,1,2), so the
+  // third attempt is still offerable when sellAttempt === 3 — Sell must stay enabled.
+  it('sellAttempt === 3 (third attempt still available) keeps mode full', () => {
     const { gs } = makeGameScreen();
     gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: 3 }));
+
+    assert.equal(gs._controls._declarerControls._mode, 'full');
+    assert.equal(gs._controls._declarerControls._sellBtn.disabled, false, 'Sell must stay enabled for the third attempt');
+  });
+
+  // After all three attempts have returned, attemptCount === 3 so sellAttempt === 4
+  // and the server rejects startSelling — the Sell button must be disabled.
+  it('sellAttempt === 4 (all attempts exhausted) sets mode to sell-disabled', () => {
+    const { gs } = makeGameScreen();
+    gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: 4 }));
 
     assert.equal(gs._controls._declarerControls._mode, 'sell-disabled');
   });
 
-  it('Sell button is disabled and Start button is still operable when sellAttempt === 3', () => {
+  it('Sell button is disabled and Start button is still operable when sellAttempt === 4', () => {
     const { gs } = makeGameScreen();
-    gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: 3 }));
+    gs.updateStatus(declarerDecidingStatus({ viewerSeat: 0, declarerSeat: 0, sellAttempt: 4 }));
 
     assert.equal(gs._controls._declarerControls._sellBtn.disabled, true, 'Sell must be disabled after 3 attempts');
     assert.equal(gs._controls._declarerControls._startBtn.disabled, false, 'Start must still be operable');
