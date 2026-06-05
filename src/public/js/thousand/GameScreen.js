@@ -20,6 +20,9 @@ import { formatRoundStats } from './roundStatsText.js';
 
 const FLASH_DURATION_MS = 600;
 const OPPONENT_DEFAULT_HAND = 7;
+const ACTIVE_TRUMP_PHASES = new Set([
+  'Bidding', 'Declarer deciding', 'Selling', 'Card exchange', 'Trick play',
+]);
 
 class GameScreen {
   constructor(antlion, container, dispatcher) {
@@ -522,9 +525,6 @@ class GameScreen {
   }
 
   _renderStatus(gameStatus) {
-    const ACTIVE_TRUMP_PHASES = new Set([
-      'Bidding', 'Declarer deciding', 'Selling', 'Card exchange', 'Trick play',
-    ]);
     this._trumpBox.render(
       gameStatus.currentTrumpSuit,
       ACTIVE_TRUMP_PHASES.has(gameStatus.phase),
