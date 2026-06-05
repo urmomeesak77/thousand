@@ -20,6 +20,10 @@ function seatBots(store, count) {
     players, requiredPlayers: count, status: 'waiting', inviteCode: null,
     createdAt: Date.now(), round: null, session: null,
   });
+  // Node 18's mock timers fake setTimeout but not Date, so the handler's 250 ms RateLimiter
+  // (which reads the real clock) would throttle this synchronous tick-driven round into a
+  // stall. In production bots delay 1–3 s, so the limiter never triggers — bypass it here.
+  store._botDriver._handler._rateLimiter.isAllowed = () => true;
   return gameId;
 }
 
@@ -27,7 +31,7 @@ function seatBots(store, count) {
 // legal actions and valid scores, with zero human input.
 describe('bots autoplay integration', () => {
   it('three bots play a full round to a scored round-summary', (t) => {
-    t.mock.timers.enable(['setTimeout', 'Date']);
+    t.mock.timers.enable(['setTimeout']);
     const store = new ThousandStore();
     const gameId = seatBots(store, 3);
 
@@ -59,7 +63,7 @@ describe('bots autoplay integration', () => {
 
   // per FR-011 — bots are supported in both the 3- and 4-player variants.
   it('four bots also complete a round (4-player variant)', (t) => {
-    t.mock.timers.enable(['setTimeout', 'Date']);
+    t.mock.timers.enable(['setTimeout']);
     const store = new ThousandStore();
     const gameId = seatBots(store, 4);
 
