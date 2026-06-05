@@ -1538,11 +1538,9 @@
   bottom: 0.5rem;
   left: 0.5rem;
   z-index: 50;
-  /* Fill the empty space to the left of the centred hand (which sits at roughly
-     50vw − 19rem, 8 cards max), leaving a small gap, but never grow past the
-     16rem uncollapsed default. On narrow viewports it shrinks to an icon-only
-     handle. So: as wide as fits without overlap, capped at the expanded width. */
-  width: clamp(4.75rem, calc(50vw - 20rem), 16rem);
+  /* Expanded: the original readable width on every viewport (bounded only by the
+     screen). The collapsed handle gets a fluid width below. */
+  width: 16rem;
   max-width: calc(100vw - 1rem);
   background: rgba(20, 18, 38, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1618,16 +1616,23 @@
   font-style: italic;
 }
 
-/* Collapsed: hide the log body, leaving only the header handle (which keeps the
-   same responsive width as the expanded panel). */
+/* Collapsed: hide the log body, leaving only the header handle. The handle gets
+   a fluid width — fills the space left of the centred hand (which sits at roughly
+   50vw − 19rem, 8 cards max), with a gap, capped at the 16rem expanded width and
+   floored so the icon + toggle never overlap. */
+.history-panel--collapsed {
+  width: clamp(4.75rem, calc(50vw - 20rem), 16rem);
+}
+
 .history-panel--collapsed .history-panel__body {
   display: none;
 }
 
-/* Below ~960px the fluid width drops under what the "History" word needs, so the
-   header becomes an icon-only handle (no overlap, no clipped label). */
+/* When the collapsed handle is narrower than the "History" word needs (below
+   ~960px it drops under that), make it icon-only so the label never clips. The
+   expanded panel keeps its label since it stays 16rem wide. */
 @media (max-width: 960px) {
-  .history-panel__title-text {
+  .history-panel--collapsed .history-panel__title-text {
     display: none;
   }
 }
