@@ -1538,7 +1538,11 @@
   bottom: 0.5rem;
   left: 0.5rem;
   z-index: 50;
-  width: 16rem;
+  /* Fill the empty space to the left of the centred hand (which sits at roughly
+     50vw − 19rem, 8 cards max), leaving a small gap, but never grow past the
+     16rem uncollapsed default. On narrow viewports it shrinks to an icon-only
+     handle. So: as wide as fits without overlap, capped at the expanded width. */
+  width: clamp(3.5rem, calc(50vw - 20rem), 16rem);
   max-width: calc(100vw - 1rem);
   background: rgba(20, 18, 38, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1562,7 +1566,13 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
   font-weight: 600;
+}
+
+.history-panel__title-text {
+  white-space: nowrap;
 }
 
 .history-panel__icon {
@@ -1607,21 +1617,15 @@
   font-style: italic;
 }
 
-/* Collapsed: hide the log body, leaving only the compact header handle.
-   Shrink the shell to fit the icon + toggle so it stops overlapping the
-   bid controls / other bottom UI on narrow screens. */
-.history-panel--collapsed {
-  width: auto;
-}
-
+/* Collapsed: hide the log body, leaving only the header handle (which keeps the
+   same responsive width as the expanded panel). */
 .history-panel--collapsed .history-panel__body {
   display: none;
 }
 
-/* The centred bid controls reach the left edge (where the panel is anchored)
-   around ~580px, so drop the "History" word below 640px — the header becomes
-   an icon-only handle and never grows into a bar over the bottom controls. */
-@media (max-width: 640px) {
+/* Below ~960px the fluid width drops under what the "History" word needs, so the
+   header becomes an icon-only handle (no overlap, no clipped label). */
+@media (max-width: 960px) {
   .history-panel__title-text {
     display: none;
   }
@@ -1629,7 +1633,6 @@
 
 @media (max-width: 480px) {
   .history-panel {
-    width: 11rem;
     font-size: 0.72rem;
   }
 
