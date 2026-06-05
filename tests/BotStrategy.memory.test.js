@@ -10,15 +10,17 @@ function buildDeck(cards) {
   return cards.map(([rank, suit], id) => ({ id, rank, suit }));
 }
 
-// Declarer leading on trick 1, no trump. Hand: K♣, 9♦, J♦. With no recall the bot can't
-// prove K♣ safe (A♣/10♣ still live) so it leads the low safe 9♦; once A♣ & 10♣ are
+// Declarer leading a mid-round trick, no trump. Hand: K♣, 9♦, J♦. With no recall the bot
+// can't prove K♣ safe (A♣/10♣ still live) so it leads the low safe 9♦; once A♣ & 10♣ are
 // recalled gone, K♣ is a guaranteed winner and gets cashed. The full higher-diamond suit
-// is in the deck so 9♦/J♦ are never themselves bosses.
+// is in the deck so 9♦/J♦ are never themselves bosses. (Trick 3, not 1: an ace-less declarer
+// crawls the opening trick — and no card can be "gone" before trick 1 anyway — so the
+// boss-memory lead logic only runs from trick 2 onward.)
 function declarerRound(deck) {
   return {
     phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
     fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
-    trickNumber: 1, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1, 2] }, deck,
+    trickNumber: 3, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1, 2] }, deck,
   };
 }
 

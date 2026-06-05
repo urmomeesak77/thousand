@@ -158,6 +158,32 @@ describe('BotStrategy.decide — per-phase legality', () => {
     assert.equal(d.cardId, 1); // 9♦ — lowest value
   });
 
+  it('trick-play declarer lead: an ace-less declarer crawls, never with a marriage card', () => { // per bot-crawl
+    // Ace-less declarer on the opening lead: K♣+Q♣ marriage (0,1) plus 10♦,9♠ (2,3).
+    const { deck } = deckHand([['K', 'C'], ['Q', 'C'], ['10', 'D'], ['9', 'S']]);
+    const round = {
+      phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
+      fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
+      trickNumber: 1, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1, 2, 3] }, deck,
+    };
+    for (let i = 0; i < 200; i++) {
+      const d = BotStrategy.decide(round, 0, 0.5);
+      assert.equal(d.kind, 'crawlCommit');
+      assert.ok(d.cardId === 2 || d.cardId === 3, `crawled with marriage card ${d.cardId}`);
+    }
+  });
+
+  it('trick-play declarer lead: a declarer holding an ace does NOT crawl', () => { // per bot-crawl
+    const { deck } = deckHand([['A', 'S'], ['9', 'D'], ['K', 'C']]);
+    const round = {
+      phase: 'trick-play', declarerSeat: 0, currentTurnSeat: 0, playerCount: 3,
+      fourNinesAckPending: false, isPausedByDisconnect: false, crawlActive: false,
+      trickNumber: 1, currentTrumpSuit: null, currentTrick: [], hands: { 0: [0, 1, 2] }, deck,
+    };
+    const d = BotStrategy.decide(round, 0, 0.5);
+    assert.equal(d.kind, 'playCard');
+  });
+
   it('trick-play declarer lead: draws trumps when no marriage is declarable', () => {
     // trick 1 (outside the 2–6 marriage window), trump set → lead the highest trump.
     const { deck } = deckHand([['9', 'S'], ['A', 'S'], ['J', 'H']]);

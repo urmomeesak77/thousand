@@ -17,8 +17,9 @@ const {
 //
 // Bidding is scaled by the bot's persistent aggressiveness trait (FR-016/FR-017);
 // every other phase uses one shared deterministic strategy ported from the smart
-// end-to-end bot. v1 simplifications: the declarer never sells (always starts), a
-// bot always declares a marriage when it can, and it declines the crawl.
+// end-to-end bot. v1 simplifications: the declarer never sells (always starts) and a
+// bot always declares a marriage when it can. An ace-less declarer crawls the opening
+// trick (delegating the face-down card choice to trickPlanner.chooseCrawlCard).
 class BotStrategy {
   // Returns a Bot Decision for the bot at `seat`, or null when it has no obligation.
   // `knowledge.goneCardIds` is the set of past-trick cards the bot recalls as played
@@ -113,10 +114,15 @@ class BotStrategy {
       const lowest = pickCard(handCards(round, seat), { highest: false });
       return lowest ? { kind: 'crawlCommit', cardId: lowest.cardId } : null;
     }
+    const hand = handCards(round, seat);
+    if (BotStrategy._shouldCrawl(round, seat, hand)) {
+      const card = trickPlanner.chooseCrawlCard(hand, round.currentTrumpSuit, round.trickNumber);
+      if (card) { return { kind: 'crawlCommit', cardId: card.cardId }; }
+    }
     const legal = legalCards(round, seat);
     if (legal.length === 0) { return null; }
     const ctx = {
-      legal, hand: handCards(round, seat), trump: round.currentTrumpSuit,
+      legal, hand, trump: round.currentTrumpSuit,
       trickNumber: round.trickNumber, goneCardIds: knowledge.goneCardIds || new Set(),
       currentTrick: round.currentTrick, deck: round.deck, playerCount: round.playerCount,
       isDeclarer: seat === round.declarerSeat,
@@ -129,6 +135,15 @@ class BotStrategy {
       kind: 'playCard', cardId: decision.cardId,
       ...(decision.declareMarriage ? { declareMarriage: true } : {}),
     };
+  }
+
+  // A declarer crawls the opening trick whenever it is ace-less — leading face-up with
+  // no ace just hands the lead and points away, so it commits face-down instead (FR-003).
+  static _shouldCrawl(round, seat, hand) {
+    return seat === round.declarerSeat
+      && round.trickNumber === 1
+      && round.currentTrick.length === 0
+      && !hand.some((c) => c.rank === 'A');
   }
 
   static _decideContinue(round, seat) {

@@ -34,7 +34,7 @@ src/services/
   bots/                                # server-side AI opponents (features 009 + 010)
     BotStrategy.js                     # decides one legal action per (round, seat); bidding scaled by per-bot aggressiveness (FR-016/017); routes trick play through trickPlanner and selling through sellEvaluator; uses recalled-gone knowledge to cash boss cards
     botStrategyHelpers.js              # pure card-evaluation utilities (ported from tests/e2e-live-smart.js); includes boss-card / remaining-beaters helpers
-    trickPlanner.js                    # competent trick play — chooseLead/chooseFollow (boss-card cashing, draw trumps, win/duck point tricks, marriage timing)
+    trickPlanner.js                    # competent trick play — chooseLead/chooseFollow (boss-card cashing, draw trumps, win/duck point tricks, marriage timing) + chooseCrawlCard (ace-less declarer's face-down opening card: weighted-random toward higher ranks, never a marriage K/Q)
     sellEvaluator.js                   # take-vs-sell, buy-vs-pass, and which cards to expose when selling
     BotMemory.js                       # per-bot imperfect, decaying per-round card memory (Fourier low-pass recall model + deterministic per-card draw) → recalled-gone card set (feature 010)
     BotTurnDriver.js                   # detects a bot's pending turn, schedules a randomized 1–3 s timer, builds the bot's recalled-gone set via BotMemory, executes one action via RoundActionHandler

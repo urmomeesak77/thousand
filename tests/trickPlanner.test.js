@@ -127,3 +127,32 @@ describe('trickPlanner.chooseLead — draw trumps with control (FR-competent)', 
     assert.equal(trickPlanner.chooseLead(ctx).cardId, 5); // 9♠
   });
 });
+
+describe('trickPlanner.chooseCrawlCard — declarer crawl card (random, never a marriage)', () => {
+  it('never picks a King/Queen of a held marriage', () => { // per bot-crawl
+    // Hand: K♣+Q♣ marriage (ids 0,1), plus K♠ (lone king) and 10♦. Only 2 and 3 are eligible.
+    const deck = buildDeck([['K', 'C'], ['Q', 'C'], ['K', 'S'], ['10', 'D']]);
+    const hand = obj(deck, [0, 1, 2, 3]);
+    for (let i = 0; i < 300; i++) {
+      const pick = trickPlanner.chooseCrawlCard(hand, null, 1);
+      assert.ok(pick.cardId === 2 || pick.cardId === 3, `picked marriage card ${pick.cardId}`);
+    }
+  });
+
+  it('falls back to the only eligible card when every other is a marriage card', () => { // per bot-crawl
+    const deck = buildDeck([['K', 'C'], ['Q', 'C'], ['9', 'D']]);
+    const hand = obj(deck, [0, 1, 2]);
+    assert.equal(trickPlanner.chooseCrawlCard(hand, null, 1).cardId, 2); // 9♦
+  });
+
+  it('leans toward higher ranks but still picks lower ones sometimes', () => { // per bot-crawl
+    const deck = buildDeck([['10', 'D'], ['9', 'S']]); // weights 7 vs 3, no marriage
+    const hand = obj(deck, [0, 1]);
+    let tens = 0; let nines = 0;
+    for (let i = 0; i < 600; i++) {
+      (trickPlanner.chooseCrawlCard(hand, null, 1).cardId === 0 ? tens++ : nines++);
+    }
+    assert.ok(tens > nines, `expected 10 favoured: tens=${tens} nines=${nines}`);
+    assert.ok(nines > 0, 'expected the 9 to be picked at least once');
+  });
+});

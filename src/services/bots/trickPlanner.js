@@ -103,4 +103,26 @@ function chooseLead(ctx) {
   return fallback ? { cardId: fallback.cardId } : null;
 }
 
-module.exports = { chooseLead, chooseFollow, reservedMarriageCards };
+// Pick one card weighted by `weightOf`, leaning toward heavier weights but never
+// excluding the lighter ones (every positive weight keeps a real chance).
+function weightedRandomPick(cards, weightOf) {
+  const total = cards.reduce((sum, c) => sum + weightOf(c), 0);
+  let roll = Math.random() * total;
+  for (const c of cards) {
+    roll -= weightOf(c);
+    if (roll < 0) { return c; }
+  }
+  return cards[cards.length - 1];
+}
+
+// The card an ace-less declarer commits face-down to open a crawl. Random but biased
+// toward higher ranks (rank strength as the weight) so the lead-setting card has a
+// better chance of topping the blind trick — never a King/Queen of a held marriage.
+function chooseCrawlCard(hand, trump, trickNumber) {
+  const reserved = reservedMarriageCards(hand, trump, trickNumber);
+  const eligible = hand.filter((c) => !reserved.has(c.cardId));
+  const pool = eligible.length > 0 ? eligible : hand;
+  return weightedRandomPick(pool, (c) => rankStrength(c.rank));
+}
+
+module.exports = { chooseLead, chooseFollow, chooseCrawlCard, reservedMarriageCards };
