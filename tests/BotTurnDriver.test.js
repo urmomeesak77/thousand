@@ -38,7 +38,9 @@ function makeStore(round) {
 describe('BotTurnDriver', () => {
   it('schedules and fires one action for a bot with a pending obligation', (t) => {
     t.mock.timers.enable(['setTimeout']);
-    const round = { phase: 'post-bid-decision', declarerSeat: 0, currentHighBid: 100, attemptCount: 0, hands: { 0: [0] }, deck: [{ id: 0, rank: '9', suit: 'D' }], seatByPlayer: new Map([['bot-1', 0]]) };
+    // A makeable hand (clubs marriage + ace) so the declarer takes the contract — exercises
+    // the handleStartGame routing. (A junk hand would correctly route to handleSellStart now.)
+    const round = { phase: 'post-bid-decision', declarerSeat: 0, currentHighBid: 100, attemptCount: 0, hands: { 0: [0, 1, 2] }, deck: [{ id: 0, rank: 'K', suit: 'C' }, { id: 1, rank: 'Q', suit: 'C' }, { id: 2, rank: 'A', suit: 'S' }], seatByPlayer: new Map([['bot-1', 0]]) };
     const { store, game } = makeStore(round);
     const handler = makeHandler();
     const driver = new BotTurnDriver(store, handler);
