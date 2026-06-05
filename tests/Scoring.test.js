@@ -222,6 +222,34 @@ describe('Scoring.roundDeltas — FR-014', () => {
     assert.equal(deltas[0], 40);
     assert.equal(deltas[1], 50);
   });
+
+  it('non-declarer on barrel scores 0 instead of their collected points', () => {
+    const scores = { 0: 110, 1: 40, 2: 5 };
+    // seat 1 is on the barrel → its 40 points are frozen to 0
+    const deltas = Scoring.roundDeltas(scores, 0, 100, 3, new Set([1]));
+    assert.equal(deltas[0], 100); // declarer unaffected
+    assert.equal(deltas[1], 0);   // on-barrel non-declarer frozen
+    assert.equal(deltas[2], 5);   // other non-declarer unaffected
+  });
+
+  it('declarer on barrel still scores ±bid (gating must not touch the declarer)', () => {
+    const made = Scoring.roundDeltas({ 0: 120, 1: 0, 2: 0 }, 0, 100, 3, new Set([0]));
+    assert.equal(made[0], 100);
+    const missed = Scoring.roundDeltas({ 0: 80, 1: 0, 2: 0 }, 0, 100, 3, new Set([0]));
+    assert.equal(missed[0], -100);
+  });
+
+  it('multiple on-barrel non-declarers are all frozen', () => {
+    const deltas = Scoring.roundDeltas({ 0: 60, 1: 30, 2: 30 }, 0, 100, 3, new Set([1, 2]));
+    assert.equal(deltas[1], 0);
+    assert.equal(deltas[2], 0);
+  });
+
+  it('omitting onBarrelSeats preserves legacy behavior', () => {
+    const withDefault = Scoring.roundDeltas({ 0: 110, 1: 40, 2: 5 }, 0, 100);
+    assert.equal(withDefault[1], 40);
+    assert.equal(withDefault[2], 5);
+  });
 });
 
 describe('Scoring.determineWinner — FR-017', () => {

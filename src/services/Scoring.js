@@ -51,7 +51,7 @@ function roundScores(round) {
   return scores;
 }
 
-function roundDeltas(roundScoresMap, declarerSeat, bid, playerCount = 3) {
+function roundDeltas(roundScoresMap, declarerSeat, bid, playerCount = 3, onBarrelSeats = new Set()) {
   // The 4th positional arg was historically an (ignored) `penalties` array in
   // feature 005; tolerate a non-integer here so those legacy callers default to 3.
   const n = Number.isInteger(playerCount) ? playerCount : 3;
@@ -59,6 +59,10 @@ function roundDeltas(roundScoresMap, declarerSeat, bid, playerCount = 3) {
   for (const seat of seatRange(n)) {
     if (seat === declarerSeat) {
       deltas[seat] = roundScoresMap[seat] >= bid ? bid : -bid;
+    } else if (onBarrelSeats.has(seat)) {
+      // On the barrel: a non-declarer scores nothing — points come only from
+      // winning a bid (design 2026-06-05-barrel-non-declarer-scoring).
+      deltas[seat] = 0;
     } else {
       deltas[seat] = roundScoresMap[seat];
     }
