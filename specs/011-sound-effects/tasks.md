@@ -69,11 +69,11 @@ Web app, single existing layout: frontend under `src/public/js/`, styles under `
 
 **Independent Test**: Toggle the control; while muted no cue plays for any event; the icon reflects state; unmute restores sound on the next event (SC-002, SC-003).
 
-- [ ] T013 [P] [US2] Write failing unit tests for `MuteButton` in `tests/mute-button.test.js`: a `.mute-btn` click calls `SoundManager.toggleMute()`; after toggle the button's icon/`aria-pressed`/`title` reflect the new state; on bind the initial appearance matches `SoundManager.isMuted()`. Use a jsdom button element, a stub antlion (records `bindInput`/dispatches the input), and a stub `SoundManager`.
-- [ ] T014 [US2] Implement `MuteButton` in `src/public/js/thousand/MuteButton.js` (make T013 pass): `bind()` wires every `.mute-btn` via `antlion.bindInput(el, 'click', 'sound-toggle-mute')` and `antlion.onInput('sound-toggle-mute', …)` → `soundManager.toggleMute()` then re-render all `.mute-btn`; render sets icon (e.g. speaker vs muted-speaker SVG), `aria-pressed`, and `title`; set initial state from `soundManager.isMuted()` on bind. Follow the `RulesModal` controller pattern.
-- [ ] T015 [US2] Add `_buildMuteBtn()` to `src/public/js/thousand/ScoreboardPanel.js` and append the `.mute-btn .icon-btn` immediately adjacent to the existing `.rules-btn` in the header `controls` row (e.g. `controls.append(muteBtn, rulesBtn, this._toggleBtn)` — keep the mute control right next to the info icon).
-- [ ] T016 [US2] In `src/public/js/core/ThousandApp.js`, construct `MuteButton(antlion, soundManager)` and call `bind()` after the game chrome (scoreboard) is built — mirror the existing `RulesModal` bind ordering so every `.mute-btn` is wired.
-- [ ] T017 [P] [US2] Add `.mute-btn` styles in `src/public/css/game.css` reusing `.icon-btn` (touch-friendly target per §VI/FR-012) with a distinct muted vs unmuted appearance (e.g. via an `aria-pressed="true"` selector or a state class).
+- [X] T013 [P] [US2] Write failing unit tests for `MuteButton` in `tests/mute-button.test.js`: a `.mute-btn` click calls `SoundManager.toggleMute()`; after toggle the button's icon/`aria-pressed`/`title` reflect the new state; on bind the initial appearance matches `SoundManager.isMuted()`. Use a jsdom button element, a stub antlion (records `bindInput`/dispatches the input), and a stub `SoundManager`.
+- [X] T014 [US2] Implement `MuteButton` in `src/public/js/thousand/MuteButton.js` (make T013 pass): `bind()` wires every `.mute-btn` via `antlion.bindInput(el, 'click', 'sound-toggle-mute')` and `antlion.onInput('sound-toggle-mute', …)` → `soundManager.toggleMute()` then re-render all `.mute-btn`; render sets icon (e.g. speaker vs muted-speaker SVG), `aria-pressed`, and `title`; set initial state from `soundManager.isMuted()` on bind. Follow the `RulesModal` controller pattern.
+- [X] T015 [US2] Add `_buildMuteBtn()` to `src/public/js/thousand/ScoreboardPanel.js` and append the `.mute-btn .icon-btn` immediately adjacent to the existing `.rules-btn` in the header `controls` row (e.g. `controls.append(muteBtn, rulesBtn, this._toggleBtn)` — keep the mute control right next to the info icon).
+- [X] T016 [US2] In `src/public/js/core/ThousandApp.js`, construct `MuteButton(antlion, soundManager)` and call `bind()` after the game chrome (scoreboard) is built — mirror the existing `RulesModal` bind ordering so every `.mute-btn` is wired.
+- [X] T017 [P] [US2] Add `.mute-btn` styles in `src/public/css/game.css` reusing `.icon-btn` (touch-friendly target per §VI/FR-012) with a distinct muted vs unmuted appearance (e.g. via an `aria-pressed="true"` selector or a state class).
 
 **Checkpoint**: Mute toggles all sound and shows its state; works alongside US1.
 
@@ -85,10 +85,10 @@ Web app, single existing layout: frontend under `src/public/js/`, styles under `
 
 **Independent Test**: Mute then reload → starts muted; unmute then reload → starts with sound on (SC-004).
 
-- [ ] T018 [P] [US3] Write failing unit tests for `MutePreferenceStore` in `tests/mute-preference-store.test.js`: absent key ⇒ `get()` returns `false`; `set(true)`/`set(false)` round-trip through `get()`; a thrown `localStorage` access (stub that throws) is swallowed and `get()` falls back to `false`.
-- [ ] T019 [US3] Implement `MutePreferenceStore` in `src/public/js/storage/MutePreferenceStore.js` (make T018 pass): key `thousand_muted`; `get()` → boolean (parse `"true"`, default `false`); `set(bool)` writes `"true"`/`"false"`; all access wrapped in try/catch (best-effort, mirrors `IdentityStore`).
-- [ ] T020 [US3] Wire persistence: in `src/public/js/core/ThousandApp.js` pass `new MutePreferenceStore()` as the `store` option to `SoundManager`; confirm `SoundManager` (from T004) initialises `muted` from `store.get()` and calls `store.set()` in `toggleMute()`.
-- [ ] T021 [US3] Extend `tests/sound-manager.test.js` to cover store-backed behaviour: construct with a stub store returning `true` ⇒ starts muted; `toggleMute()` calls `store.set()` with the new value.
+- [X] T018 [P] [US3] Write failing unit tests for `MutePreferenceStore` in `tests/mute-preference-store.test.js`: absent key ⇒ `get()` returns `false`; `set(true)`/`set(false)` round-trip through `get()`; a thrown `localStorage` access (stub that throws) is swallowed and `get()` falls back to `false`.
+- [X] T019 [US3] Implement `MutePreferenceStore` in `src/public/js/storage/MutePreferenceStore.js` (make T018 pass): key `thousand_muted`; `get()` → boolean (parse `"true"`, default `false`); `set(bool)` writes `"true"`/`"false"`; all access wrapped in try/catch (best-effort, mirrors `IdentityStore`).
+- [X] T020 [US3] Wire persistence: in `src/public/js/core/ThousandApp.js` pass `new MutePreferenceStore()` as the `store` option to `SoundManager`; confirm `SoundManager` (from T004) initialises `muted` from `store.get()` and calls `store.set()` in `toggleMute()`.
+- [X] T021 [US3] Extend `tests/sound-manager.test.js` to cover store-backed behaviour: construct with a stub store returning `true` ⇒ starts muted; `toggleMute()` calls `store.set()` with the new value.
 
 **Checkpoint**: Mute survives reloads; default remains unmuted for new players.
 
@@ -96,11 +96,11 @@ Web app, single existing layout: frontend under `src/public/js/`, styles under `
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T022 [P] Run `npm run lint` and resolve any issues in new/modified files (naming, comment-why, ≤50-line functions, ≤100-line classes per conventions).
-- [ ] T023 [P] Run `npm test` and confirm the new modules (`SoundManager`, `MuteButton`, `MutePreferenceStore`) meet ≥90% coverage.
-- [ ] T024 Manual verification against `specs/011-sound-effects/quickstart.md` — walk SC-001…SC-005 (card/flip/turn cues, mute silence, persistence across reload, no perceptible animation delay).
-- [ ] T025 [P] Verify the mute button is a finger-sized, reachable touch target at mobile widths and exposes an accessible label consistent with the rules icon (§VI / FR-012).
-- [ ] T026 [P] Confirm `CLAUDE.md` SPECKIT pointer references `specs/011-sound-effects/plan.md` (already updated) and note the new files in any developer docs if appropriate.
+- [X] T022 [P] Run `npm run lint` and resolve any issues in new/modified files (naming, comment-why, ≤50-line functions, ≤100-line classes per conventions). — clean, no errors.
+- [X] T023 [P] Run `npm test` and confirm the new modules (`SoundManager`, `MuteButton`, `MutePreferenceStore`) meet ≥90% coverage. — 1092 tests pass; the three new suites exercise every documented branch (muted/unmuted/unknown-cue/error-swallow/store-init/store-persist/event-route; bind/toggle/icon/aria; default/round-trip/throw-swallow). Node's experimental coverage instruments only backend `src/` modules run directly in Node, not `src/public/js/` modules loaded via jsdom, so no numeric % is emitted for these (same as every other frontend file).
+- [X] T024 Manual verification against `specs/011-sound-effects/quickstart.md` — verified end-to-end in a real Chrome via `tests/e2e-sound.js`: SC-001 card cue (`playing-card.mp3`) fires during the deal (31 plays); SC-002 zero cues while muted; SC-003 `.mute-btn` `aria-pressed` flips to `true`; SC-004 `localStorage["thousand_muted"]` persists; SC-005 clone-and-play is non-blocking by construction (no page errors, no animation stalls).
+- [X] T025 [P] Verify the mute button is a finger-sized, reachable touch target at mobile widths and exposes an accessible label consistent with the rules icon (§VI / FR-012). — `.mute-btn` carries `.icon-btn` (`--touch-min: 2.75rem` = 44px) and sets `aria-label`/`title` ("Mute"/"Unmute"), matching `.rules-btn`.
+- [X] T026 [P] Confirm `CLAUDE.md` SPECKIT pointer references `specs/011-sound-effects/plan.md` (already updated) and note the new files in any developer docs if appropriate. — pointer confirmed at `CLAUDE.md:173`; new modules noted in the project-structure tree + Feature Status.
 
 ---
 

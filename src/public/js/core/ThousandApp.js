@@ -1,4 +1,5 @@
 import { IdentityStore } from '../storage/IdentityStore.js';
+import { MutePreferenceStore } from '../storage/MutePreferenceStore.js';
 import { TabSync } from '../storage/TabSync.js';
 import { ReconnectOverlay } from '../overlays/ReconnectOverlay.js';
 import HtmlContainer from '../antlion/HtmlContainer.js';
@@ -13,6 +14,7 @@ import NewGameModal from '../overlays/NewGameModal.js';
 import RulesModal from '../overlays/RulesModal.js';
 import GameScreen from '../thousand/GameScreen.js';
 import SoundManager from '../thousand/SoundManager.js';
+import MuteButton from '../thousand/MuteButton.js';
 import RoundActionDispatcher from '../thousand/RoundActionDispatcher.js';
 import ThousandMessageRouter from './ThousandMessageRouter.js';
 import LobbyBinder from './LobbyBinder.js';
@@ -69,9 +71,9 @@ class ThousandApp {
     this._dispatcher = new RoundActionDispatcher(this._socket);
     this._gameScreen = new GameScreen(this._antlion, this._roundScreenEl, this._dispatcher);
 
-    // Consumes engine sound:* events. The store/mute-button wiring is added by
-    // later user stories; default behaviour is unmuted.
-    this._soundManager = new SoundManager(this._antlion);
+    // Consumes engine sound:* events. The store seeds the remembered mute
+    // preference (default unmuted) and records changes from the mute button.
+    this._soundManager = new SoundManager(this._antlion, { store: new MutePreferenceStore() });
 
     this._reconnectOverlay = new ReconnectOverlay($('reconnect-overlay'));
 
@@ -128,6 +130,10 @@ class ThousandApp {
     this._modal.bind();
     this._rulesModal = new RulesModal(this._antlion);
     this._rulesModal.bind();
+    // The scoreboard chrome (built in GameScreen's constructor) already carries
+    // every .mute-btn by now, so bind it the same way as the rules modal.
+    this._muteButton = new MuteButton(this._antlion, this._soundManager);
+    this._muteButton.bind();
     this._lobbyBinder.bind();
     this._bindLeaveGame();
     this._bindAddBot();

@@ -47,8 +47,10 @@ class ScoreboardPanel {
     const controls = document.createElement('div');
     controls.className = 'scoreboard__controls';
 
-    // Rules icon sits to the left of the collapse toggle. The shared RulesModal
-    // (bound at app startup, after this chrome is built) wires every .rules-btn.
+    // Mute + rules icons sit to the left of the collapse toggle. The shared
+    // MuteButton / RulesModal controllers (bound at app startup, after this
+    // chrome is built) wire every .mute-btn / .rules-btn.
+    const muteBtn = this._buildMuteBtn();
     const rulesBtn = this._buildRulesBtn();
 
     this._toggleBtn = document.createElement('button');
@@ -58,7 +60,7 @@ class ScoreboardPanel {
     this._toggleBtn.setAttribute('aria-expanded', String(this._open));
     this._antlion.bindInput(this._toggleBtn, 'click', 'scoreboard-toggle');
 
-    controls.append(rulesBtn, this._toggleBtn);
+    controls.append(muteBtn, rulesBtn, this._toggleBtn);
     header.append(title, controls);
 
     this._bodyEl = document.createElement('div');
@@ -79,6 +81,17 @@ class ScoreboardPanel {
       + '<circle cx="12" cy="12" r="10"/>'
       + '<line x1="12" y1="8" x2="12" y2="12"/>'
       + '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    return btn;
+  }
+
+  // Empty shell next to the rules icon. The shared MuteButton controller fills
+  // in the icon / aria-pressed / title to match the current mute state on bind.
+  _buildMuteBtn() {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'icon-btn mute-btn scoreboard__mute';
+    btn.setAttribute('aria-label', 'Mute');
+    btn.title = 'Mute';
     return btn;
   }
 

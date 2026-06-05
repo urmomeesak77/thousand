@@ -1397,6 +1397,19 @@
   color: inherit;
 }
 
+/* Mute toggle sits beside the rules icon. Reuses .icon-btn for the
+   touch-friendly target (§VI / FR-012); the muted state is dimmed so the
+   on/off distinction is visible at a glance. */
+.scoreboard__mute {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.mute-btn[aria-pressed="true"] {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
 .scoreboard__toggle {
   min-width: 1.75rem;
   min-height: 1.75rem;

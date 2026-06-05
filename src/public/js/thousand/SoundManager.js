@@ -5,7 +5,7 @@
 
 // Cue → asset path (relative to the document's <base href>, served by StaticServer).
 const CUE_FILES = {
-  card: 'sound/playing-card.mp3',
+  card: 'sound/playing-card2.mp3',
   flip: 'sound/flipcard.mp3',
   turn: 'sound/turn.mp3',
 };

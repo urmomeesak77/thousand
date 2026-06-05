@@ -112,4 +112,28 @@ describe('SoundManager', () => {
     const { mgr } = make({ throwOnPlay: true });
     assert.doesNotThrow(() => mgr.play('card'));
   });
+
+  it('starts muted when the store reports a remembered mute preference', () => {
+    const antlion = makeFakeAntlion();
+    const store = { get: () => true, set() {} };
+    const mgr = new dom.window.SoundManager(antlion, {
+      store,
+      audioFactory: makeAudioFactory(),
+    });
+    assert.equal(mgr.isMuted(), true);
+  });
+
+  it('persists the new value via store.set() on toggleMute()', () => {
+    const antlion = makeFakeAntlion();
+    const writes = [];
+    const store = { get: () => false, set: (v) => writes.push(v) };
+    const mgr = new dom.window.SoundManager(antlion, {
+      store,
+      audioFactory: makeAudioFactory(),
+    });
+    mgr.toggleMute();
+    assert.deepEqual(writes, [true]);
+    mgr.toggleMute();
+    assert.deepEqual(writes, [true, false]);
+  });
 });
