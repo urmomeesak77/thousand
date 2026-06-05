@@ -15,9 +15,14 @@ const BARREL_BID_FLOOR = 120;
 // Caps even the boldest bot so it can miss a gambled contract but never runaway-overbid.
 const MAX_TALON_GAMBLE = 30;
 
+// FR-016/FR-017: a declarer must CAPTURE at least its bid to make the contract, so a
+// realistic bot bids below its mean expectation by this margin (mean-bidding ≈ 50% miss).
+// Aggressiveness erodes the margin via the talon gamble. Tuned in the bidding-realism plan.
+const SAFETY_MARGIN = 15;
+
 // Selling: how far below the bid a declarer tolerates before selling, and how far above
 // the bid an opponent needs before buying. Both shrink with aggressiveness.
 const SELL_CUSHION = 30;
 const BUY_MARGIN = 20;
 
-module.exports = { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE, SELL_CUSHION, BUY_MARGIN };
+module.exports = { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE, SAFETY_MARGIN, SELL_CUSHION, BUY_MARGIN };

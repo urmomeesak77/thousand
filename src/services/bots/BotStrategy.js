@@ -6,7 +6,7 @@ const sellEvaluator = require('./sellEvaluator');
 const {
   roundDownToStep, pickCard, estimateMakeable, pickExchangeCard,
 } = require('./botStrategyHelpers');
-const { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE } = require('./botConstants');
+const { MIN_BID, MAX_BID, BID_STEP, BARREL_BID_FLOOR, MAX_TALON_GAMBLE, SAFETY_MARGIN } = require('./botConstants');
 
 // Maps the bot's current obligation in authoritative round state to a single legal
 // action (a Bot Decision, see data-model.md). Every action it returns is validated
@@ -40,9 +40,10 @@ class BotStrategy {
   // talon gamble, rounded to the bid step and clamped to [floor, MAX_BID]. A cautious
   // bot whose target is below the floor passes — unless it is the forced last bidder.
   static decideBid(hand, aggressiveness, floor, { forced = false } = {}) {
-    const safe = estimateMakeable(hand).value;
+    const expected = estimateMakeable(hand).value;
     const gamble = Math.round(aggressiveness * MAX_TALON_GAMBLE);
-    const target = roundDownToStep(safe + gamble, BID_STEP);
+    // Bid below the mean expectation by a safety margin; aggressiveness erodes it.
+    const target = roundDownToStep(expected - SAFETY_MARGIN + gamble, BID_STEP);
     if (target >= floor) {
       return { kind: 'bid', amount: Math.min(target, MAX_BID) };
     }

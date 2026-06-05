@@ -18,7 +18,9 @@ function handObjs(cards) {
 
 // per FR-016, FR-017, SC-007 — bidding scales with aggressiveness within a bound.
 describe('BotStrategy.decideBid', () => {
-  const marriageHand = handObjs([['K', 'C'], ['Q', 'C'], ['A', 'S'], ['J', 'H']]);
+  // Strong enough that even a cautious bot bids above the 100 floor, so the
+  // monotonic/bound assertions exercise real bid amounts (not a pass).
+  const marriageHand = handObjs([['K', 'C'], ['Q', 'C'], ['10', 'C'], ['A', 'S'], ['A', 'H']]);
 
   it('is monotonic non-decreasing in aggressiveness', () => {
     const floor = 100;
