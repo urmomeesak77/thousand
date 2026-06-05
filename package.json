@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Card Game 1000 — Lobby & Game Creation",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test tests/*.test.js",

@@ -10,12 +10,23 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    strategy:
+      # Run every version even if one fails, so a version-specific break is fully visible.
+      fail-fast: false
+      matrix:
+        # 18 is the project's stated minimum (package.json engines); 20 and 22 are the
+        # active/maintenance LTS lines. Testing the floor + modern lines catches
+        # Node-version-specific API drift (e.g. the test-runner MockTimers signature change).
+        node-version: ['18', '20', '22']
+
+    name: ci (node ${{ matrix.node-version }})
+
     steps:
       - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '18'
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
