@@ -12,19 +12,19 @@ class FourNinesPrompt {
     this._acknowledged = false;
     this._progressEl = null;
     this._ackBtn = null;
+    this._countdownId = null;
+    this._secondsLeft = 0;
 
     this._clickHandler = (e) => {
       if (e.target.dataset.action !== 'acknowledge') { return; }
-      if (this._acknowledged) { return; } // sticky local press — dispatch once
-      this._acknowledged = true;
-      this._dispatcher.sendAcknowledgeFourNines();
-      this._enterWaitingState();
+      this._acknowledge();
     };
     antlion.bindInput(el, 'click', 'four-nines-prompt-click');
     antlion.onInput('four-nines-prompt-click', this._clickHandler);
   }
 
   destroy() {
+    this._cancelCountdown();
     this._antlion.offInput('four-nines-prompt-click', this._clickHandler);
   }
 
@@ -52,11 +52,49 @@ class FourNinesPrompt {
 
     this._ackBtn = document.createElement('button');
     this._ackBtn.className = 'btn';
-    this._ackBtn.textContent = 'Acknowledge';
     this._ackBtn.dataset.action = 'acknowledge';
     card.appendChild(this._ackBtn);
 
     this._el.appendChild(card);
+
+    // Auto-acknowledge after a 5-second countdown so a distracted player can't
+    // stall the round; the button label doubles as the visible timer.
+    this._startCountdown(5);
+  }
+
+  _startCountdown(seconds) {
+    this._cancelCountdown();
+    this._secondsLeft = seconds;
+    this._updateCountdownLabel();
+    this._countdownId = this._antlion.scheduleInterval(1000, () => {
+      this._secondsLeft -= 1;
+      if (this._secondsLeft <= 0) {
+        this._acknowledge();
+        return;
+      }
+      this._updateCountdownLabel();
+    });
+  }
+
+  _updateCountdownLabel() {
+    if (this._ackBtn && !this._acknowledged) {
+      this._ackBtn.textContent = `Acknowledge (${this._secondsLeft})`;
+    }
+  }
+
+  _cancelCountdown() {
+    if (this._countdownId !== null) {
+      this._antlion.cancelInterval(this._countdownId);
+      this._countdownId = null;
+    }
+  }
+
+  _acknowledge() {
+    if (this._acknowledged) { return; } // sticky local press — dispatch once
+    this._acknowledged = true;
+    this._cancelCountdown();
+    this._dispatcher.sendAcknowledgeFourNines();
+    this._enterWaitingState();
   }
 
   // four_nines_ack_progress: surface how many of the three have acknowledged.
@@ -69,6 +107,7 @@ class FourNinesPrompt {
   // was already recorded server-side.
   markAcknowledged() {
     this._acknowledged = true;
+    this._cancelCountdown();
     this._enterWaitingState();
   }
 
@@ -80,6 +119,7 @@ class FourNinesPrompt {
   }
 
   hide() {
+    this._cancelCountdown();
     this._el.replaceChildren();
     this._el.style.display = 'none';
     this._progressEl = null;
