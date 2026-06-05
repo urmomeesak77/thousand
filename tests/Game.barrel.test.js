@@ -818,4 +818,39 @@ describe('RoundActionBroadcaster.computeRoundEnd — barrel non-declarer scoring
     assert.equal(round.roundDeltas[0], -100,
       'declarer on barrel is scored by bid outcome, not frozen to 0');
   });
+
+  // The barrel "gate": you cannot win without bidding, and bidding is the way to win.
+  // These two encode the rule directly and run in milliseconds (no game play-out).
+  it('GATE: a non-declarer on the barrel cannot cross 1000 — wins nothing without bidding', () => {
+    // Seat 1 sits at 990, one made bid from victory, and collects 21 pts as a
+    // non-declarer. Frozen → it stays at 990 and cannot reach 1000 this way.
+    const { round, game } = makeCompletedRound({ 1: { onBarrel: true, barrelRoundsUsed: 0 } });
+    game.cumulativeScores[1] = 990;
+
+    const store = makeStore();
+    const broadcaster = new RoundActionBroadcaster({ store });
+    broadcaster.computeRoundEnd({ players: new Set(['p0', 'p1', 'p2']), session: game }, round);
+
+    assert.equal(game.cumulativeScores[1], 990,
+      'on-barrel non-declarer stays put — collected points do not count');
+    assert.ok(game.cumulativeScores[1] < 1000, 'cannot win without bidding');
+  });
+
+  it('GATE: a declarer on the barrel who makes the contract crosses 1000 — bidding is the way to win', () => {
+    // Seat 0 sits at 920 on the barrel, sweeps all 120 trick points, and makes a
+    // 120 contract → +120 → 1040. The only path across the line, and it works.
+    const { round, game } = makeCompletedRound({ 0: { onBarrel: true, barrelRoundsUsed: 0 } });
+    game.cumulativeScores[0] = 920;
+    round.collectedTricks[0] = round.deck.map((c) => c.id); // all 120 pts
+    round.collectedTricks[1] = [];
+    round.collectedTricks[2] = [];
+    round.currentHighBid = 120;
+
+    const store = makeStore();
+    const broadcaster = new RoundActionBroadcaster({ store });
+    broadcaster.computeRoundEnd({ players: new Set(['p0', 'p1', 'p2']), session: game }, round);
+
+    assert.equal(round.roundDeltas[0], 120, 'made 120-bid scores +120 (declarer is never frozen)');
+    assert.equal(game.cumulativeScores[0], 1040, 'barrel declarer reaches 1040 — victory by bidding');
+  });
 });
