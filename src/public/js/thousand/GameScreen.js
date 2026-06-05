@@ -15,6 +15,7 @@ import RoundReadyScreen from './RoundReadyScreen.js';
 import GameScreenControls from './GameScreenControls.js';
 import SellPhaseView from './SellPhaseView.js';
 import FourNinesPrompt from './FourNinesPrompt.js';
+import MarriageNotice from './MarriageNotice.js';
 import { computeStatusText } from './statusText.js';
 import { formatRoundStats } from './roundStatsText.js';
 
@@ -56,6 +57,11 @@ class GameScreen {
     // Blocking four-nines modal (FR-003). A GameScreen-lifetime singleton, like
     // the scoreboard — its single Antlion input persists across rounds.
     this._fourNinesPrompt = new FourNinesPrompt(this._fourNinesEl, { antlion, dispatcher });
+
+    // Auto-closing notice shown to opponents when someone declares a marriage.
+    // GameScreen-lifetime singleton — its single Antlion input persists across
+    // rounds, just like the four-nines modal above.
+    this._marriageNotice = new MarriageNotice(this._marriageNoticeEl, { antlion });
   }
 
   _buildDom(antlion, container) {
@@ -85,9 +91,14 @@ class GameScreen {
     const scoreboardEl = document.createElement('div');
     const fourNinesEl = document.createElement('div');
     fourNinesEl.style.display = 'none';
-    container.append(statusBarEl, tableEl, this._controlsEl, scoreboardEl, fourNinesEl);
+    const marriageNoticeEl = document.createElement('div');
+    marriageNoticeEl.style.display = 'none';
+    container.append(
+      statusBarEl, tableEl, this._controlsEl, scoreboardEl, fourNinesEl, marriageNoticeEl,
+    );
     this._scoreboard = new ScoreboardPanel(scoreboardEl, antlion);
     this._fourNinesEl = fourNinesEl;
+    this._marriageNoticeEl = marriageNoticeEl;
 
     this._tableEl = tableEl;
     this._leftEl = leftEl;
@@ -579,6 +590,13 @@ class GameScreen {
 
   hideFourNinesPrompt() {
     this._fourNinesPrompt.hide();
+  }
+
+  // Pop an auto-closing notice for opponents when a marriage is declared. The
+  // declarer triggered the action themselves, so they are skipped.
+  notifyMarriageDeclared(msg) {
+    if (this._seats && msg.playerSeat === this._seats.self) { return; }
+    this._marriageNotice.show(msg.playerNickname, msg.suit, msg.bonus);
   }
 
   // FR-018: reflect the mid-round +100 cumulative bump immediately on

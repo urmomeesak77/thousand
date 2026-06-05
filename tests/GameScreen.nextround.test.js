@@ -49,6 +49,7 @@ before(() => {
     'thousand/statusText.js',
     'thousand/ScoreboardPanel.js',
     'thousand/FourNinesPrompt.js',
+    'thousand/MarriageNotice.js',
     'thousand/GameScreen.js',
   ];
   for (const mod of modules) {

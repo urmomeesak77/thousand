@@ -1491,3 +1491,21 @@
   margin-bottom: 1.25rem;
   min-height: 1.1em;
 }
+
+/* ============================================================
+   Marriage-declared notice — non-blocking, auto-closing popup
+   shown to opponents. Reuses .modal-overlay / .modal-card.
+   ============================================================ */
+.marriage-notice {
+  z-index: 250;
+  text-align: center;
+}
+
+.marriage-notice__card {
+  max-width: 22rem;
+}
+
+.marriage-notice__text {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+}

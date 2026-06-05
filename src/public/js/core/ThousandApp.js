@@ -366,6 +366,7 @@ class ThousandApp {
 
   onMarriageDeclared(msg) {
     this._gameScreen.updateStatus(msg.gameStatus);
+    this._gameScreen.notifyMarriageDeclared(msg);
   }
 
   onTrumpChanged(msg) {
