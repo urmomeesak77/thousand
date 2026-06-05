@@ -129,6 +129,7 @@ class RoundActionBroadcaster {
       bonus: marriageResult.bonus,
       trickNumber,
       newTrumpSuit: marriageResult.newTrumpSuit,
+      easterEgg: !!marriageResult.easterEgg,
       gameStatus,
     });
     this._store.sendToPlayer(pid, {
