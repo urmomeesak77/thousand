@@ -1559,7 +1559,15 @@
 }
 
 .history-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-weight: 600;
+}
+
+.history-panel__icon {
+  display: block;
+  flex: none;
 }
 
 .history-panel__toggle {
@@ -1599,7 +1607,13 @@
   font-style: italic;
 }
 
-/* Collapsed: hide the log body, leaving only the compact header handle. */
+/* Collapsed: hide the log body, leaving only the compact header handle.
+   Shrink the shell to fit the icon + toggle so it stops overlapping the
+   bid controls / other bottom UI on narrow screens. */
+.history-panel--collapsed {
+  width: auto;
+}
+
 .history-panel--collapsed .history-panel__body {
   display: none;
 }
@@ -1612,5 +1626,11 @@
 
   .history-panel__scroll {
     height: 9rem;
+  }
+
+  /* On small screens the collapsed handle is icon-only — drop the word so it
+     becomes a compact button instead of a wide bar over the bid controls. */
+  .history-panel--collapsed .history-panel__title-text {
+    display: none;
   }
 }

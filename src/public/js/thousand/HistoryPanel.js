@@ -48,7 +48,16 @@ class HistoryPanel {
 
     const title = document.createElement('span');
     title.className = 'history-panel__title';
-    title.textContent = 'History';
+    title.title = 'History';
+    // List/log glyph (feather "list") + label; the label collapses away on
+    // small screens so the handle shrinks to just the icon (see game.css).
+    title.innerHTML = '<svg class="history-panel__icon" xmlns="http://www.w3.org/2000/svg" '
+      + 'width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+      + 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>'
+      + '<line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>'
+      + '<line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>'
+      + '<span class="history-panel__title-text">History</span>';
 
     this._toggleBtn = document.createElement('button');
     this._toggleBtn.type = 'button';
