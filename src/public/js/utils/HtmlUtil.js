@@ -29,13 +29,17 @@ class HtmlUtil {
     return s.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
   }
 
-  static formatElapsed(seconds) {
+  // The optional t localizes the unit letters (feature 013); without it the
+  // English fallback keeps callers that have no i18n (tests) working.
+  static formatElapsed(seconds, t) {
     if (seconds < 60) {
-      return `${seconds}s`;
+      return t ? t('time.seconds', { count: seconds }) : `${seconds}s`;
     }
     const minutes = Math.floor(seconds / 60);
     const remainder = seconds % 60;
-    return `${minutes}m ${remainder}s`;
+    return t
+      ? t('time.minutesSeconds', { minutes, seconds: remainder })
+      : `${minutes}m ${remainder}s`;
   }
 }
 

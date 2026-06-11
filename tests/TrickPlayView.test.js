@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load TrickPlayView dependencies in dependency order
@@ -108,6 +109,7 @@ function makeTrickPlayView(seats, opts = {}) {
     trickCenterEl,
     getSeatEl: (s) => seatEls[s] ?? null,
     setControlsLocked: (v) => lockCalls.push(v),
+    t: makeT(dom),
   });
   return { view, el, antlion, dispatcher, handView, trickCenterEl, seatEls, lockCalls };
 }
@@ -570,6 +572,7 @@ describe('TrickPlayView — trick resolve holds 2 seconds before collect-flight'
       setControlsLocked: () => {},
       setStatusOverride: (text, ms) => overrideCalls.push({ text, ms }),
       getPlayerNickname: (seat) => (seat === 0 ? 'kashka' : `seat${seat}`),
+      t: makeT(dom),
     });
 
     view.render(makeGameStatus({

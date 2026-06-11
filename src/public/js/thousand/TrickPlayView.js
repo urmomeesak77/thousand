@@ -20,6 +20,7 @@ class TrickPlayView {
     this._setControlsLocked = opts.setControlsLocked ?? (() => {});
     this._setStatusOverride = opts.setStatusOverride ?? (() => {});
     this._getPlayerNickname = opts.getPlayerNickname ?? (() => null);
+    this._t = opts.t;
     this._gameStatus = null;
     this._pendingWinnerSeat = null;
 
@@ -41,7 +42,7 @@ class TrickPlayView {
     this._el.appendChild(this._promptEl);
 
     this._prompt = new MarriageDeclarationPrompt(this._promptEl, {
-      antlion: this._antlion, dispatcher: this._dispatcher,
+      antlion: this._antlion, dispatcher: this._dispatcher, t: this._t,
     });
 
     // Crawl (feature 007): face-down first-trick play for an ace-less declarer.
@@ -60,6 +61,7 @@ class TrickPlayView {
       antlion: this._antlion,
       onCrawl: () => { this._crawlChoice = 'crawl'; this._crawlMode = true; },
       onLeadNormally: () => { this._crawlChoice = 'lead'; this._crawlMode = false; },
+      t: this._t,
     });
 
     this._handClickHandler = (e) => {
@@ -344,7 +346,7 @@ class TrickPlayView {
 
     const nickname = this._getPlayerNickname(winnerSeat);
     if (nickname) {
-      this._setStatusOverride(`${nickname} won the trick`, TRICK_WINNER_HOLD_MS + FLIGHT_MS);
+      this._setStatusOverride(this._t('game.wonTrick', { name: nickname }), TRICK_WINNER_HOLD_MS + FLIGHT_MS);
     }
 
     const holdId = this._antlion.schedule(TRICK_WINNER_HOLD_MS, () => {
@@ -401,7 +403,7 @@ class TrickPlayView {
     const nickname = this._getPlayerNickname(winnerSeat);
     const totalSequenceMs = extraPauseMs + TRICK_WINNER_HOLD_MS + FLIGHT_MS;
     if (nickname) {
-      this._setStatusOverride(`${nickname} won the trick`, totalSequenceMs);
+      this._setStatusOverride(this._t('game.wonTrick', { name: nickname }), totalSequenceMs);
     }
 
     // Hold the three cards in the centre for the hold duration (plus any

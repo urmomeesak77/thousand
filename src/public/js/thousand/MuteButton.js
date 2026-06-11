@@ -13,9 +13,10 @@ const SPEAKER_OFF = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>'
   + '<line x1="17" y1="9" x2="23" y2="15"/>';
 
 class MuteButton {
-  constructor(antlion, soundManager) {
+  constructor(antlion, soundManager, t) {
     this._antlion = antlion;
     this._sound = soundManager;
+    this._t = t;
   }
 
   bind() {
@@ -26,12 +27,14 @@ class MuteButton {
       this._sound.toggleMute();
       this._render();
     });
+    // Refresh the Mute/Unmute tooltip when the language switches live.
+    this._antlion.onInput('language:changed', () => this._render());
     this._render();
   }
 
   _render() {
     const muted = this._sound.isMuted();
-    const title = muted ? 'Unmute' : 'Mute';
+    const title = muted ? this._t('controls.unmute') : this._t('controls.mute');
     document.querySelectorAll('.mute-btn').forEach((el) => {
       el.setAttribute('aria-pressed', String(muted));
       el.setAttribute('aria-label', title);

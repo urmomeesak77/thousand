@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load MarriageDeclarationPrompt (does not exist yet → TDD red)
@@ -57,7 +58,7 @@ function makePrompt() {
     bindInput: () => {},
     onInput: (name, handler) => { capturedHandler = handler; },
   };
-  const prompt = new Ctor(el, { antlion, dispatcher });
+  const prompt = new Ctor(el, { antlion, dispatcher, t: makeT(dom) });
   function simulateClick(btn) {
     capturedHandler({ target: btn });
   }

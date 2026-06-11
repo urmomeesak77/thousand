@@ -4,8 +4,10 @@ const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT, loadI18n } = require('./helpers/loadI18n');
 
 let dom;
+let t;
 
 function makeMockAntlion() {
   const handlers = {};
@@ -25,12 +27,13 @@ function setup(innerWidth = 1024) {
   loadModule(dom, 'thousand/cardSymbols.js');
   loadModule(dom, 'thousand/historyEntryText.js');
   loadModule(dom, 'thousand/HistoryPanel.js');
+  t = makeT(dom, { language: 'en' });
 }
 
 function makePanel() {
   const el = dom.window.document.createElement('div');
   dom.window.document.body.appendChild(el);
-  const panel = new dom.window.HistoryPanel(el, makeMockAntlion());
+  const panel = new dom.window.HistoryPanel(el, makeMockAntlion(), t);
   return { panel, el };
 }
 
@@ -144,5 +147,42 @@ describe('HistoryPanel empty state + scroll (US3)', () => {
     const { panel, el } = makePanel();
     panel.render(sampleLog, null);
     assert.equal(el.querySelectorAll('.history-panel__row').length, 3);
+  });
+});
+
+// US2 (FR-011): entries rendered before a language switch re-word from the
+// retained actionHistory when the language changes — no new server round-trip.
+describe('HistoryPanel — live language switch (FR-011)', () => {
+  // A switchable-language bus: emit fires every onInput handler so i18n's
+  // language:changed reaches the panel's re-render subscriber.
+  function makeBus() {
+    const handlers = {};
+    return {
+      bindInput(el, event, type) {
+        el.addEventListener(event, (e) => (handlers[type] || []).forEach((h) => h(e)));
+      },
+      onInput(type, handler) { (handlers[type] = handlers[type] || []).push(handler); },
+      onTick() {}, schedule() { return 0; }, cancelScheduled() {}, stop() {},
+      emit(type, data) { (handlers[type] || []).forEach((h) => h(data)); },
+    };
+  }
+
+  it('re-renders existing entries in the new language on language:changed', () => {
+    setup();
+    const bus = makeBus();
+    const i18n = loadI18n(dom, { language: 'en', antlion: bus });
+    const el = dom.window.document.createElement('div');
+    dom.window.document.body.appendChild(el);
+    const panel = new dom.window.HistoryPanel(el, bus, (k, p) => i18n.t(k, p));
+
+    panel.render(sampleLog, seats);
+    assert.deepEqual(rowTexts(el), ['Bot-Eve bid 100', 'Cara passed', 'Trick 1 won by Ada']);
+
+    i18n.setLanguage('ru');
+    const ruTexts = rowTexts(el);
+    assert.equal(ruTexts.length, 3, 'same three entries after the switch');
+    assert.ok(ruTexts.every((line) => /[А-Яа-яЁё]/.test(line)), 'all entries re-worded in Russian');
+    assert.ok(ruTexts[0].includes('Bot-Eve') && ruTexts[0].includes('100'),
+      'nickname and amount preserved verbatim (FR-012)');
   });
 });

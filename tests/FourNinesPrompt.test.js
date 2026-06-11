@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -40,7 +41,7 @@ function makePrompt() {
     scheduleInterval: (_delay, cb) => { intervalCb = cb; return 42; },
     cancelInterval: (id) => { intervalCancels.push(id); },
   };
-  const prompt = new Ctor(el, { antlion, dispatcher });
+  const prompt = new Ctor(el, { antlion, dispatcher, t: makeT(dom) });
   const simulateClick = (btn) => capturedHandler({ target: btn });
   const tick = () => intervalCb && intervalCb();
   return { prompt, el, dispatcher, simulateClick, offCalls, tick, intervalCancels };

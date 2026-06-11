@@ -6,11 +6,16 @@ const STORAGE_KEY = 'thousand_scoreboard_open';
 const SMALL_SCREEN_PX = 480;
 
 class ScoreboardPanel {
-  constructor(container, antlion) {
+  constructor(container, antlion, t) {
     this._container = container;
     this._antlion = antlion;
+    this._t = t;
     this._open = this._loadOpenState();
+    // Retained so a language switch re-renders the title + table labels from the
+    // same data without a server round-trip (FR-005).
+    this._lastRender = null;
     antlion.onInput('scoreboard-toggle', () => this._toggle());
+    antlion.onInput('language:changed', () => this._onLanguageChanged());
     this._buildChrome();
   }
 
@@ -42,14 +47,17 @@ class ScoreboardPanel {
 
     const title = document.createElement('span');
     title.className = 'scoreboard__title';
-    title.textContent = 'Scoreboard';
+    title.textContent = this._t('scoreboard.title');
+    this._titleEl = title;
 
     const controls = document.createElement('div');
     controls.className = 'scoreboard__controls';
 
-    // Mute + rules icons sit to the left of the collapse toggle. The shared
-    // MuteButton / RulesModal controllers (bound at app startup, after this
-    // chrome is built) wire every .mute-btn / .rules-btn.
+    // Language + mute + rules icons sit to the left of the collapse toggle.
+    // The shared LanguageButton / MuteButton / RulesModal controllers (bound
+    // at app startup, after this chrome is built) wire every .lang-btn /
+    // .mute-btn / .rules-btn.
+    const langBtn = this._buildLangBtn();
     const muteBtn = this._buildMuteBtn();
     const rulesBtn = this._buildRulesBtn();
 
@@ -60,7 +68,7 @@ class ScoreboardPanel {
     this._toggleBtn.setAttribute('aria-expanded', String(this._open));
     this._antlion.bindInput(this._toggleBtn, 'click', 'scoreboard-toggle');
 
-    controls.append(muteBtn, rulesBtn, this._toggleBtn);
+    controls.append(langBtn, muteBtn, rulesBtn, this._toggleBtn);
     header.append(title, controls);
 
     this._bodyEl = document.createElement('div');
@@ -73,8 +81,9 @@ class ScoreboardPanel {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'icon-btn rules-btn scoreboard__rules';
-    btn.setAttribute('aria-label', 'Game rules');
-    btn.title = 'Game rules';
+    btn.setAttribute('aria-label', this._t('rules.buttonTitle'));
+    btn.title = this._t('rules.buttonTitle');
+    this._rulesBtn = btn;
     btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" '
       + 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
       + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -84,14 +93,23 @@ class ScoreboardPanel {
     return btn;
   }
 
+  // Empty shell next to the mute icon. The shared LanguageButton controller
+  // fills in the target-language face / title / aria-label on bind.
+  _buildLangBtn() {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'icon-btn lang-btn scoreboard__lang';
+    return btn;
+  }
+
   // Empty shell next to the rules icon. The shared MuteButton controller fills
   // in the icon / aria-pressed / title to match the current mute state on bind.
   _buildMuteBtn() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'icon-btn mute-btn scoreboard__mute';
-    btn.setAttribute('aria-label', 'Mute');
-    btn.title = 'Mute';
+    btn.setAttribute('aria-label', this._t('controls.mute'));
+    btn.title = this._t('controls.mute');
     return btn;
   }
 
@@ -127,10 +145,25 @@ class ScoreboardPanel {
     return td;
   }
 
+  // Re-render the title + table labels (TOTAL / R{n}) in the new language from
+  // the data already on screen; no-op before the first render.
+  _onLanguageChanged() {
+    if (this._titleEl) { this._titleEl.textContent = this._t('scoreboard.title'); }
+    if (this._rulesBtn) {
+      this._rulesBtn.title = this._t('rules.buttonTitle');
+      this._rulesBtn.setAttribute('aria-label', this._t('rules.buttonTitle'));
+    }
+    if (this._lastRender) {
+      const { scoreHistory, cumulativeScores, seats } = this._lastRender;
+      this.render(scoreHistory, cumulativeScores, seats);
+    }
+  }
+
   render(scoreHistory, cumulativeScores, seats) {
     if (!seats || !seats.players) {
       return;
     }
+    this._lastRender = { scoreHistory, cumulativeScores, seats };
     const players = this._orderedPlayers(seats);
     this._bodyEl.textContent = '';
 
@@ -170,7 +203,9 @@ class ScoreboardPanel {
     for (const entry of scoreHistory) {
       const rndRow = document.createElement('tr');
       rndRow.className = 'scoreboard__rnd';
-      rndRow.appendChild(this._labelCell(`R${entry.roundNumber}`, 'scoreboard__round-num'));
+      rndRow.appendChild(this._labelCell(
+        this._t('scoreboard.roundAbbrev', { round: entry.roundNumber }), 'scoreboard__round-num',
+      ));
       for (const p of players) {
         rndRow.appendChild(this._valCell(this._formatDelta(entry.perPlayer[p.seat]?.delta ?? 0)));
       }
@@ -183,7 +218,7 @@ class ScoreboardPanel {
     const tfoot = document.createElement('tfoot');
     const tr = document.createElement('tr');
     tr.className = 'scoreboard__total';
-    tr.appendChild(this._labelCell('TOTAL', 'scoreboard__total-label'));
+    tr.appendChild(this._labelCell(this._t('scoreboard.total'), 'scoreboard__total-label'));
     for (const p of players) {
       tr.appendChild(this._valCell(String(cumulativeScores[p.seat] ?? 0)));
     }

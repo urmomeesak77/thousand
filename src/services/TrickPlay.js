@@ -46,10 +46,10 @@ class TrickPlay {
   beginCrawl() {
     if (this.crawlActive) { return { rejected: false }; }
     if (this.trickNumber !== 1 || this.currentTrickLeaderSeat !== this.declarerSeat) {
-      return { rejected: true, reason: 'Crawl is only available on the first lead' };
+      return { rejected: true, reason: 'Crawl is only available on the first lead', code: 'reject.crawlFirstLeadOnly' };
     }
     if (this.currentTrick.length !== 0) {
-      return { rejected: true, reason: 'Crawl is only available before the first lead' };
+      return { rejected: true, reason: 'Crawl is only available before the first lead', code: 'reject.crawlBeforeFirstLead' };
     }
     this.crawlActive = true;
     return { rejected: false };
@@ -61,13 +61,13 @@ class TrickPlay {
   // determination, collection, and the trick-2 advance are not reimplemented.
   commitCrawlCard(hands, seat, cardId) {
     if (!this.crawlActive) {
-      return { rejected: true, reason: 'Crawl is not active' };
+      return { rejected: true, reason: 'Crawl is not active', code: 'reject.crawlNotActive' };
     }
     if (seat !== this.currentTurnSeat) {
-      return { rejected: true, reason: 'Not your turn' };
+      return { rejected: true, reason: 'Not your turn', code: 'reject.notYourTurn' };
     }
     if (!hands[seat].includes(cardId)) {
-      return { rejected: true, reason: 'Card not in hand' };
+      return { rejected: true, reason: 'Card not in hand', code: 'reject.cardNotInHand' };
     }
 
     hands[seat] = hands[seat].filter(id => id !== cardId);
@@ -91,10 +91,10 @@ class TrickPlay {
 
   playCard(hands, seat, cardId, _opts = {}) {
     if (seat !== this.currentTurnSeat) {
-      return { rejected: true, reason: 'Not your turn' };
+      return { rejected: true, reason: 'Not your turn', code: 'reject.notYourTurn' };
     }
     if (!hands[seat].includes(cardId)) {
-      return { rejected: true, reason: 'Card not in hand' };
+      return { rejected: true, reason: 'Card not in hand', code: 'reject.cardNotInHand' };
     }
 
     const followSuitRejection = this._checkFollowSuit(hands, seat, cardId);
@@ -125,14 +125,14 @@ class TrickPlay {
 
     const hasLedSuit = hands[seat].some(id => this.deck[id].suit === ledSuit);
     if (hasLedSuit) {
-      return { rejected: true, reason: 'You must follow suit' };
+      return { rejected: true, reason: 'You must follow suit', code: 'reject.mustFollowSuit' };
     }
 
     // T043: FR-007 trump-priority — out of led suit, must play trump if available
     if (this.currentTrumpSuit !== null) {
       const hasTrump = hands[seat].some(id => this.deck[id].suit === this.currentTrumpSuit);
       if (hasTrump && playedSuit !== this.currentTrumpSuit) {
-        return { rejected: true, reason: 'You must play trump' };
+        return { rejected: true, reason: 'You must play trump', code: 'reject.mustPlayTrump' };
       }
     }
 
@@ -142,32 +142,32 @@ class TrickPlay {
   // T044: FR-010 — declare marriage (must be called before playing the card)
   declareMarriage(hands, seat, cardId) {
     if (this.currentTrick.length !== 0) {
-      return { rejected: true, reason: 'Can only declare marriage when leading' };
+      return { rejected: true, reason: 'Can only declare marriage when leading', code: 'reject.marriageOnlyWhenLeading' };
     }
 
     if (this.trickNumber < MARRIAGE_FIRST_TRICK || this.trickNumber > MARRIAGE_LAST_TRICK) {
-      return { rejected: true, reason: 'Marriage can only be declared on tricks 2 through 6' };
+      return { rejected: true, reason: 'Marriage can only be declared on tricks 2 through 6', code: 'reject.marriageTrickRange' };
     }
 
     if (seat !== this.currentTrickLeaderSeat) {
-      return { rejected: true, reason: 'Can only declare marriage when leading' };
+      return { rejected: true, reason: 'Can only declare marriage when leading', code: 'reject.marriageOnlyWhenLeading' };
     }
 
     const card = this.deck[cardId];
     // An out-of-range cardId would throw on `card.rank` and crash the WS dispatch
     // (this function runs before any in-hand check in the play_card handler).
     if (!card) {
-      return { rejected: true, reason: 'Card not in hand' };
+      return { rejected: true, reason: 'Card not in hand', code: 'reject.cardNotInHand' };
     }
     if (card.rank !== 'K' && card.rank !== 'Q') {
-      return { rejected: true, reason: 'Marriage can only be declared with K or Q' };
+      return { rejected: true, reason: 'Marriage can only be declared with K or Q', code: 'reject.marriageNeedsKQ' };
     }
 
     const suit = card.suit;
     const hasK = hands[seat].some(id => this.deck[id].suit === suit && this.deck[id].rank === 'K');
     const hasQ = hands[seat].some(id => this.deck[id].suit === suit && this.deck[id].rank === 'Q');
     if (!hasK || !hasQ) {
-      return { rejected: true, reason: 'You do not hold both K and Q of that suit' };
+      return { rejected: true, reason: 'You do not hold both K and Q of that suit', code: 'reject.marriageNotHeld' };
     }
 
     const bonus = MARRIAGE_BONUS[suit];

@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load FinalResultsScreen dependencies in dependency order
@@ -47,7 +48,9 @@ function makeFinalResultsScreen(onBackToLobby) {
   doc.body.appendChild(el);
   const cb = onBackToLobby || (() => {});
   const antlion = makeMockAntlion();
-  const screen = new dom.window.FinalResultsScreen(el, { viewerSeat: 0, onBackToLobby: cb, antlion });
+  const screen = new dom.window.FinalResultsScreen(el, {
+    viewerSeat: 0, onBackToLobby: cb, antlion, t: makeT(dom),
+  });
   return { screen, el };
 }
 

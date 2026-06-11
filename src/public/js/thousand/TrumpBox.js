@@ -5,18 +5,19 @@
 const RED_SUITS = new Set(['♥', '♦']);
 
 class TrumpBox {
-  constructor(container) {
+  constructor(container, t) {
+    this._t = t;
     this._el = document.createElement('div');
     this._el.className = 'trump-box hidden';
 
-    const labelEl = document.createElement('span');
-    labelEl.className = 'trump-box__label';
-    labelEl.textContent = 'Trump';
+    this._labelEl = document.createElement('span');
+    this._labelEl.className = 'trump-box__label';
+    this._labelEl.textContent = t('game.trumpLabel');
 
     this._suitEl = document.createElement('span');
     this._suitEl.className = 'trump-box__suit';
 
-    this._el.append(labelEl, this._suitEl);
+    this._el.append(this._labelEl, this._suitEl);
     container.appendChild(this._el);
   }
 
@@ -24,9 +25,11 @@ class TrumpBox {
   // visible: whether the box should be shown for the current round phase.
   render(currentTrumpSuit, visible) {
     this._el.classList.toggle('hidden', !visible);
+    // Re-set the label every render so a live language switch updates it too.
+    this._labelEl.textContent = this._t('game.trumpLabel');
 
     let variant = 'none';
-    let text = 'No trump';
+    let text = this._t('status.noTrump');
     if (currentTrumpSuit) {
       text = currentTrumpSuit;
       variant = RED_SUITS.has(currentTrumpSuit) ? 'red' : 'black';

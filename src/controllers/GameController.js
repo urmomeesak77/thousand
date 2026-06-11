@@ -56,7 +56,11 @@ class GameController {
 
   _admitPlayerToGame(game, gameId, playerId) {
     if (game.status !== 'waiting') {
-      this.store.sendToPlayer(playerId, { type: 'game_join_failed', reason: 'Game is already in progress' });
+      this.store.sendToPlayer(playerId, {
+        type: 'game_join_failed',
+        reason: 'Game is already in progress',
+        code: 'reject.gameInProgress',
+      });
       return;
     }
 

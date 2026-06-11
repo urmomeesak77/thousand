@@ -6,14 +6,14 @@ import BiddingControls from './BiddingControls.js';
 import { MIN_SELL_BID } from './constants.js';
 
 class SellBidControls extends BiddingControls {
-  constructor(container, antlion, dispatcher) {
+  constructor(container, antlion, dispatcher, t) {
     super(container, antlion, {
       containerClass: 'sell-bid-controls',
       defaultBid: MIN_SELL_BID,
       eventPrefix: 'sell-bid',
       onBid: (amount) => dispatcher.sendSellBid(amount),
       onPass: () => dispatcher.sendSellPass(),
-    });
+    }, t);
   }
 
   setActiveState({ isActiveSeller, isEligible }) {

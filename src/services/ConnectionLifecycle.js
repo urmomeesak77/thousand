@@ -128,7 +128,16 @@ class ConnectionLifecycle {
 
       // FR-021 / FR-029: grace expiry mid-round → round_aborted
       game.round.abort();
-      const baseMsg = { type: 'round_aborted', reason: 'player_grace_expired', disconnectedNickname: nickname };
+      // The catalog key + params let the client word this in the viewer's
+      // language; reason stays the stable code, disconnectedNickname the fallback
+      // value (contracts/ws-rejection-codes.md).
+      const baseMsg = {
+        type: 'round_aborted',
+        reason: 'player_grace_expired',
+        code: 'reject.playerGraceExpired',
+        params: { name: nickname },
+        disconnectedNickname: nickname,
+      };
       for (const pid of game.players) {
         if (pid === playerId) {continue;}
         const recipientSeat = game.round.seatByPlayer.get(pid);

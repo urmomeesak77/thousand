@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { loadI18n } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load all GameScreen dependencies in dependency order
@@ -98,7 +99,7 @@ function makeGameScreen() {
 
   const antlion = makeMockAntlion();
   const dispatcher = makeMockDispatcher();
-  return new dom.window.GameScreen(antlion, container, dispatcher);
+  return new dom.window.GameScreen(antlion, container, dispatcher, loadI18n(dom));
 }
 
 // Status factory — default includes roundPoints: null (pre-trick-play).
@@ -118,7 +119,7 @@ function makeStatus(overrides = {}) {
 }
 
 describe('GameScreen — self round-stats row', () => {
-  it('shows "Tricks N, Points MMM" above the hand during trick-play', () => {
+  it('shows "N tricks, M points" above the hand during trick-play', () => {
     const gs = makeGameScreen();
     gs._seats = { self: 0, left: 1, right: 2, players: [
       { seat: 0, playerId: 'p0', nickname: 'Me' },
@@ -140,9 +141,9 @@ describe('GameScreen — self round-stats row', () => {
     const oppLines = [...gs._container.querySelectorAll('.opponent-view__round-stats')];
     assert.equal(oppLines.length, 2, 'both opponents render a stat line');
     const oppText = oppLines.map((el) => el.textContent);
-    assert.ok(oppText.some((t) => t.includes('Tricks 1') && t.includes('Points 12')),
+    assert.ok(oppText.some((t) => t.includes('1 trick') && t.includes('12 points')),
       'left opponent (seat 1) shows its tricks/points');
-    assert.ok(oppText.some((t) => t.includes('Tricks 0') && t.includes('Points 0')),
+    assert.ok(oppText.some((t) => t.includes('0 tricks') && t.includes('0 points')),
       'right opponent (seat 2) shows its tricks/points');
   });
 

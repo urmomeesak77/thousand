@@ -1,9 +1,10 @@
 class FinalResultsScreen {
-  constructor(container, { viewerSeat, onBackToLobby, antlion }) {
+  constructor(container, { viewerSeat, onBackToLobby, antlion, t }) {
     this._container = container;
     this._viewerSeat = viewerSeat;
     this._onBackToLobby = onBackToLobby;
     this._antlion = antlion;
+    this._t = t;
     // Register handler once — button is created later in mount()
     antlion.onInput('final-results-back-click', () => this._onBackToLobby());
   }
@@ -81,8 +82,8 @@ class FinalResultsScreen {
     const labelRow = document.createElement('tr');
     labelRow.className = 'final-results__history-head-row';
     labelRow.appendChild(this._headerCell('#', 'final-results__history-round'));
-    labelRow.appendChild(this._headerCell('Declarer', 'final-results__history-declarer'));
-    labelRow.appendChild(this._headerCell('Bid', 'final-results__history-bid'));
+    labelRow.appendChild(this._headerCell(this._t('results.colDeclarer'), 'final-results__history-declarer'));
+    labelRow.appendChild(this._headerCell(this._t('results.colBid'), 'final-results__history-bid'));
     for (const playerData of players) {
       labelRow.appendChild(this._headerCell(playerData.nickname, 'final-results__history-player'));
     }
@@ -94,8 +95,8 @@ class FinalResultsScreen {
     subRow.appendChild(this._headerCell('', 'final-results__history-declarer'));
     subRow.appendChild(this._headerCell('', 'final-results__history-bid'));
     for (let i = 0; i < players.length; i += 1) {
-      subRow.appendChild(this._headerCell('Round', 'final-results__history-delta'));
-      subRow.appendChild(this._headerCell('Total', 'final-results__history-cumulative'));
+      subRow.appendChild(this._headerCell(this._t('results.colRound'), 'final-results__history-delta'));
+      subRow.appendChild(this._headerCell(this._t('results.colTotal'), 'final-results__history-cumulative'));
     }
 
     thead.appendChild(labelRow);
@@ -142,7 +143,7 @@ class FinalResultsScreen {
       // FR-009: mark the running cumulative that includes the four-nines bonus.
       if (awardSeat != null && Number(seatKey) === awardSeat) {
         cumTd.classList.add('final-results__history-cumulative--four-nines');
-        cumTd.title = `Includes four-nines bonus +${round.fourNinesAward.amount}`;
+        cumTd.title = this._t('results.fourNinesTitle', { amount: round.fourNinesAward.amount });
       }
 
       row.appendChild(deltaTd);
@@ -159,8 +160,10 @@ class FinalResultsScreen {
     // History table = 3 fixed columns (round#, declarer, bid) + 2 per player (delta + cumulative).
     const playerCount = Object.keys(round.perPlayer).length;
     td.colSpan = 3 + 2 * playerCount;
-    const nickname = round.perPlayer[awardSeat]?.nickname ?? 'Player';
-    td.textContent = `Four nines: +${round.fourNinesAward.amount} to ${nickname}`;
+    const nickname = round.perPlayer[awardSeat]?.nickname ?? this._t('game.aPlayer');
+    td.textContent = this._t('results.fourNinesRow', {
+      amount: round.fourNinesAward.amount, name: nickname,
+    });
     tr.appendChild(td);
     return tr;
   }
@@ -168,7 +171,7 @@ class FinalResultsScreen {
   _renderBackButton() {
     const btn = document.createElement('button');
     btn.className = 'final-results__back-btn';
-    btn.textContent = 'Back to Lobby';
+    btn.textContent = this._t('game.backToLobby');
     this._antlion.bindInput(btn, 'click', 'final-results-back-click');
     this._container.appendChild(btn);
   }

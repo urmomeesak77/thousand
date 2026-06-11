@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load SellSelectionControls and HandView into a shared window
@@ -52,7 +53,7 @@ function makeControls(antlion) {
     sendSellSelect(ids) { sent.selects.push(ids); },
     sendSellCancel() { sent.cancels.push(true); },
   };
-  const sc = new dom.window.SellSelectionControls(container, a, dispatcher);
+  const sc = new dom.window.SellSelectionControls(container, a, dispatcher, makeT(dom));
   sc.show(); // make visible so event handlers fire
   return { sc, antlion: a, sent, container };
 }

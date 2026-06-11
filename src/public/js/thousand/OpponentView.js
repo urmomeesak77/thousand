@@ -5,8 +5,9 @@
 import { formatRoundStats } from './roundStatsText.js';
 
 class OpponentView {
-  constructor(container) {
+  constructor(container, t) {
     this._container = container;
+    this._t = t;
     this._container.className = 'opponent-view';
     this._nickname = '';
     this._isBot = false;
@@ -59,7 +60,7 @@ class OpponentView {
     if (this._isBot) {
       const badge = document.createElement('span');
       badge.className = 'bot-badge';
-      badge.textContent = 'BOT';
+      badge.textContent = this._t('game.botBadge');
       nick.appendChild(badge);
     }
     this._container.appendChild(nick);
@@ -71,7 +72,9 @@ class OpponentView {
     if (this._roundPoints != null) {
       const stats = document.createElement('div');
       stats.className = 'opponent-view__round-stats';
-      stats.textContent = formatRoundStats(this._roundTricks, this._roundPoints);
+      stats.textContent = formatRoundStats(this._t, {
+        tricks: this._roundTricks, points: this._roundPoints,
+      });
       this._container.appendChild(stats);
     }
 
@@ -85,7 +88,7 @@ class OpponentView {
     if (this._isDisconnected) {
       const lost = document.createElement('div');
       lost.className = 'opponent-view__disconnected';
-      lost.textContent = 'Connection lost…';
+      lost.textContent = this._t('game.connectionLost');
       this._container.appendChild(lost);
     }
   }

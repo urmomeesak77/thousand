@@ -78,6 +78,8 @@ before(() => {
     path.join(publicDir, 'js', 'i18n', 'catalogs', 'ru.js'),
     path.join(publicDir, 'js', 'i18n', 'LanguagePreferenceStore.js'),
     path.join(publicDir, 'js', 'i18n', 'I18n.js'),
+    path.join(publicDir, 'js', 'i18n', 'PageTranslator.js'),
+    path.join(publicDir, 'js', 'i18n', 'LanguageButton.js'),
     path.join(publicDir, 'js', 'index.js'),
   ];
 

@@ -8,9 +8,10 @@ import HtmlUtil from '../utils/HtmlUtil.js';
 import { MAX_BID, BID_STEP, BARREL_BID_FLOOR } from './constants.js';
 
 class BiddingControls {
-  constructor(container, antlion, config) {
+  constructor(container, antlion, config, t) {
     this._antlion = antlion;
     this._config = config;
+    this._t = t;
     this._smallestLegalBid = config.defaultBid;
     this._barrelFloor = 0;
     this._passHidden = false;
@@ -30,8 +31,8 @@ class BiddingControls {
     this._input.className = 'bid-controls__input';
     this._input.value = String(config.defaultBid);
     this._increaseBtn = HtmlUtil.button(`+${BID_STEP}`, 'bid-controls__step');
-    this._bidBtn = HtmlUtil.button('Bid', 'bid-controls__bid btn');
-    this._passBtn = HtmlUtil.button('Pass', 'bid-controls__pass btn btn--secondary');
+    this._bidBtn = HtmlUtil.button(t('controls.bid'), 'bid-controls__bid btn');
+    this._passBtn = HtmlUtil.button(t('controls.pass'), 'bid-controls__pass btn btn--secondary');
 
     this._el.append(
       this._decreaseBtn, this._input, this._increaseBtn,

@@ -4,22 +4,25 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
+let t;
 
 before(() => {
   dom = new JSDOM('<html><body></body></html>', { runScripts: 'dangerously', url: 'http://localhost' });
   loadModule(dom, 'thousand/roundStatsText.js');
   loadModule(dom, 'thousand/OpponentView.js');
+  t = makeT(dom, { language: 'en' });
 });
 
 function makeView() {
   const el = dom.window.document.createElement('div');
-  return { view: new dom.window.OpponentView(el), el };
+  return { view: new dom.window.OpponentView(el, t), el };
 }
 
 describe('OpponentView — round stats line', () => {
-  it('renders "Tricks N, Points MMM" after setRoundStats', () => {
+  it('renders "N tricks, M points" after setRoundStats', () => {
     const { view, el } = makeView();
     view.setNickname('P1');
     view.setCardCount(3);

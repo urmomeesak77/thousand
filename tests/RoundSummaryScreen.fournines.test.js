@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -32,7 +33,9 @@ function makeScreen() {
   const doc = dom.window.document;
   const el = doc.createElement('div');
   doc.body.appendChild(el);
-  const screen = new dom.window.RoundSummaryScreen(el, { antlion: makeMockAntlion(), onBackToLobby: () => {} });
+  const screen = new dom.window.RoundSummaryScreen(el, {
+    antlion: makeMockAntlion(), onBackToLobby: () => {}, t: makeT(dom),
+  });
   return { screen, el };
 }
 

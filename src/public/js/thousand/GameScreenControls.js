@@ -139,7 +139,9 @@ class GameScreenControls {
     }
     if (!this._bidControls) {
       this._controlsEl.textContent = '';
-      this._bidControls = new BidControls(this._controlsEl, this._antlion, this._dispatcher);
+      this._bidControls = new BidControls(
+        this._controlsEl, this._antlion, this._dispatcher, this._gs._t,
+      );
     }
     this._bidControls.setCurrentHighBid(gameStatus.currentHighBid);
     const viewerSeat = this._gs._seats?.self;
@@ -172,6 +174,7 @@ class GameScreenControls {
         this._declarerControls = new DeclarerDecisionControls(
           this._controlsEl, this._antlion, this._dispatcher,
           () => this._handView.clearTalonHighlight(),
+          this._gs._t,
         );
       }
       this._declarerControls.setMode(this._declarerMode(gameStatus));
@@ -184,7 +187,8 @@ class GameScreenControls {
     if (this._drop('_declarerControls')) {
       this._controlsEl.textContent = '';
     }
-    const declarerNickname = gameStatus.declarer?.nickname ?? 'declarer';
+    const t = this._gs._t;
+    const declarerNickname = gameStatus.declarer?.nickname ?? t('controls.declarerFallback');
     let waitDiv = this._controlsEl.querySelector('.waiting');
     if (!waitDiv) {
       this._controlsEl.textContent = '';
@@ -192,7 +196,7 @@ class GameScreenControls {
       waitDiv.className = 'waiting';
       this._controlsEl.appendChild(waitDiv);
     }
-    waitDiv.textContent = `Waiting for ${declarerNickname}…`;
+    waitDiv.textContent = t('controls.waitingFor', { name: declarerNickname });
   }
 
   _declarerMode(gameStatus) {
@@ -216,21 +220,26 @@ class GameScreenControls {
         this._controlsEl.textContent = '';
         this._handView.setSelectionMode(true);
         this._sellSelectionControls = new SellSelectionControls(
-          this._controlsEl, this._antlion, this._dispatcher,
+          this._controlsEl, this._antlion, this._dispatcher, this._gs._t,
         );
         this._sellSelectionControls.show();
       } else {
         if (this._controlsEl.querySelector('.waiting')) {return;}
         this._controlsEl.textContent = '';
+        const t = this._gs._t;
         const w = document.createElement('div');
         w.className = 'waiting';
-        w.textContent = `Waiting for ${gameStatus.declarer?.nickname ?? 'declarer'} to choose cards…`;
+        w.textContent = t('controls.waitingChooseCards', {
+          name: gameStatus.declarer?.nickname ?? t('controls.declarerFallback'),
+        });
         this._controlsEl.appendChild(w);
       }
     } else if (this._gs._sellSubPhase === 'bidding') {
       if (!this._sellBidControls) {
         this._controlsEl.textContent = '';
-        this._sellBidControls = new SellBidControls(this._controlsEl, this._antlion, this._dispatcher);
+        this._sellBidControls = new SellBidControls(
+          this._controlsEl, this._antlion, this._dispatcher, this._gs._t,
+        );
       }
       this._sellBidControls.setCurrentHighBid(gameStatus.currentHighBid ?? SELL_BID_DEFAULT);
       const viewerSeatSell = this._gs._seats?.self;
@@ -278,6 +287,7 @@ class GameScreenControls {
         dispatcher: this._dispatcher,
         seats: this._buildSeats(gameStatus),
         handView: this._handView,
+        t: this._gs._t,
       });
     }
 
@@ -310,6 +320,7 @@ class GameScreenControls {
         setControlsLocked: (v) => this._gs.setControlsLocked(v),
         setStatusOverride: (text, ms) => this._gs.setStatusOverride(text, ms),
         getPlayerNickname: (s) => this._gs.playerNicknameForSeat(s),
+        t: this._gs._t,
       });
     }
 
@@ -330,6 +341,7 @@ class GameScreenControls {
         viewerSeat: this._gs._seats?.self ?? null,
         onBackToLobby: () => this._gs._onBackToLobby(),
         onContinue: () => this._dispatcher.sendContinueToNextRound(),
+        t: this._gs._t,
       });
       // Restore prior continue-presses so a refresh/reconnect keeps the ticks and
       // a viewer who already pressed stays disabled. Seeds before the first
@@ -358,6 +370,7 @@ class GameScreenControls {
         antlion: this._antlion,
         viewerSeat,
         onBackToLobby: () => this._gs._onBackToLobby(),
+        t: this._gs._t,
       });
     }
 

@@ -1,18 +1,17 @@
 import { SPECIAL_PENALTY } from './constants.js';
 
-const PENALTY_LABELS = {
-  barrel: `Barrel penalty: −${SPECIAL_PENALTY}`,
-  'three-zeros': `Zero-round penalty: −${SPECIAL_PENALTY}`,
+const PENALTY_KEYS = {
+  barrel: 'summary.penaltyBarrel',
+  'three-zeros': 'summary.penaltyZeros',
 };
 
 const AUTO_CONTINUE_SECONDS = 30;
-const CONTINUE_LABEL = 'Continue to Next Round';
-const continueLabelWithCount = (seconds) => `${CONTINUE_LABEL} (${seconds})`;
 
 class RoundSummaryScreen {
-  constructor(el, { antlion, viewerSeat, onBackToLobby, onContinue }) {
+  constructor(el, { antlion, viewerSeat, onBackToLobby, onContinue, t }) {
     this._el = el;
     this._antlion = antlion;
+    this._t = t;
     this._viewerSeat = viewerSeat;
     this._onBackToLobby = onBackToLobby;
     this._onContinue = onContinue;
@@ -83,10 +82,10 @@ class RoundSummaryScreen {
     const indicator = document.createElement('div');
     if (declarerMadeBid) {
       indicator.className = 'round-summary__made-indicator';
-      indicator.textContent = 'Made';
+      indicator.textContent = this._t('summary.made');
     } else {
       indicator.className = 'round-summary__missed-indicator';
-      indicator.textContent = 'Missed';
+      indicator.textContent = this._t('summary.missed');
     }
     this._cardEl.appendChild(indicator);
   }
@@ -97,9 +96,13 @@ class RoundSummaryScreen {
 
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    for (const col of ['Player', 'Tricks', 'Total', 'Delta', 'Cumulative']) {
+    const columnKeys = [
+      'summary.colPlayer', 'summary.colTricks', 'summary.colTotal',
+      'summary.colDelta', 'summary.colCumulative',
+    ];
+    for (const key of columnKeys) {
       const th = document.createElement('th');
-      th.textContent = col;
+      th.textContent = this._t(key);
       headerRow.appendChild(th);
     }
     thead.appendChild(headerRow);
@@ -168,7 +171,7 @@ class RoundSummaryScreen {
     tr.setAttribute('data-seat', data.seat);
     const td = document.createElement('td');
     td.colSpan = 5;
-    td.textContent = `Four nines: +${data.fourNinesBonus}`;
+    td.textContent = this._t('summary.fourNines', { amount: data.fourNinesBonus });
     tr.appendChild(td);
     return tr;
   }
@@ -180,7 +183,9 @@ class RoundSummaryScreen {
       tr.setAttribute('data-seat', data.seat);
       const td = document.createElement('td');
       td.colSpan = 5;
-      td.textContent = PENALTY_LABELS[token] ?? token;
+      td.textContent = PENALTY_KEYS[token]
+        ? this._t(PENALTY_KEYS[token], { amount: SPECIAL_PENALTY })
+        : token;
       tr.appendChild(td);
       return tr;
     });
@@ -189,7 +194,7 @@ class RoundSummaryScreen {
   _renderBackButton() {
     const btn = document.createElement('button');
     btn.className = 'round-summary__back-btn';
-    btn.textContent = 'Back to Lobby';
+    btn.textContent = this._t('game.backToLobby');
     this._buttonTeardowns.push(this._antlion.bindInput(btn, 'click', 'round-summary-back-click'));
     this._cardEl.appendChild(btn);
   }
@@ -200,9 +205,9 @@ class RoundSummaryScreen {
     // Check if this viewer has already pressed continue
     if (this._continuePressedSeats.has(this._viewerSeat)) {
       btn.disabled = true;
-      btn.textContent = CONTINUE_LABEL;
+      btn.textContent = this._t('summary.continue');
     } else {
-      btn.textContent = continueLabelWithCount(this._autoContinueRemaining);
+      btn.textContent = this._continueLabelWithCount();
       this._continueBtn = btn;
       this._startAutoContinue();
     }
@@ -227,8 +232,12 @@ class RoundSummaryScreen {
       return;
     }
     if (this._continueBtn) {
-      this._continueBtn.textContent = continueLabelWithCount(this._autoContinueRemaining);
+      this._continueBtn.textContent = this._continueLabelWithCount();
     }
+  }
+
+  _continueLabelWithCount() {
+    return this._t('summary.continueCountdown', { seconds: this._autoContinueRemaining });
   }
 
   _cancelAutoContinue() {

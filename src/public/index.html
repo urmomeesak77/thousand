@@ -77,14 +77,15 @@
        Reconnect overlay (shown on reload when identity stored)
   ======================================================= -->
   <div class="hidden" id="reconnect-overlay" role="status" aria-live="polite">
-    <p>Reconnecting…</p>
+    <p data-i18n="game.reconnecting">Reconnecting…</p>
   </div>
 
   <!-- ======================================================
        Nickname screen (shown before entering lobby)
   ======================================================= -->
   <section class="screen" id="nickname-screen">
-    <button class="icon-btn rules-btn nickname-rules-btn" aria-label="Game rules" title="Game rules">
+    <button class="icon-btn rules-btn nickname-rules-btn" aria-label="Game rules" title="Game rules"
+      data-i18n-attr="title:rules.buttonTitle,aria-label:rules.buttonTitle">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10"/>
         <line x1="12" y1="8" x2="12" y2="12"/>
@@ -92,20 +93,21 @@
       </svg>
     </button>
     <div class="card">
-      <h1>Thousand</h1>
-      <p class="subtitle">Card Game for 3–4 players</p>
+      <h1 data-i18n="nickname.title">Thousand</h1>
+      <p class="subtitle" data-i18n="nickname.subtitle">Card Game for 3–4 players</p>
       <form id="nickname-form">
-        <label for="nickname-input">Choose a nickname</label>
+        <label for="nickname-input" data-i18n="nickname.label">Choose a nickname</label>
         <input
           id="nickname-input"
           type="text"
           minlength="3"
           maxlength="20"
           placeholder="e.g. Alice"
+          data-i18n-attr="placeholder:nickname.placeholder"
           autocomplete="off"
           required
         />
-        <button type="submit" class="btn btn-primary">Enter Lobby</button>
+        <button type="submit" class="btn btn-primary" data-i18n="nickname.enterLobby">Enter Lobby</button>
       </form>
     </div>
   </section>
@@ -115,16 +117,19 @@
   ======================================================= -->
   <section class="screen hidden" id="lobby-screen">
     <header class="lobby-header">
-      <h2>Welcome to Thousand, <span id="player-name-display"></span></h2>
+      <h2><span data-i18n="lobby.welcome">Welcome to Thousand,</span> <span id="player-name-display"></span></h2>
       <div class="lobby-header-actions">
-        <button class="icon-btn rules-btn" id="rules-btn" aria-label="Game rules" title="Game rules">
+        <button class="icon-btn lang-btn" id="lang-btn" type="button"></button>
+        <button class="icon-btn rules-btn" id="rules-btn" aria-label="Game rules" title="Game rules"
+          data-i18n-attr="title:rules.buttonTitle,aria-label:rules.buttonTitle">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
         </button>
-        <button class="icon-btn" id="logout-btn" aria-label="Log out" title="Log out">
+        <button class="icon-btn" id="logout-btn" aria-label="Log out" title="Log out"
+          data-i18n-attr="title:lobby.logoutTitle,aria-label:lobby.logoutTitle">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
@@ -136,22 +141,23 @@
 
     <div class="lobby-actions">
       <div class="game-list-section">
-        <h3>Open Games</h3>
-        <ul id="game-list" aria-label="Available games"></ul>
-        <p id="empty-state" class="empty-state hidden">No open games yet. Create one!</p>
+        <h3 data-i18n="lobby.openGames">Open Games</h3>
+        <ul id="game-list" aria-label="Available games" data-i18n-attr="aria-label:lobby.gamesAria"></ul>
+        <p id="empty-state" class="empty-state hidden" data-i18n="lobby.emptyState">No open games yet. Create one!</p>
       </div>
-      <button class="btn btn-primary" id="join-selected-btn" disabled>Join Selected Game</button>
+      <button class="btn btn-primary" id="join-selected-btn" disabled data-i18n="lobby.joinSelected">Join Selected Game</button>
       <div class="join-invite-row">
         <input
           id="invite-code-input"
           type="text"
           maxlength="6"
           placeholder="Invite code (e.g. A3FX9C)"
+          data-i18n-attr="placeholder:lobby.invitePlaceholder"
           autocomplete="off"
         />
-        <button class="btn btn-secondary" id="join-invite-btn" disabled>Join with Code</button>
+        <button class="btn btn-secondary" id="join-invite-btn" disabled data-i18n="lobby.joinWithCode">Join with Code</button>
       </div>
-      <button class="btn btn-secondary" id="new-game-btn">+ New Game</button>
+      <button class="btn btn-secondary" id="new-game-btn" data-i18n="lobby.newGame">+ New Game</button>
     </div>
   </section>
 
@@ -160,20 +166,21 @@
   ======================================================= -->
   <section class="screen hidden" id="game-screen">
     <div class="card">
-      <h2>Waiting Room</h2>
+      <h2 data-i18n="waiting.title">Waiting Room</h2>
       <p class="game-id" id="game-id-display"></p>
       <div class="invite-display hidden" id="invite-display">
-        <p>Share this invite code with friends:</p>
+        <p data-i18n="waiting.shareInvite">Share this invite code with friends:</p>
         <div class="invite-code-box">
           <span class="invite-code" id="invite-code-value"></span>
-          <button class="btn btn-sm" id="copy-invite-btn" aria-label="Copy invite code">Copy</button>
+          <button class="btn btn-sm" id="copy-invite-btn" aria-label="Copy invite code"
+            data-i18n="waiting.copy" data-i18n-attr="aria-label:waiting.copyAria">Copy</button>
         </div>
       </div>
-      <ul class="player-list" id="player-list" aria-label="Players in game"></ul>
-      <p class="waiting-hint">Waiting for players…</p>
-      <p class="waiting-elapsed">Waiting for <span id="waiting-elapsed">0s</span></p>
-      <button class="btn btn-sm hidden" id="add-bot-btn">+ Add Bot</button>
-      <button class="btn btn-ghost btn-sm" id="leave-game-btn">Leave Game</button>
+      <ul class="player-list" id="player-list" aria-label="Players in game" data-i18n-attr="aria-label:waiting.playersAria"></ul>
+      <p class="waiting-hint" data-i18n="waiting.hint">Waiting for players…</p>
+      <p class="waiting-elapsed"><span data-i18n="waiting.elapsedLabel">Waiting for</span> <span id="waiting-elapsed">0s</span></p>
+      <button class="btn btn-sm hidden" id="add-bot-btn" data-i18n="waiting.addBot">+ Add Bot</button>
+      <button class="btn btn-ghost btn-sm" id="leave-game-btn" data-i18n="waiting.leaveGame">Leave Game</button>
     </div>
   </section>
 
@@ -184,33 +191,33 @@
   ======================================================= -->
   <div id="new-game-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card">
-      <h2 id="modal-title">Create a New Game</h2>
+      <h2 id="modal-title" data-i18n="lobby.newGameTitle">Create a New Game</h2>
       <form id="new-game-form">
         <fieldset>
-          <legend>Game type</legend>
+          <legend data-i18n="lobby.gameType">Game type</legend>
           <label class="radio-label">
             <input type="radio" name="game-type" value="public" checked />
-            Public — anyone can join from the lobby
+            <span data-i18n="lobby.publicGame">Public — anyone can join from the lobby</span>
           </label>
           <label class="radio-label">
             <input type="radio" name="game-type" value="private" />
-            Private — invite only
+            <span data-i18n="lobby.privateGame">Private — invite only</span>
           </label>
         </fieldset>
         <fieldset>
-          <legend>Players</legend>
+          <legend data-i18n="lobby.playersLegend">Players</legend>
           <label class="radio-label">
             <input type="radio" name="player-count" value="3" checked />
-            3 players
+            <span data-i18n="lobby.threePlayers">3 players</span>
           </label>
           <label class="radio-label">
             <input type="radio" name="player-count" value="4" />
-            4 players
+            <span data-i18n="lobby.fourPlayers">4 players</span>
           </label>
         </fieldset>
         <div class="modal-actions">
-          <button type="submit" class="btn btn-primary">Create Game</button>
-          <button class="btn btn-ghost" id="modal-cancel-btn" type="button">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="lobby.createGame">Create Game</button>
+          <button class="btn btn-ghost" id="modal-cancel-btn" type="button" data-i18n="lobby.cancel">Cancel</button>
         </div>
       </form>
     </div>
@@ -221,50 +228,50 @@
   ======================================================= -->
   <div id="rules-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
     <div class="modal-card rules-card">
-      <h2 id="rules-modal-title">How to Play Thousand</h2>
+      <h2 id="rules-modal-title" data-i18n="rules.title">How to Play Thousand</h2>
       <div class="rules-body">
-        <h3>Goal</h3>
-        <p>Be the first player to reach <strong>1000 points</strong>.</p>
+        <h3 data-i18n="rules.goalHeading">Goal</h3>
+        <p data-i18n="rules.goalBody">Be the first player to reach <strong>1000 points</strong>.</p>
 
-        <h3>Bidding</h3>
-        <p>Players bid the number of points they expect to score, from <strong>100 to 300</strong> in steps of 5. The highest bidder becomes the <em>declarer</em> and takes the face-down talon cards.</p>
+        <h3 data-i18n="rules.biddingHeading">Bidding</h3>
+        <p data-i18n="rules.biddingBody">Players bid the number of points they expect to score, from <strong>100 to 300</strong> in steps of 5. The highest bidder becomes the <em>declarer</em> and takes the face-down talon cards.</p>
 
-        <h3>Selling</h3>
-        <p>If the declarer can't or won't keep the contract, the hand may be sold to another player (minimum 105, up to 3 attempts).</p>
+        <h3 data-i18n="rules.sellingHeading">Selling</h3>
+        <p data-i18n="rules.sellingBody">If the declarer can't or won't keep the contract, the hand may be sold to another player (minimum 105, up to 3 attempts).</p>
 
-        <h3>Card values</h3>
+        <h3 data-i18n="rules.cardValuesHeading">Card values</h3>
         <ul>
-          <li>Ace — 11</li>
-          <li>Ten — 10</li>
-          <li>King — 4</li>
-          <li>Queen — 3</li>
-          <li>Jack — 2</li>
-          <li>Nine — 0</li>
+          <li data-i18n="rules.valueAce">Ace — 11</li>
+          <li data-i18n="rules.valueTen">Ten — 10</li>
+          <li data-i18n="rules.valueKing">King — 4</li>
+          <li data-i18n="rules.valueQueen">Queen — 3</li>
+          <li data-i18n="rules.valueJack">Jack — 2</li>
+          <li data-i18n="rules.valueNine">Nine — 0</li>
         </ul>
 
-        <h3>Trick ranking (high to low)</h3>
-        <p>Ace, Ten, King, Queen, Jack, Nine. The Ten beats the King and Queen; the Ace is highest.</p>
+        <h3 data-i18n="rules.rankingHeading">Trick ranking (high to low)</h3>
+        <p data-i18n="rules.rankingBody">Ace, Ten, King, Queen, Jack, Nine. The Ten beats the King and Queen; the Ace is highest.</p>
 
-        <h3>Marriages</h3>
-        <p>A King + Queen of the same suit, declared on your lead, sets the trump suit and scores a bonus: ♣ 100, ♠ 80, ♥ 60, ♦ 40.</p>
+        <h3 data-i18n="rules.marriagesHeading">Marriages</h3>
+        <p data-i18n="rules.marriagesBody">A King + Queen of the same suit, declared on your lead, sets the trump suit and scores a bonus: ♣ 100, ♠ 80, ♥ 60, ♦ 40.</p>
 
-        <h3>Trick play</h3>
-        <p>Follow the led suit if you can. If you can't follow, play a trump if you have one. The highest card wins the trick — trumps beat all plain suits.</p>
+        <h3 data-i18n="rules.trickPlayHeading">Trick play</h3>
+        <p data-i18n="rules.trickPlayBody">Follow the led suit if you can. If you can't follow, play a trump if you have one. The highest card wins the trick — trumps beat all plain suits.</p>
 
-        <h3>Scoring</h3>
-        <p>The declarer scores <strong>+bid</strong> if they make their contract and <strong>−bid</strong> if they miss it. Everyone else scores the points in the tricks they captured, rounded to the nearest 10.</p>
+        <h3 data-i18n="rules.scoringHeading">Scoring</h3>
+        <p data-i18n="rules.scoringBody">The declarer scores <strong>+bid</strong> if they make their contract and <strong>−bid</strong> if they miss it. Everyone else scores the points in the tricks they captured, rounded to the nearest 10.</p>
 
-        <h3>On the barrel</h3>
-        <p>Once your score reaches 880 (and is still under 1000) you are "on the barrel". If you fail to climb past 1000 within <strong>3 rounds</strong> on the barrel, you are penalised <strong>−120</strong> and drop back down.</p>
+        <h3 data-i18n="rules.barrelHeading">On the barrel</h3>
+        <p data-i18n="rules.barrelBody">Once your score reaches 880 (and is still under 1000) you are "on the barrel". If you fail to climb past 1000 within <strong>3 rounds</strong> on the barrel, you are penalised <strong>−120</strong> and drop back down.</p>
 
-        <h3>Four nines</h3>
-        <p>If you are dealt all <strong>four nines</strong> in your hand, you immediately score a <strong>+100</strong> bonus for that round.</p>
+        <h3 data-i18n="rules.fourNinesHeading">Four nines</h3>
+        <p data-i18n="rules.fourNinesBody">If you are dealt all <strong>four nines</strong> in your hand, you immediately score a <strong>+100</strong> bonus for that round.</p>
 
-        <h3>Three zeros</h3>
-        <p>Scoring <strong>zero three rounds in a row</strong> costs you <strong>−120</strong>.</p>
+        <h3 data-i18n="rules.threeZerosHeading">Three zeros</h3>
+        <p data-i18n="rules.threeZerosBody">Scoring <strong>zero three rounds in a row</strong> costs you <strong>−120</strong>.</p>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="rules-close-btn" type="button">Close</button>
+        <button class="btn btn-primary" id="rules-close-btn" type="button" data-i18n="rules.close">Close</button>
       </div>
     </div>
   </div>
@@ -274,11 +281,11 @@
   ======================================================= -->
   <div id="leave-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="leave-modal-title">
     <div class="modal-card">
-      <h2 id="leave-modal-title">Leave this game?</h2>
-      <p class="modal-body-text">You'll be taken back to the lobby.</p>
+      <h2 id="leave-modal-title" data-i18n="game.leaveTitle">Leave this game?</h2>
+      <p class="modal-body-text" data-i18n="game.leaveBody">You'll be taken back to the lobby.</p>
       <div class="modal-actions">
-        <button class="btn btn-accent" id="leave-confirm-btn">Leave</button>
-        <button class="btn btn-ghost" id="leave-cancel-btn">Stay</button>
+        <button class="btn btn-accent" id="leave-confirm-btn" data-i18n="game.leaveConfirm">Leave</button>
+        <button class="btn btn-ghost" id="leave-cancel-btn" data-i18n="game.leaveCancel">Stay</button>
       </div>
     </div>
   </div>
@@ -288,11 +295,11 @@
   ======================================================= -->
   <div id="logout-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="logout-modal-title">
     <div class="modal-card">
-      <h2 id="logout-modal-title">Log out?</h2>
-      <p class="modal-body-text">You'll be returned to the login screen.</p>
+      <h2 id="logout-modal-title" data-i18n="lobby.logoutConfirmTitle">Log out?</h2>
+      <p class="modal-body-text" data-i18n="lobby.logoutBody">You'll be returned to the login screen.</p>
       <div class="modal-actions">
-        <button class="btn btn-accent" id="logout-confirm-btn">Log out</button>
-        <button class="btn btn-ghost" id="logout-cancel-btn">Cancel</button>
+        <button class="btn btn-accent" id="logout-confirm-btn" data-i18n="lobby.logoutConfirm">Log out</button>
+        <button class="btn btn-ghost" id="logout-cancel-btn" data-i18n="lobby.logoutCancel">Cancel</button>
       </div>
     </div>
   </div>

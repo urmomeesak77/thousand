@@ -2,9 +2,10 @@ import HtmlGameObject from '../antlion/HtmlGameObject.js';
 import HtmlUtil from '../utils/HtmlUtil.js';
 
 class GameList extends HtmlGameObject {
-  constructor(element) {
+  constructor(element, t) {
     super('game-list', 'ul');
     this._element = element;
+    this._t = t;
     this._isVisible = !element.classList.contains('hidden');
     this._games = [];
     this._elapsedTimerId = null;
@@ -42,10 +43,17 @@ class GameList extends HtmlGameObject {
       }
       li.dataset.createdAt = game.createdAt || '';
       const playerList = (game.players || []).join('\n');
+      const gameLabel = this._t('lobby.gameNumber', { id: HtmlUtil.escape(game.id) });
+      const ownerLabel = this._t('lobby.createdBy', {
+        name: HtmlUtil.escape(game.owner || this._t('lobby.unknownOwner')),
+      });
+      const countLabel = this._t('lobby.playersNeeded', {
+        count: game.playerCount, required: game.requiredPlayers,
+      });
       li.innerHTML = `
-        <span class="game-id-label">Game #${HtmlUtil.escape(game.id)}</span>
-        <span class="game-owner">Created by: ${HtmlUtil.escape(game.owner || 'Unknown')}</span>
-        <span class="game-player-count">${game.playerCount} / ${game.requiredPlayers} needed</span>
+        <span class="game-id-label">${gameLabel}</span>
+        <span class="game-owner">${ownerLabel}</span>
+        <span class="game-player-count">${countLabel}</span>
         <span class="game-waiting-time"></span>
       `;
       li.querySelector('.game-player-count').dataset.players = playerList;
@@ -79,7 +87,7 @@ class GameList extends HtmlGameObject {
       }
       const span = li.querySelector('.game-waiting-time');
       if (span) {
-        span.textContent = HtmlUtil.formatElapsed(Math.floor((now - createdAt) / 1000));
+        span.textContent = HtmlUtil.formatElapsed(Math.floor((now - createdAt) / 1000), this._t);
       }
     }
   }

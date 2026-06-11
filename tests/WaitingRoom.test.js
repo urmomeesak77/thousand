@@ -4,6 +4,7 @@ const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load WaitingRoom + its antlion base classes in dependency order
@@ -41,7 +42,7 @@ beforeEach(() => {
 
 function makeWaitingRoom() {
   const card = dom.window.document.querySelector('.card');
-  return new dom.window.WaitingRoom(card);
+  return new dom.window.WaitingRoom(card, makeT(dom, { language: 'en' }));
 }
 
 function players(n) {

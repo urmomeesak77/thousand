@@ -40,8 +40,19 @@ class RoundActionHandler {
     return game?.round?.seatByPlayer.get(playerId) ?? null;
   }
 
-  _reject(playerId, reason) {
-    this._store.sendToPlayer(playerId, { type: 'action_rejected', reason });
+  // `result` may be a bare reason string (internal callers like "Not in a
+  // round") or a full rejection object carrying { reason, code, params } so the
+  // client can word it in the viewer's language (contracts/ws-rejection-codes.md).
+  _reject(playerId, result) {
+    const msg = { type: 'action_rejected' };
+    if (typeof result === 'string') {
+      msg.reason = result;
+    } else {
+      msg.reason = result.reason;
+      if (result.code) { msg.code = result.code; }
+      if (result.params) { msg.params = result.params; }
+    }
+    this._store.sendToPlayer(playerId, msg);
   }
 
   // Common prelude for every in-round action: rate-limit, game/round lookup,
@@ -77,7 +88,7 @@ class RoundActionHandler {
       return;
     }
     if (result.rejected) {
-      this._reject(playerId, result.reason);
+      this._reject(playerId, result);
       return;
     }
     // Record before broadcasting: the snapshot embeds session.actionHistory, so
@@ -122,7 +133,7 @@ class RoundActionHandler {
       playerId,
       (round, seat) => {
         if (round.phase !== 'bidding') {
-          return { rejected: true, reason: 'Not in bidding phase' };
+          return { rejected: true, reason: 'Not in bidding phase', code: 'reject.notInBiddingPhase' };
         }
         return round.submitPass(seat);
       },

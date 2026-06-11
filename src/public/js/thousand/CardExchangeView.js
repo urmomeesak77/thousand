@@ -1,10 +1,11 @@
 class CardExchangeView {
-  constructor(el, { antlion, dispatcher, seats, handView }) {
+  constructor(el, { antlion, dispatcher, seats, handView, t }) {
     this._el = el;
     this._antlion = antlion;
     this._dispatcher = dispatcher;
     this._seats = seats;
     this._handView = handView;
+    this._t = t;
     this._selectedCardId = null;
     this._exchangePassesCommitted = 0;
     this._exchangePassesToSeats = [];
@@ -99,7 +100,7 @@ class CardExchangeView {
       btn.className = 'card-exchange__dest-btn';
       btn.dataset.seat = seat;
       const player = this._seats.players?.find(p => p.seat === seat);
-      btn.textContent = player?.nickname ?? `Seat ${seat}`;
+      btn.textContent = player?.nickname ?? this._t('history.seatFallback', { seat });
       row.appendChild(btn);
     }
 
@@ -109,7 +110,7 @@ class CardExchangeView {
   _renderWaiting() {
     const div = document.createElement('div');
     div.className = 'card-exchange__waiting';
-    div.textContent = 'Waiting for the declarer to exchange cards…';
+    div.textContent = this._t('game.waitingExchange');
     this._el.appendChild(div);
   }
 

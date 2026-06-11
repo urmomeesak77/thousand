@@ -5,11 +5,12 @@ import HtmlUtil from '../utils/HtmlUtil.js';
 // ============================================================
 
 class NewGameModal {
-  constructor(antlion, getNickname, onCreateGame, onError) {
+  constructor(antlion, getNickname, onCreateGame, onError, t) {
     this._antlion = antlion;
     this._getNickname = getNickname;
     this._onCreateGame = onCreateGame;
     this._onError = onError;
+    this._t = t;
   }
 
   bind() {
@@ -37,12 +38,12 @@ class NewGameModal {
     this._antlion.onInput('new-game-submit', (e) => {
       e.preventDefault();
       if (!this._getNickname()) {
-        this._onError('Enter a nickname first.');
+        this._onError(this._t('toast.enterNicknameFirst'));
         return;
       }
       const checked = document.querySelector('input[name="game-type"]:checked');
       if (!checked) {
-        this._onError('Pick public or private.');
+        this._onError(this._t('toast.pickGameType'));
         return;
       }
       // FR-001: read 3-or-4 from the player-count radio group; default 3 if unset

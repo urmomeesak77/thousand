@@ -1,12 +1,13 @@
 import HtmlContainer from '../antlion/HtmlContainer.js';
 
 class NicknameScreen extends HtmlContainer {
-  constructor(element, api, toast) {
+  constructor(element, api, toast, t) {
     super('nickname-screen');
     this._element = element;
     this._isVisible = !element.classList.contains('hidden');
     this._api = api;
     this._toast = toast;
+    this._t = t;
   }
 
   onCreate() {
@@ -24,7 +25,7 @@ class NicknameScreen extends HtmlContainer {
       return;
     }
     if (nick.length < 3 || nick.length > 20) {
-      this._toast.show('Nickname must be 3–20 characters.');
+      this._toast.show(this._t('nickname.lengthError'));
       return;
     }
     const ok = await this._api.claimNickname(nick);

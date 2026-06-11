@@ -6,9 +6,10 @@ import HtmlUtil from '../utils/HtmlUtil.js';
 import { SELL_SELECTION_SIZE } from './constants.js';
 
 class SellSelectionControls {
-  constructor(container, antlion, dispatcher) {
+  constructor(container, antlion, dispatcher, t) {
     this._antlion = antlion;
     this._dispatcher = dispatcher;
+    this._t = t;
     this._selectedIds = [];
     this._isVisible = false;
     this._teardowns = [];
@@ -20,8 +21,10 @@ class SellSelectionControls {
     this._counter = document.createElement('span');
     this._counter.className = 'sell-selection-controls__counter';
 
-    this._sellBtn = HtmlUtil.button('Sell', 'sell-selection-controls__sell btn');
-    this._cancelBtn = HtmlUtil.button('Cancel', 'sell-selection-controls__cancel btn btn--secondary');
+    this._sellBtn = HtmlUtil.button(t('controls.sell'), 'sell-selection-controls__sell btn');
+    this._cancelBtn = HtmlUtil.button(
+      t('controls.cancel'), 'sell-selection-controls__cancel btn btn--secondary',
+    );
 
     this._el.append(this._counter, this._sellBtn, this._cancelBtn);
     this._updateCounter();
@@ -42,7 +45,9 @@ class SellSelectionControls {
 
   _updateCounter() {
     const n = this._selectedIds.length;
-    this._counter.textContent = `Selected: ${n} / ${SELL_SELECTION_SIZE}`;
+    this._counter.textContent = this._t('controls.selectedCount', {
+      count: n, total: SELL_SELECTION_SIZE,
+    });
     this._sellBtn.disabled = n !== SELL_SELECTION_SIZE;
   }
 

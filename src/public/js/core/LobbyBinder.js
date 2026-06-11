@@ -23,11 +23,11 @@ class LobbyBinder {
     this._antlion.onInput('invite-join-click', () => {
       const code = $('invite-code-input').value.trim().toUpperCase();
       if (!code) {
-        app._toast.show('Enter an invite code.');
+        app._toast.show(app._t('toast.enterInviteCode'));
         return;
       }
       if (!app._nickname) {
-        app._toast.show('Enter a nickname first.');
+        app._toast.show(app._t('toast.enterNicknameFirst'));
         return;
       }
       app._joinWithCode(code);
@@ -40,7 +40,7 @@ class LobbyBinder {
     this._antlion.onInput('copy-invite-click', () => {
       const code = $('invite-code-value').textContent;
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(code).then(() => app._toast.show('Code copied!'));
+        navigator.clipboard.writeText(code).then(() => app._toast.show(app._t('toast.codeCopied')));
         return;
       }
       const ta = document.createElement('textarea');
@@ -49,7 +49,7 @@ class LobbyBinder {
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      app._toast.show('Code copied!');
+      app._toast.show(app._t('toast.codeCopied'));
     });
   }
 

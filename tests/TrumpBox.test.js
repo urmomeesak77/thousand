@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -18,7 +19,7 @@ before(() => {
 
 function mount() {
   const container = dom.window.document.createElement('div');
-  const box = new dom.window.TrumpBox(container);
+  const box = new dom.window.TrumpBox(container, makeT(dom));
   return { container, box };
 }
 

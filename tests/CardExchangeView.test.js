@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load CardExchangeView dependencies in dependency order
@@ -81,7 +82,9 @@ function makeCardExchangeView(overrideSeats) {
   const dispatcher = makeMockDispatcher();
   const handView = makeMockHandView();
   const seats = overrideSeats || SEATS;
-  const view = new dom.window.CardExchangeView(el, { antlion, dispatcher, seats, handView });
+  const view = new dom.window.CardExchangeView(el, {
+    antlion, dispatcher, seats, handView, t: makeT(dom),
+  });
   return { view, el, antlion, dispatcher, handView };
 }
 

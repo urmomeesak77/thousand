@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { loadI18n } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load all GameScreen dependencies in dependency order
@@ -98,7 +99,7 @@ function makeGameScreen() {
 
   const antlion = makeMockAntlion();
   const dispatcher = makeMockDispatcher();
-  return new dom.window.GameScreen(antlion, container, dispatcher);
+  return new dom.window.GameScreen(antlion, container, dispatcher, loadI18n(dom));
 }
 
 function makeStatus(overrides = {}) {
@@ -196,11 +197,11 @@ describe('GameScreen — four-player layout', () => {
       .map((el) => el.textContent);
     // per FR-019 — all THREE opponents render their own seat's stats
     assert.equal(oppText.length, 3, 'three opponents render a stat line');
-    assert.ok(oppText.some((t) => t.includes('Tricks 2') && t.includes('Points 30')),
+    assert.ok(oppText.some((t) => t.includes('2 tricks') && t.includes('30 points')),
       'left opponent (seat 1) stats');
-    assert.ok(oppText.some((t) => t.includes('Tricks 1') && t.includes('Points 18')),
+    assert.ok(oppText.some((t) => t.includes('1 trick') && t.includes('18 points')),
       'across opponent (seat 2) stats');
-    assert.ok(oppText.some((t) => t.includes('Tricks 0') && t.includes('Points 0')),
+    assert.ok(oppText.some((t) => t.includes('0 tricks') && t.includes('0 points')),
       'right opponent (seat 3) stats');
   });
 });

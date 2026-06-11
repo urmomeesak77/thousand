@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -41,7 +42,7 @@ function makeControls({ currentHighBid = undefined, isActiveBidder = true, isEli
     sendBid(amount) { sent.bids.push(amount); },
     sendPass() { sent.passes.push(true); },
   };
-  const bc = new dom.window.BidControls(container, antlion, dispatcher);
+  const bc = new dom.window.BidControls(container, antlion, dispatcher, makeT(dom));
   if (currentHighBid !== undefined) {
     bc.setCurrentHighBid(currentHighBid);
   }

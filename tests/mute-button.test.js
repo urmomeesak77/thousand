@@ -4,6 +4,7 @@ const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -40,7 +41,7 @@ function makeStubSound(initialMuted = false) {
 function setup(initialMuted = false) {
   const antlion = makeFakeAntlion();
   const sound = makeStubSound(initialMuted);
-  const button = new dom.window.MuteButton(antlion, sound);
+  const button = new dom.window.MuteButton(antlion, sound, makeT(dom));
   button.bind();
   return { antlion, sound, button };
 }

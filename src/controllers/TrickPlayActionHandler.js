@@ -13,7 +13,9 @@ class TrickPlayActionHandler {
     this._broadcaster = handler._broadcaster;
     this._gameOf = (playerId) => handler._gameOf(playerId);
     this._seatOf = (playerId) => handler._seatOf(playerId);
-    this._reject = (playerId, reason) => handler._reject(playerId, reason);
+    // Forwards either a bare reason string or a full rejection object
+    // ({ reason, code, params }) — handler._reject understands both.
+    this._reject = (playerId, result) => handler._reject(playerId, result);
   }
 
   handleStartGame(playerId) {
@@ -36,7 +38,7 @@ class TrickPlayActionHandler {
       return;
     }
     if (result.rejected) {
-      this._reject(playerId, result.reason);
+      this._reject(playerId, result);
       return;
     }
     const { declarerId, finalBid } = result;
@@ -67,7 +69,7 @@ class TrickPlayActionHandler {
       return;
     }
     if (result.rejected) {
-      this._reject(playerId, result.reason);
+      this._reject(playerId, result);
       return;
     }
     // FR-002: bank the four-nines bonus before building any view-model so the
@@ -156,7 +158,7 @@ class TrickPlayActionHandler {
     if (declareMarriage) {
       marriageResult = round.declareMarriage(seat, cardId);
       if (marriageResult.rejected) {
-        this._reject(playerId, marriageResult.reason);
+        this._reject(playerId, marriageResult);
         return;
       }
     }
@@ -166,7 +168,7 @@ class TrickPlayActionHandler {
     const result = round.playCard(seat, cardId);
     if (!result || result.noop) { return; }
     if (result.rejected) {
-      this._reject(playerId, result.reason);
+      this._reject(playerId, result);
       return;
     }
     this._recordPlayHistory(game, seat, marriageResult, result, trickNumberAtPlay);
@@ -217,7 +219,7 @@ class TrickPlayActionHandler {
     const result = round.commitCrawlCard(seat, cardId);
     if (!result || result.noop) { return; }
     if (result.rejected) {
-      this._reject(playerId, result.reason);
+      this._reject(playerId, result);
       return;
     }
     // The crawl is always the first trick; log its winner so the trick history

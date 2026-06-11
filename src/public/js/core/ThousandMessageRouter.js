@@ -100,6 +100,7 @@ const MESSAGE_VALIDATORS = {
     && isObj(m.gameStatus)
   ),
   action_rejected: (m) => typeof m.reason === 'string',
+  game_join_failed: (m) => typeof m.reason === 'string',
   round_state_snapshot: (m) => (
     typeof m.phase === 'string'
     && isObj(m.gameStatus)
@@ -121,10 +122,11 @@ class ThousandMessageRouter {
       player_joined:        (m) => this._onPlayerJoined(m),
       player_left:          (m) => this._onPlayerLeft(m),
       game_disbanded:       (m) => this._onGameDisbanded(m),
-      error:                (m) => app._toast.show(m.message || 'An error occurred'),
+      error:                (m) => app._toast.show(m.message || app._t('toast.genericError')),
       round_started:        (m) => this._onRoundStarted(m),
       phase_changed:        (m) => app._gameScreen.updateStatus(m.gameStatus),
       action_rejected:      (m) => this._onActionRejected(m),
+      game_join_failed:     (m) => app._toast.show(this._wordRejection(m)),
       bid_accepted:         (m) => this._onBidAccepted(m),
       pass_accepted:        (m) => this._onPassAccepted(m),
       talon_absorbed:           (m) => app._gameScreen.sellPhase.absorbTalon(m),
@@ -171,11 +173,19 @@ class ThousandMessageRouter {
   // applies it via setHand / mountForPhase.
   _onActionRejected(msg) {
     const app = this._app;
-    app._toast.show(msg.reason);
+    app._toast.show(this._wordRejection(msg));
     app._gameScreen?.revertOptimisticHand();
     if (!NON_RESYNC_REASONS.has(msg.reason)) {
       app._socket?.send({ type: 'request_snapshot' });
     }
+  }
+
+  // Words a server-sent rejection in the viewer's language: i18n.t(code, params)
+  // when the code resolves in the catalog, else the unchanged English reason
+  // (FR-009). t()'s fallback chain handles both — a missing/absent code falls
+  // through to params.fallback (contracts/ws-rejection-codes.md).
+  _wordRejection(msg) {
+    return this._app._t(msg.code, { ...(msg.params || {}), fallback: msg.reason });
   }
 
   _onConnected(msg) {
@@ -225,21 +235,21 @@ class ThousandMessageRouter {
     app._gameList.startElapsedTimer();
     app._toast.show(
       msg.reason === 'waiting_room_timeout'
-        ? 'Waiting room closed — the game wasn\'t started within 10 minutes.'
-        : 'The host left — game was disbanded.'
+        ? app._t('toast.waitingRoomTimeout')
+        : app._t('toast.hostDisbanded')
     );
   }
 
   _onPlayerJoined(msg) {
     const app = this._app;
     app._waitingRoom.updatePlayers(msg.players);
-    app._toast.show(`${msg.player.nickname} joined the game.`);
+    app._toast.show(app._t('toast.playerJoined', { name: msg.player.nickname }));
   }
 
   _onPlayerLeft(msg) {
     const app = this._app;
     app._waitingRoom.updatePlayers(msg.players);
-    app._toast.show(`${msg.nickname || 'A player'} left the game.`);
+    app._toast.show(app._t('toast.playerLeft', { name: msg.nickname || app._t('game.aPlayer') }));
   }
 
   _onRoundStarted(msg) {

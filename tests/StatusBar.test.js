@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -22,7 +23,7 @@ before(() => {
 
 function makeStatusBar() {
   const el = dom.window.document.createElement('div');
-  return new dom.window.StatusBar(el);
+  return new dom.window.StatusBar(el, makeT(dom));
 }
 
 // Full default view-model; override individual fields per test

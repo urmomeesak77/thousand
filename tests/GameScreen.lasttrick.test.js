@@ -11,6 +11,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { loadI18n } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -98,7 +99,7 @@ function makeGameScreen() {
     sendBid() {}, sendPass() {}, sendSellStart() {}, sendStartGame() {},
     sendPlayCard() {}, sendContinueToNextRound() {}, sendRequestSnapshot() {},
   };
-  const gs = new dom.window.GameScreen(antlion, container, dispatcher);
+  const gs = new dom.window.GameScreen(antlion, container, dispatcher, loadI18n(dom));
   gs._seats = {
     self: 0, left: 1, right: 2,
     players: [

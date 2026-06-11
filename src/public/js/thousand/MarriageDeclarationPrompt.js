@@ -11,10 +11,11 @@ class MarriageDeclarationPrompt {
     return false;
   }
 
-  constructor(el, { antlion, dispatcher }) {
+  constructor(el, { antlion, dispatcher, t }) {
     this._el = el;
     this._antlion = antlion;
     this._dispatcher = dispatcher;
+    this._t = t;
     this._cardId = null;
 
     // Why: previously this handler was created anonymously, leaving every
@@ -49,21 +50,21 @@ class MarriageDeclarationPrompt {
     this._el.style.display = 'block';
 
     const info = document.createElement('div');
-    info.textContent = 'Marriage ' + suit + ' (+' + bonus + ')';
+    info.textContent = this._t('game.marriagePromptTitle', { suit, bonus });
     this._el.appendChild(info);
 
     const declareBtn = document.createElement('button');
-    declareBtn.textContent = 'Declare and play';
+    declareBtn.textContent = this._t('controls.declareAndPlay');
     declareBtn.dataset.action = 'declare';
     this._el.appendChild(declareBtn);
 
     const playBtn = document.createElement('button');
-    playBtn.textContent = 'Play without declaring';
+    playBtn.textContent = this._t('controls.playWithoutDeclaring');
     playBtn.dataset.action = 'play';
     this._el.appendChild(playBtn);
 
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = this._t('controls.cancel');
     cancelBtn.dataset.action = 'cancel';
     this._el.appendChild(cancelBtn);
   }

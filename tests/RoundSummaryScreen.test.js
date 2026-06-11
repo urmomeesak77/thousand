@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load RoundSummaryScreen dependencies in dependency order
@@ -61,7 +62,7 @@ function makeRoundSummaryScreen(onBackToLobby) {
   doc.body.appendChild(el);
   const cb = onBackToLobby || (() => {});
   const antlion = makeMockAntlion();
-  const screen = new dom.window.RoundSummaryScreen(el, { antlion, onBackToLobby: cb });
+  const screen = new dom.window.RoundSummaryScreen(el, { antlion, onBackToLobby: cb, t: makeT(dom) });
   return { screen, el };
 }
 
@@ -76,6 +77,7 @@ function makeContinueScreen({ viewerSeat = 0 } = {}) {
     viewerSeat,
     onBackToLobby: () => {},
     onContinue: () => { continueCount++; },
+    t: makeT(dom),
   });
   return { screen, el, antlion, getCount: () => continueCount };
 }

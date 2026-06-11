@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -35,6 +36,7 @@ function makeControls() {
     antlion,
     onCrawl: () => { calls.crawl += 1; },
     onLeadNormally: () => { calls.leadNormally += 1; },
+    t: makeT(dom),
   });
   const simulateClick = (btn) => capturedHandler({ target: btn });
   return { controls, el, calls, simulateClick, offCalls };

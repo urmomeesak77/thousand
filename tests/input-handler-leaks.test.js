@@ -12,6 +12,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -76,22 +77,26 @@ function controlFactories() {
   };
   return {
     BidControls: (antlion) =>
-      new dom.window.BidControls(newContainer(), antlion, makeDispatcher()),
+      new dom.window.BidControls(newContainer(), antlion, makeDispatcher(), makeT(dom)),
     SellBidControls: (antlion) =>
-      new dom.window.SellBidControls(newContainer(), antlion, makeDispatcher()),
+      new dom.window.SellBidControls(newContainer(), antlion, makeDispatcher(), makeT(dom)),
     DeclarerDecisionControls: (antlion) =>
-      new dom.window.DeclarerDecisionControls(newContainer(), antlion, makeDispatcher()),
+      new dom.window.DeclarerDecisionControls(
+        newContainer(), antlion, makeDispatcher(), undefined, makeT(dom),
+      ),
     SellSelectionControls: (antlion) =>
-      new dom.window.SellSelectionControls(newContainer(), antlion, makeDispatcher()),
+      new dom.window.SellSelectionControls(newContainer(), antlion, makeDispatcher(), makeT(dom)),
     RoundSummaryScreen: (antlion) => {
       const s = new dom.window.RoundSummaryScreen(newContainer(), {
-        antlion, viewerSeat: 0, onBackToLobby() {}, onContinue() {},
+        antlion, viewerSeat: 0, onBackToLobby() {}, onContinue() {}, t: makeT(dom),
       });
       s.render(summaryPayload()); // exercises per-render button bindInput
       return s;
     },
     RoundReadyScreen: (antlion) =>
-      new dom.window.RoundReadyScreen(newContainer(), antlion, { mode: 'ready', context: {} }, () => {}),
+      new dom.window.RoundReadyScreen(
+        newContainer(), antlion, { mode: 'ready', context: {}, t: makeT(dom) }, () => {},
+      ),
   };
 }
 

@@ -4,14 +4,18 @@
 
 import { MIN_BID, MAX_SELL_ATTEMPTS } from './constants.js';
 
+const TRICKS_PER_ROUND = 8;
+const BARREL_ROUND_LIMIT = 3;
+
 class StatusBar {
-  constructor(element) {
+  constructor(element, t) {
     // `element` is the sticky flex bar. Its dynamic spans render into an inner
     // `display:contents` wrapper (`this._el`) that render() clears, so a
     // persistent trailing child of the bar (the rules icon, appended by
     // GameScreen) survives re-renders untouched.
     this._bar = element;
     this._bar.className = 'status-bar';
+    this._t = t;
     this._el = document.createElement('div');
     this._el.className = 'status-bar__content';
     this._bar.appendChild(this._el);
@@ -22,17 +26,24 @@ class StatusBar {
   render(gameStatus, sellWinner = null, playerCount = 3) {
     this._playerCount = playerCount;
     this._el.textContent = '';
-    this._el.appendChild(this._span('status-bar__phase', gameStatus.phase));
+    // Server phase labels are stable English identifiers; unknown ones show raw.
+    this._el.appendChild(this._span(
+      'status-bar__phase',
+      this._t(`status.phase.${gameStatus.phase}`, { fallback: gameStatus.phase }),
+    ));
     this._renderRoundNumber(gameStatus.roundNumber);
     this._renderTurn(gameStatus);
     this._renderBidAndDeclarer(gameStatus);
     if (sellWinner) {
-      this._el.appendChild(this._span('status-bar__sell-winner', `Sold to: ${sellWinner}`));
+      this._el.appendChild(this._span(
+        'status-bar__sell-winner', this._t('status.soldTo', { name: sellWinner }),
+      ));
     }
     if (gameStatus.sellAttempt != null) {
-      this._el.appendChild(
-        this._span('status-bar__attempt', `Attempt ${gameStatus.sellAttempt} of ${MAX_SELL_ATTEMPTS}`),
-      );
+      this._el.appendChild(this._span(
+        'status-bar__attempt',
+        this._t('status.attempt', { attempt: gameStatus.sellAttempt, max: MAX_SELL_ATTEMPTS }),
+      ));
     }
     this._renderPassedPlayers(gameStatus.passedPlayers);
     this._renderDisconnected(gameStatus.disconnectedPlayers);
@@ -48,28 +59,34 @@ class StatusBar {
     if (roundNumber == null) {
       return;
     }
-    this._el.appendChild(this._span('status-bar__round-number', `Round ${roundNumber}`));
+    this._el.appendChild(this._span(
+      'status-bar__round-number', this._t('status.round', { round: roundNumber }),
+    ));
   }
 
   _renderTurn({ activePlayer, viewerIsActive }) {
     if (!activePlayer) {
       return;
     }
-    const text = viewerIsActive ? 'Your turn' : `Waiting for ${activePlayer.nickname}…`;
+    const text = viewerIsActive
+      ? this._t('status.yourTurn')
+      : this._t('controls.waitingFor', { name: activePlayer.nickname });
     this._el.appendChild(this._span('status-bar__turn', text));
   }
 
   _renderBidAndDeclarer({ phase, declarer, currentHighBid }) {
     const bid = currentHighBid ?? MIN_BID;
     if (phase === 'Declarer deciding' && declarer) {
-      this._el.appendChild(
-        this._span('status-bar__bid-winner', `Bid won: ${declarer.nickname} (${bid})`),
-      );
+      this._el.appendChild(this._span(
+        'status-bar__bid-winner', this._t('status.bidWon', { name: declarer.nickname, bid }),
+      ));
       return;
     }
-    this._el.appendChild(this._span('status-bar__bid', `Bid: ${bid}`));
+    this._el.appendChild(this._span('status-bar__bid', this._t('status.bid', { bid })));
     if (declarer) {
-      this._el.appendChild(this._span('status-bar__declarer', `Declarer: ${declarer.nickname}`));
+      this._el.appendChild(this._span(
+        'status-bar__declarer', this._t('status.declarer', { name: declarer.nickname }),
+      ));
     }
   }
 
@@ -79,7 +96,7 @@ class StatusBar {
     }
     const row = document.createElement('span');
     row.className = 'status-bar__passed-row';
-    row.appendChild(this._span('status-bar__passed-label', 'Passed:'));
+    row.appendChild(this._span('status-bar__passed-label', this._t('status.passedLabel')));
     for (const nickname of passedPlayers) {
       row.appendChild(this._span('status-bar__passed-chip', nickname));
     }
@@ -91,9 +108,9 @@ class StatusBar {
       return;
     }
     for (const nickname of disconnectedPlayers) {
-      this._el.appendChild(
-        this._span('status-bar__disconnected', `${nickname}: Connection lost…`),
-      );
+      this._el.appendChild(this._span(
+        'status-bar__disconnected', this._t('status.connectionLost', { name: nickname }),
+      ));
     }
   }
 
@@ -101,11 +118,16 @@ class StatusBar {
     if (trickNumber == null) {
       return;
     }
-    this._el.appendChild(this._span('status-bar__trick-number', `Trick ${trickNumber} of 8`));
+    this._el.appendChild(this._span(
+      'status-bar__trick-number',
+      this._t('status.trickNumber', { number: trickNumber, total: TRICKS_PER_ROUND }),
+    ));
   }
 
   _renderTrumpSuit(currentTrumpSuit) {
-    const text = currentTrumpSuit == null ? 'No trump' : `Trump: ${currentTrumpSuit}`;
+    const text = currentTrumpSuit == null
+      ? this._t('status.noTrump')
+      : this._t('status.trump', { suit: currentTrumpSuit });
     this._el.appendChild(this._span('status-bar__trump', text));
   }
 
@@ -115,9 +137,10 @@ class StatusBar {
     }
     // FR-011: total passes = opponents = playerCount - 1 (2 for 3-player, 3 for 4-player)
     const totalPasses = (this._playerCount ?? 3) - 1;
-    this._el.appendChild(
-      this._span('status-bar__exchange-passes', `${exchangePassesCommitted}/${totalPasses} cards passed`),
-    );
+    this._el.appendChild(this._span(
+      'status-bar__exchange-passes',
+      this._t('status.cardsPassed', { count: exchangePassesCommitted, total: totalPasses }),
+    ));
   }
 
   _renderBarrelMarkers(barrelMarkers) {
@@ -133,7 +156,10 @@ class StatusBar {
     for (const seat of seatsOnBarrel) {
       const marker = barrelMarkers[seat];
       const round = marker.barrelRoundsUsed + 1;
-      const barrelSpan = this._span('status-bar__barrel-marker', `On barrel — round ${round} of 3`);
+      const barrelSpan = this._span(
+        'status-bar__barrel-marker',
+        this._t('status.onBarrel', { round, total: BARREL_ROUND_LIMIT }),
+      );
       barrelSpan.dataset.seat = seat;
       div.appendChild(barrelSpan);
     }

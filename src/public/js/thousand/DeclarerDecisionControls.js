@@ -5,7 +5,7 @@
 import HtmlUtil from '../utils/HtmlUtil.js';
 
 class DeclarerDecisionControls {
-  constructor(container, antlion, dispatcher, onDecision = () => {}) {
+  constructor(container, antlion, dispatcher, onDecision = () => {}, t) {
     this._antlion = antlion;
     this._dispatcher = dispatcher;
     this._onDecision = onDecision;
@@ -16,8 +16,8 @@ class DeclarerDecisionControls {
     this._el.className = 'declarer-controls hidden';
     container.appendChild(this._el);
 
-    this._sellBtn = HtmlUtil.button('Sell', 'declarer-controls__sell btn btn--secondary');
-    this._startBtn = HtmlUtil.button('Start the Game', 'declarer-controls__start btn');
+    this._sellBtn = HtmlUtil.button(t('controls.sell'), 'declarer-controls__sell btn btn--secondary');
+    this._startBtn = HtmlUtil.button(t('controls.startGame'), 'declarer-controls__start btn');
 
     this._el.append(this._sellBtn, this._startBtn);
     this._bindEvents();

@@ -8,9 +8,10 @@
 // destroy() can offInput it (no handler leak across rounds). Unlike the four-
 // nines modal this one needs no server ack — it is purely informational.
 class MarriageNotice {
-  constructor(el, { antlion }) {
+  constructor(el, { antlion, t }) {
     this._el = el;
     this._antlion = antlion;
+    this._t = t;
     this._intervalId = null;
     this._remaining = 0;
     this._okBtn = null;
@@ -39,12 +40,14 @@ class MarriageNotice {
     card.className = 'modal-card marriage-notice__card';
 
     const heading = document.createElement('h2');
-    heading.textContent = 'Marriage declared';
+    heading.textContent = this._t('game.marriageDeclaredTitle');
     card.appendChild(heading);
 
     const info = document.createElement('div');
     info.className = 'marriage-notice__text';
-    info.textContent = `${nickname || 'A player'} declared a ${suit} marriage (+${bonus})`;
+    info.textContent = this._t('game.marriageDeclaredText', {
+      name: nickname || this._t('game.aPlayer'), suit, bonus,
+    });
     card.appendChild(info);
 
     this._okBtn = document.createElement('button');
@@ -67,7 +70,7 @@ class MarriageNotice {
 
   _renderButtonLabel() {
     if (this._okBtn) {
-      this._okBtn.textContent = `OK (${this._remaining})`;
+      this._okBtn.textContent = this._t('controls.okCountdown', { seconds: this._remaining });
     }
   }
 

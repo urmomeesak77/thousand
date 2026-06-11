@@ -28,10 +28,13 @@ const ACTIVE_TRUMP_PHASES = new Set([
 ]);
 
 class GameScreen {
-  constructor(antlion, container, dispatcher) {
+  constructor(antlion, container, dispatcher, i18n) {
     this._antlion = antlion;
     this._container = container;
     this._dispatcher = dispatcher;
+    this._i18n = i18n;
+    // Bound translate function handed to sub-views and pure formatters.
+    this._t = (key, params) => i18n.t(key, params);
     this._cardsById = {};
     this._seats = null;
     this._isControlsLocked = false;
@@ -63,12 +66,32 @@ class GameScreen {
 
     // Blocking four-nines modal (FR-003). A GameScreen-lifetime singleton, like
     // the scoreboard — its single Antlion input persists across rounds.
-    this._fourNinesPrompt = new FourNinesPrompt(this._fourNinesEl, { antlion, dispatcher });
+    this._fourNinesPrompt = new FourNinesPrompt(
+      this._fourNinesEl, { antlion, dispatcher, t: this._t },
+    );
 
     // Auto-closing notice shown to opponents when someone declares a marriage.
     // GameScreen-lifetime singleton — its single Antlion input persists across
     // rounds, just like the four-nines modal above.
-    this._marriageNotice = new MarriageNotice(this._marriageNoticeEl, { antlion });
+    this._marriageNotice = new MarriageNotice(this._marriageNoticeEl, { antlion, t: this._t });
+
+    // Live language switch (FR-005): re-render every visible label from retained
+    // state — no round action, no socket, no game-state change.
+    antlion.onInput('language:changed', () => this._onLanguageChanged());
+  }
+
+  // Re-render the in-round UI from already-held state when the language changes.
+  // Status bar / trump box / scoreboard / history / round stats / status box all
+  // refresh via _renderStatus; the phase controls are torn down and re-mounted so
+  // their button labels pick up the new catalog. Skipped while controls are
+  // locked (mid-animation) — the next render after unlock uses the new language.
+  _onLanguageChanged() {
+    if (!this._lastGameStatus) { return; }
+    this._renderStatus(this._lastGameStatus);
+    if (!this._isControlsLocked) {
+      this._controls.tearDownAll();
+      this._controls.mountForPhase(this._lastGameStatus);
+    }
   }
 
   _buildDom(antlion, container) {
@@ -104,8 +127,8 @@ class GameScreen {
     container.append(
       statusBarEl, tableEl, this._controlsEl, scoreboardEl, historyEl, fourNinesEl, marriageNoticeEl,
     );
-    this._scoreboard = new ScoreboardPanel(scoreboardEl, antlion);
-    this._history = new HistoryPanel(historyEl, antlion);
+    this._scoreboard = new ScoreboardPanel(scoreboardEl, antlion, this._t);
+    this._history = new HistoryPanel(historyEl, antlion, this._t);
     this._fourNinesEl = fourNinesEl;
     this._marriageNoticeEl = marriageNoticeEl;
 
@@ -117,17 +140,17 @@ class GameScreen {
     this._selfStatsEl = selfStatsEl;
     this._talonEl = talonEl;
 
-    this._statusBar = new StatusBar(statusBarEl);
-    this._trumpBox = new TrumpBox(trumpBoxEl);
+    this._statusBar = new StatusBar(statusBarEl, this._t);
+    this._trumpBox = new TrumpBox(trumpBoxEl, this._t);
     this._statusBox = new GameStatusBox(statusBoxEl);
     this._cardTable = new CardTable(antlion, tableEl);
     this._handView = new HandView(handEl, antlion);
     // Three opponent views keyed by clockwise position. The 'across' view only
     // maps to a seat in 4-player rooms (seats.across is undefined for 3-player),
     // so it stays empty and hidden otherwise.
-    this._leftOpponent = new OpponentView(leftEl);
-    this._acrossOpponent = new OpponentView(acrossEl);
-    this._rightOpponent = new OpponentView(rightEl);
+    this._leftOpponent = new OpponentView(leftEl, this._t);
+    this._acrossOpponent = new OpponentView(acrossEl, this._t);
+    this._rightOpponent = new OpponentView(rightEl, this._t);
     // Distinguishing hook so game.css can hide/place the 4th seat. Added AFTER
     // OpponentView's constructor (which sets 'opponent-view' on this container,
     // overwriting className) so the class survives; OpponentView only mutates
@@ -391,11 +414,11 @@ class GameScreen {
   }
 
   setBidAction(playerId, amount) {
-    this._setPlayerLastAction(playerId, `bid ${amount}`);
+    this._setPlayerLastAction(playerId, this._t('game.lastActionBid', { amount }));
   }
 
   setPassAction(playerId) {
-    this._setPlayerLastAction(playerId, 'passed');
+    this._setPlayerLastAction(playerId, this._t('game.lastActionPass'));
   }
 
   _setPlayerLastAction(playerId, text) {
@@ -466,7 +489,7 @@ class GameScreen {
     this._roundReadyScreen = new RoundReadyScreen(
       this._container,
       this._antlion,
-      { mode, context },
+      { mode, context, t: this._t },
       () => {
         this._roundReadyScreen?.destroy();
         this._roundReadyScreen = null;
@@ -537,9 +560,10 @@ class GameScreen {
       return;
     }
     const counts = gameStatus.collectedTrickCounts ?? {};
-    this._selfStatsEl.textContent = formatRoundStats(
-      counts[this._seats.self] ?? 0, points[this._seats.self] ?? 0,
-    );
+    this._selfStatsEl.textContent = formatRoundStats(this._t, {
+      tricks: counts[this._seats.self] ?? 0,
+      points: points[this._seats.self] ?? 0,
+    });
     this._selfStatsEl.classList.remove('hidden');
     for (const o of this._opponents()) {
       o.view.setRoundStats(counts[o.seat] ?? 0, points[o.seat] ?? 0);
@@ -566,7 +590,7 @@ class GameScreen {
     }
     this._renderRoundStats(gameStatus);
     if (this._statusOverride) { return; }
-    const { text, isActive } = computeStatusText(gameStatus, {
+    const { text, isActive } = computeStatusText(this._t, gameStatus, {
       viewerIsNewDeclarer: this._viewerIsNewDeclarer,
       sellSubPhase: this._sellSubPhase,
     });

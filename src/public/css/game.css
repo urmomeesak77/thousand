@@ -1415,15 +1415,28 @@
 
 .scoreboard__title {
   font-weight: 600;
+  /* With a 4th icon (language) in the row, let the title yield first on narrow
+     widths rather than pushing the controls off the panel (FR-013). */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .scoreboard__controls {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 .scoreboard__rules {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* Language toggle in the in-game icon row, beside mute/rules (FR-004). */
+.scoreboard__lang {
   flex-shrink: 0;
   color: inherit;
 }

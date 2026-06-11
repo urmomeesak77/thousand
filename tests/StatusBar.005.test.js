@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load StatusBar dependencies in dependency order
@@ -27,7 +28,7 @@ before(() => {
 
 function makeStatusBar() {
   const el = dom.window.document.createElement('div');
-  return new dom.window.StatusBar(el);
+  return new dom.window.StatusBar(el, makeT(dom));
 }
 
 // Full default view-model with both old and new Phase 3 fields

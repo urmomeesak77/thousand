@@ -11,11 +11,12 @@
 // A single named Antlion input is stored so destroy() can offInput it — no
 // handler leak across rounds (mirrors FourNinesPrompt).
 class CrawlControls {
-  constructor(el, { antlion, onCrawl, onLeadNormally }) {
+  constructor(el, { antlion, onCrawl, onLeadNormally, t }) {
     this._el = el;
     this._antlion = antlion;
     this._onCrawl = onCrawl;
     this._onLeadNormally = onLeadNormally;
+    this._t = t;
     this._chosen = false;
 
     this._clickHandler = (e) => {
@@ -42,11 +43,11 @@ class CrawlControls {
 
     const info = document.createElement('div');
     info.className = 'crawl-controls__text';
-    info.textContent = 'You hold no ace — crawl the first trick face-down, or lead normally.';
+    info.textContent = this._t('game.crawlChoice');
     this._el.appendChild(info);
 
-    this._el.appendChild(this._button('Crawl', 'crawl'));
-    this._el.appendChild(this._button('Lead normally', 'lead-normally'));
+    this._el.appendChild(this._button(this._t('controls.crawl'), 'crawl'));
+    this._el.appendChild(this._button(this._t('controls.leadNormally'), 'lead-normally'));
   }
 
   showOpponentPrompt() {
@@ -57,7 +58,7 @@ class CrawlControls {
 
     const info = document.createElement('div');
     info.className = 'crawl-controls__text';
-    info.textContent = 'Commit a card face-down to steal the trick.';
+    info.textContent = this._t('game.crawlCommitPrompt');
     this._el.appendChild(info);
   }
 
@@ -75,7 +76,9 @@ class CrawlControls {
   }
 
   _renderChosen(action) {
-    const label = action === 'crawl' ? 'Crawling — pick a card to commit.' : 'Leading — pick a card to play.';
+    const label = action === 'crawl'
+      ? this._t('game.crawlPickCommit')
+      : this._t('game.crawlPickLead');
     this._el.replaceChildren();
     const info = document.createElement('div');
     info.className = 'crawl-controls__text';

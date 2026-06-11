@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load MarriageNotice (auto-closing opponent notification)
@@ -52,7 +53,7 @@ function makeNotice() {
       if (i !== -1) intervals.splice(i, 1);
     },
   };
-  const notice = new Ctor(el, { antlion });
+  const notice = new Ctor(el, { antlion, t: makeT(dom) });
   function simulateClick(target) { clickHandler({ target }); }
   function tick() { intervals.forEach((t) => t.cb()); }
   function intervalCount() { return intervals.length; }

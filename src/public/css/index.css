@@ -248,8 +248,16 @@ input[type="text"]::placeholder {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   margin-bottom: 1.25rem;
   flex-shrink: 0;
+}
+
+/* The welcome greeting is longer in Russian; let it wrap/yield instead of
+   shoving the action icons (language/rules/logout) off the row (FR-013). */
+.lobby-header h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .lobby-header-actions {
@@ -275,6 +283,17 @@ input[type="text"]::placeholder {
 .icon-btn:hover {
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+/* Language toggle (feature 013): an .icon-btn that shows a 2-letter language
+   abbreviation instead of an SVG glyph. Sized to the same square touch target;
+   the text is centred and weighted so "РУ"/"EN" read clearly at a glance. */
+.lang-btn {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 /* Nickname screen carries a single absolutely-positioned rules icon top-right.

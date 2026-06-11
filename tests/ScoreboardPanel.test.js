@@ -4,6 +4,7 @@ const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { makeT } = require('./helpers/loadI18n');
 
 let dom;
 
@@ -28,7 +29,7 @@ function setup(innerWidth = 1024) {
 function makePanel() {
   const el = dom.window.document.createElement('div');
   dom.window.document.body.appendChild(el);
-  const panel = new dom.window.ScoreboardPanel(el, makeMockAntlion());
+  const panel = new dom.window.ScoreboardPanel(el, makeMockAntlion(), makeT(dom));
   return { panel, el };
 }
 

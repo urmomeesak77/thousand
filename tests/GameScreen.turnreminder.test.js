@@ -4,6 +4,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { loadModule } = require('./helpers/loadModule');
+const { loadI18n } = require('./helpers/loadI18n');
 
 // ---------------------------------------------------------------------------
 // jsdom setup — load all GameScreen dependencies in dependency order
@@ -104,7 +105,7 @@ function makeGameScreen() {
 
   const antlion = makeRecordingAntlion();
   const dispatcher = makeMockDispatcher();
-  const gs = new dom.window.GameScreen(antlion, container, dispatcher);
+  const gs = new dom.window.GameScreen(antlion, container, dispatcher, loadI18n(dom));
   return { gs, antlion, dispatcher };
 }
 

@@ -3,7 +3,7 @@
 // ============================================================
 
 class RoundReadyScreen {
-  constructor(container, antlion, { mode, context }, onBackToLobby) {
+  constructor(container, antlion, { mode, context, t }, onBackToLobby) {
     this._antlion = antlion;
     this._teardowns = [];
 
@@ -17,17 +17,17 @@ class RoundReadyScreen {
     body.className = 'round-ready-screen__body';
     const btn = document.createElement('button');
     btn.className = 'round-ready-screen__back btn';
-    btn.textContent = 'Back to Lobby';
+    btn.textContent = t('game.backToLobby');
 
     if (mode === 'ready') {
-      heading.textContent = 'Round ready to play';
-      body.textContent = 'Round ready to play — next phase coming soon';
+      heading.textContent = t('game.roundReadyTitle');
+      body.textContent = t('game.roundReadyBody');
     } else if (context.reason === 'player_left') {
-      heading.textContent = 'Game ended';
-      body.textContent = `${context.disconnectedNickname} left the game.`;
+      heading.textContent = t('game.gameEndedTitle');
+      body.textContent = t('game.playerLeft', { name: context.disconnectedNickname });
     } else {
-      heading.textContent = 'Round aborted';
-      body.textContent = `Round aborted — ${context.disconnectedNickname} did not reconnect`;
+      heading.textContent = t('game.roundAbortedTitle');
+      body.textContent = t('game.playerNoReconnect', { name: context.disconnectedNickname });
     }
 
     this._el.append(heading, body, btn);

@@ -26,6 +26,8 @@ class ThousandApp {
     this._antlion = antlion;
     this._scene = scene;
     this._i18n = i18n;
+    // Bound translate function handed to screens/components (like Toast/GameApi).
+    this._t = (key, params) => i18n.t(key, params);
     this._playerId = null;
     this._sessionToken = null;
     this._nickname = null;
@@ -41,6 +43,7 @@ class ThousandApp {
       () => this._nickname,
       (type, requiredPlayers) => this._createGame(type, requiredPlayers),
       (msg) => this._toast.show(msg),
+      this._t,
     );
     this._router = new ThousandMessageRouter(this);
     this._lobbyBinder = new LobbyBinder(antlion, this);
@@ -58,19 +61,21 @@ class ThousandApp {
     const lobbyEl = $('lobby-screen');
     const gameEl = $('game-screen');
 
-    this._nicknameScreen = new NicknameScreen(nicknameEl, this._api, this._toast);
+    this._nicknameScreen = new NicknameScreen(nicknameEl, this._api, this._toast, this._t);
     this._lobbyContainer = HtmlContainer.adopt('lobby-screen', lobbyEl);
     this._gameContainer = HtmlContainer.adopt('game-screen', gameEl);
-    this._gameList = new GameList($('game-list'));
+    this._gameList = new GameList($('game-list'), this._t);
     this._playerTooltip = new PlayerTooltip();
     this._waitingRoomCard = gameEl.querySelector('.card');
-    this._waitingRoom = new WaitingRoom(this._waitingRoomCard);
+    this._waitingRoom = new WaitingRoom(this._waitingRoomCard, this._t);
 
     this._roundScreenEl = document.createElement('div');
     this._roundScreenEl.className = 'round-screen hidden';
     gameEl.appendChild(this._roundScreenEl);
     this._dispatcher = new RoundActionDispatcher(this._socket);
-    this._gameScreen = new GameScreen(this._antlion, this._roundScreenEl, this._dispatcher);
+    this._gameScreen = new GameScreen(
+      this._antlion, this._roundScreenEl, this._dispatcher, this._i18n,
+    );
 
     // Consumes engine sound:* events. The store seeds the remembered mute
     // preference (default unmuted) and records changes from the mute button.
@@ -90,6 +95,15 @@ class ThousandApp {
       $('player-name-display').textContent = nick;
       this._showScreen('lobby-screen');
       this._gameList.startElapsedTimer();
+    });
+
+    // Live language switch (FR-005): re-render the dynamic lobby/waiting-room
+    // text (game numbers, player counts, waiting hints) from current app state.
+    // Static labels are handled by PageTranslator; the game screen re-renders
+    // itself. Transient toasts/prompts are not retro-translated (spec edge case).
+    this._antlion.onInput('language:changed', () => {
+      this._gameList.renderContent();
+      if (this._gameId) { this._waitingRoom.renderContent(); }
     });
 
     this._antlion.onInput('round-summary-back', () => this._returnFromRound());
@@ -138,7 +152,7 @@ class ThousandApp {
     this._rulesModal.bind();
     // The scoreboard chrome (built in GameScreen's constructor) already carries
     // every .mute-btn by now, so bind it the same way as the rules modal.
-    this._muteButton = new MuteButton(this._antlion, this._soundManager);
+    this._muteButton = new MuteButton(this._antlion, this._soundManager, this._t);
     this._muteButton.bind();
     this._lobbyBinder.bind();
     this._bindLeaveGame();

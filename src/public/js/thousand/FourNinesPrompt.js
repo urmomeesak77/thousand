@@ -5,10 +5,11 @@
 // Mirrors the MarriageDeclarationPrompt pattern: a single named Antlion input,
 // stored so destroy() can offInput it (no handler leak across rounds).
 class FourNinesPrompt {
-  constructor(el, { antlion, dispatcher }) {
+  constructor(el, { antlion, dispatcher, t }) {
     this._el = el;
     this._antlion = antlion;
     this._dispatcher = dispatcher;
+    this._t = t;
     this._acknowledged = false;
     this._progressEl = null;
     this._ackBtn = null;
@@ -38,12 +39,12 @@ class FourNinesPrompt {
     card.className = 'modal-card four-nines-modal__card';
 
     const heading = document.createElement('h2');
-    heading.textContent = 'Four nines!';
+    heading.textContent = this._t('game.fourNinesTitle');
     card.appendChild(heading);
 
     const info = document.createElement('div');
     info.className = 'four-nines-modal__text';
-    info.textContent = `${nickname} holds four nines: +${amount}`;
+    info.textContent = this._t('game.fourNinesText', { name: nickname, amount });
     card.appendChild(info);
 
     this._progressEl = document.createElement('div');
@@ -78,7 +79,9 @@ class FourNinesPrompt {
 
   _updateCountdownLabel() {
     if (this._ackBtn && !this._acknowledged) {
-      this._ackBtn.textContent = `Acknowledge (${this._secondsLeft})`;
+      this._ackBtn.textContent = this._t('controls.acknowledgeCountdown', {
+        seconds: this._secondsLeft,
+      });
     }
   }
 
@@ -100,7 +103,9 @@ class FourNinesPrompt {
   // four_nines_ack_progress: surface how many of the three have acknowledged.
   setProgress(acknowledgedCount, total = 3) {
     if (!this._progressEl) { return; }
-    this._progressEl.textContent = `${acknowledgedCount} of ${total} acknowledged`;
+    this._progressEl.textContent = this._t('game.ackProgress', {
+      count: acknowledgedCount, total,
+    });
   }
 
   // FR-010: restore the sticky waiting-state for a reconnecting player whose ack
@@ -114,7 +119,7 @@ class FourNinesPrompt {
   _enterWaitingState() {
     if (this._ackBtn) {
       this._ackBtn.disabled = true;
-      this._ackBtn.textContent = 'Waiting for others…';
+      this._ackBtn.textContent = this._t('game.waitingOthers');
     }
   }
 
