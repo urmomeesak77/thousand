@@ -22,9 +22,10 @@ import LobbyBinder from './LobbyBinder.js';
 const $ = (id) => document.getElementById(id);
 
 class ThousandApp {
-  constructor(antlion, scene) {
+  constructor(antlion, scene, i18n) {
     this._antlion = antlion;
     this._scene = scene;
+    this._i18n = i18n;
     this._playerId = null;
     this._sessionToken = null;
     this._nickname = null;

@@ -74,6 +74,10 @@ before(() => {
     path.join(publicDir, 'js', 'core', 'ThousandMessageRouter.js'),
     path.join(publicDir, 'js', 'core', 'LobbyBinder.js'),
     path.join(publicDir, 'js', 'core', 'ThousandApp.js'),
+    path.join(publicDir, 'js', 'i18n', 'catalogs', 'en.js'),
+    path.join(publicDir, 'js', 'i18n', 'catalogs', 'ru.js'),
+    path.join(publicDir, 'js', 'i18n', 'LanguagePreferenceStore.js'),
+    path.join(publicDir, 'js', 'i18n', 'I18n.js'),
     path.join(publicDir, 'js', 'index.js'),
   ];
 
