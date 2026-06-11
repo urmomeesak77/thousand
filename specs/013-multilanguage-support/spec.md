@@ -12,6 +12,7 @@
 - Q: Where does the language preference live — per browser or tied to server-side player identity? → A: Per-browser preference (like the existing mute preference); same player on a different device re-selects once.
 - Q: What language does a first-time visitor (no stored preference) see? → A: Auto-detect the browser language — Russian browsers default to Russian, all others to English.
 - Q: Does v1 include translating the full rules text (the largest single chunk of prose)? → A: Yes — rules content is fully translated in v1, same as all other text.
+- Q: Are infrastructure/exception error messages (malformed message, internal server error, protocol failures) in scope for translation? → A: No — only text the project emits as part of normal play is translated; infrastructure/exception messages may remain English.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -79,7 +80,7 @@ A player who chose Russian closes the browser, returns later (or reconnects afte
 ### Functional Requirements
 
 - **FR-001**: The game MUST support multiple display languages, launching with exactly two: English and Russian.
-- **FR-002**: Every piece of user-facing interface text — lobby screens, waiting room, in-game controls and prompts, status messages, scoreboard, history panel entries, round summaries, final results, rules content, errors, and notifications — MUST have a Russian equivalent.
+- **FR-002**: Every piece of user-facing interface text — lobby screens, waiting room, in-game controls and prompts, status messages, scoreboard, history panel entries, round summaries, final results, rules content, gameplay errors (e.g., rejected actions, nickname taken, game full), and notifications — MUST have a Russian equivalent. Infrastructure/exception messages (e.g., malformed-message or internal server errors, protocol failures) are exempt and may remain English. *(Scope narrowed in clarification session 2026-06-11.)*
 - **FR-003**: The initial Russian text MUST be produced by automatically translating the existing English text; the resulting translations ship with the game (no live translation service at runtime).
 - **FR-004**: Players MUST be able to change the display language at any time, from both the lobby and the in-game screen, via a clearly discoverable language control.
 - **FR-005**: Changing the language MUST take effect immediately on all currently visible text, without a page reload and without any effect on game state or other players.
@@ -103,7 +104,7 @@ A player who chose Russian closes the browser, returns later (or reconnects afte
 
 ### Measurable Outcomes
 
-- **SC-001**: With Russian selected, a complete game session (lobby through final results) shows 100% of interface text in Russian — zero English strings visible.
+- **SC-001**: With Russian selected, a complete game session (lobby through final results) shows 100% of interface text in Russian — zero English strings visible (exempt infrastructure/exception messages excluded; they do not occur in a normal session).
 - **SC-002**: Switching language updates all visible text in under 1 second, with no page reload and no interruption to an in-progress game.
 - **SC-003**: A returning player sees their previously chosen language on the very first screen, with no re-selection step, in 100% of return visits in the same browser.
 - **SC-004**: Two players in the same game can use different languages simultaneously while seeing identical game facts (bids, scores, events).
@@ -117,3 +118,4 @@ A player who chose Russian closes the browser, returns later (or reconnects afte
 - Game events are delivered as structured facts and worded on each player's screen, so the same event can read in English for one player and in Russian for another.
 - Language preference is stored per browser (like the existing mute preference), not tied to the player's server-side identity; the same player on a different device re-selects once. *(Confirmed in clarification session 2026-06-11.)*
 - No right-to-left languages are in scope; both launch languages read left-to-right.
+- "Errors" in scope means gameplay feedback a player can trigger through normal use (rejected actions, taken nickname, full game). Infrastructure/exception messages — malformed messages, internal server errors, protocol failures — are diagnostic, not part of normal play, and stay English. *(Confirmed in clarification session 2026-06-11.)*
