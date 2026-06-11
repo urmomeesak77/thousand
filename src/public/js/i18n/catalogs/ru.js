@@ -185,8 +185,8 @@ const ru = {
   'summary.fourNines': 'Четыре девятки: +{amount}',
   'summary.penaltyBarrel': 'Штраф за бочку: −{amount}',
   'summary.penaltyZeros': 'Штраф за нулевые раунды: −{amount}',
-  'summary.continue': 'Продолжить к следующему раунду',
-  'summary.continueCountdown': 'Продолжить к следующему раунду ({seconds})',
+  'summary.continue': 'Перейти к следующему раунду',
+  'summary.continueCountdown': 'Перейти к следующему раунду ({seconds})',
   'results.colDeclarer': 'Разыгрывающий',
   'results.colBid': 'Заказ',
   'results.colRound': 'Раунд',
@@ -226,6 +226,7 @@ const ru = {
   'controls.waitingFor': 'Ждём {name}…',
   'controls.waitingChooseCards': 'Ждём, пока {name} выберет карты…',
   'controls.declarerFallback': 'разыгрывающего',
+  'controls.declarerFallbackSubject': 'разыгрывающий',
 
   // History panel entries (historyEntryText.js)
   'history.seatFallback': 'Место {seat}',
@@ -277,7 +278,7 @@ const ru = {
   'reject.notInSellSelectionPhase': 'Сейчас не фаза выбора карт для продажи',
   'reject.onlyDeclarerCancelSell': 'Только разыгрывающий может отменить продажу',
   'reject.onlyDeclarerSelectCards': 'Только разыгрывающий может выбирать карты',
-  'reject.wrongSellCardCount': 'Нужно выбрать ровно {count} карт',
+  'reject.wrongSellCardCount': { one: 'Нужно выбрать ровно {count} карту', few: 'Нужно выбрать ровно {count} карты', many: 'Нужно выбрать ровно {count} карт' },
   'reject.cardsMustBeDistinct': 'Карты должны быть разными',
   'reject.sameSellSet': 'Нужно выбрать другой набор карт, чем в прошлой попытке',
   'reject.notInSellBiddingPhase': 'Сейчас не фаза торга при продаже',

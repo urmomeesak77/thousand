@@ -230,7 +230,7 @@ class GameScreenControls {
         const w = document.createElement('div');
         w.className = 'waiting';
         w.textContent = t('controls.waitingChooseCards', {
-          name: gameStatus.declarer?.nickname ?? t('controls.declarerFallback'),
+          name: gameStatus.declarer?.nickname ?? t('controls.declarerFallbackSubject'),
         });
         this._controlsEl.appendChild(w);
       }

@@ -228,6 +228,8 @@ const en = {
   'controls.waitingFor': 'Waiting for {name}…',
   'controls.waitingChooseCards': 'Waiting for {name} to choose cards…',
   'controls.declarerFallback': 'declarer',
+  // Same fallback in subject position — Russian needs nominative case here.
+  'controls.declarerFallbackSubject': 'declarer',
 
   // History panel entries (historyEntryText.js)
   'history.seatFallback': 'Seat {seat}',
