@@ -90,6 +90,26 @@ function setupPostBidGame() {
   return { store, cm, ws, pids, gameId };
 }
 
+// The deal is random; if one seat ends up holding all four 9s when the exchange
+// completes, the server opens the four-nines ack-gate and withholds
+// trick_play_started (feature 006). Guaranteeing seats 1 and 2 each hold a 9
+// before the passes makes the gate unreachable regardless of which cards the
+// declarer passes.
+function spreadNinesAcrossSeats(round) {
+  const nineIds = new Set(round.deck.filter((c) => c.rank === '9').map((c) => c.id));
+  const nineCount = (seat) => round.hands[seat].filter((id) => nineIds.has(id)).length;
+  for (const seat of [1, 2]) {
+    if (nineCount(seat) > 0) { continue; }
+    const donor = [0, 1, 2]
+      .filter((s) => s !== seat)
+      .sort((a, b) => nineCount(b) - nineCount(a))[0];
+    const nine = round.hands[donor].find((id) => nineIds.has(id));
+    const nonNine = round.hands[seat].find((id) => !nineIds.has(id));
+    round.hands[donor] = round.hands[donor].map((id) => (id === nine ? nonNine : id));
+    round.hands[seat] = round.hands[seat].map((id) => (id === nonNine ? nine : id));
+  }
+}
+
 // ---------------------------------------------------------------------------
 // T013 — Phase 3 message protocol tests
 // ---------------------------------------------------------------------------
@@ -131,6 +151,7 @@ describe('round-messages.005 — exchange_pass broadcasts card_passed', () => {
     round.phase = 'card-exchange';
     round.exchangePassesCommitted = 0;
     round._usedExchangeDestSeats = new Set();
+    spreadNinesAcrossSeats(round);
 
     ws.forEach((w) => { w._sent.length = 0; });
 
