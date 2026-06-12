@@ -634,9 +634,11 @@
    Trick play (.trick-play__*)
    ============================================================ */
 
-/* Greyed-out / unplayable card state */
+/* Greyed-out / unplayable card state. Dimmed via filter rather than opacity:
+   in the ≤640px fan-stack the cards overlap, and a translucent card would let
+   the card underneath bleed through, turning the stack into visual noise. */
 .card--disabled {
-  opacity: 0.4;
+  filter: grayscale(0.6) brightness(0.75);
   cursor: not-allowed;
 }
 
