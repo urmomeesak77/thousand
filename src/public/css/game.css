@@ -1367,6 +1367,19 @@
   .opponent-view__count {
     display: inline;
   }
+
+  /* 4-player across seat: lay the collapsed card on its side — the top grid
+     row shrinks from card-height to card-width, saving vertical space. The
+     count badge is centred by the card's flex box, so it stays upright. */
+  .game-table--four > .across-zone .opponent-view__stack {
+    width: var(--card-height) !important;
+    height: var(--card-width);
+  }
+
+  .game-table--four > .across-zone .opponent-view__stack-card {
+    width: var(--card-height);
+    height: var(--card-width);
+  }
 }
 
 /* 600px — talon fan-stack (3 cards no longer fit side-by-side in center column) */
