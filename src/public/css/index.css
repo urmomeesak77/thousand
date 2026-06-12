@@ -285,15 +285,16 @@ input[type="text"]::placeholder {
   color: var(--color-text);
 }
 
-/* Language toggle (feature 013): an .icon-btn that shows a 2-letter language
-   abbreviation instead of an SVG glyph. Sized to the same square touch target;
-   the text is centred and weighted so "РУ"/"EN" read clearly at a glance. */
-.lang-btn {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  line-height: 1;
+/* Language toggle (feature 013): an .icon-btn that shows the TARGET
+   language's flag (gfx/en.gif / gfx/ru.gif) instead of an SVG glyph. The
+   16×11 GIFs stay at native size for crispness inside the touch target;
+   the outline keeps the flag's white edges visible on light hover. */
+.lang-btn img {
+  display: block;
+  width: 16px;
+  height: 11px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 /* Nickname screen carries a single absolutely-positioned rules icon top-right.
@@ -306,6 +307,13 @@ input[type="text"]::placeholder {
   position: absolute;
   top: 1rem;
   right: 1rem;
+}
+
+/* Language toggle sits left of the rules icon, mirroring the lobby header. */
+.nickname-lang-btn {
+  position: absolute;
+  top: 1rem;
+  right: calc(1rem + var(--touch-min));
 }
 
 /* Rules modal: keep the long content readable on short viewports.

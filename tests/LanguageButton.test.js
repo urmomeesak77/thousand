@@ -107,10 +107,11 @@ describe('LanguageButton', () => {
     assert.equal(changes[0].data.language, 'ru');
   });
 
-  it('shows the TARGET language on the face/title/aria-label at bind', () => {
+  it('shows the TARGET language flag/title/aria-label at bind', () => {
     setup({ stored: 'en' });
     for (const id of ['btn-a', 'btn-b']) {
-      assert.equal(btn(id).textContent, 'РУ');
+      const img = btn(id).querySelector('img');
+      assert.equal(img.getAttribute('src'), 'gfx/ru.gif');
       assert.match(btn(id).title, /Русский/);
       assert.match(btn(id).getAttribute('aria-label'), /Русский/);
     }
@@ -120,7 +121,8 @@ describe('LanguageButton', () => {
     const { antlion } = setup({ stored: 'en' });
     antlion.fire('language-toggle');
     for (const id of ['btn-a', 'btn-b']) {
-      assert.equal(btn(id).textContent, 'EN');
+      const img = btn(id).querySelector('img');
+      assert.equal(img.getAttribute('src'), 'gfx/en.gif');
       assert.match(btn(id).title, /English/);
       assert.match(btn(id).getAttribute('aria-label'), /English/);
     }

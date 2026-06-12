@@ -1,8 +1,8 @@
 // ============================================================
 // LanguageButton — binds every .lang-btn to the language toggle
 // and shows the TARGET language (the one a click switches to):
-// abbreviation on the face, full self-name in title/aria-label.
-// Bound once at app startup, exactly like MuteButton.
+// flag icon (gfx/<id>.gif) on the face, full self-name in
+// title/aria-label. Bound once at app startup, exactly like MuteButton.
 // ============================================================
 
 class LanguageButton {
@@ -33,7 +33,7 @@ class LanguageButton {
     const title = this._i18n.t('lang.toggleTitle', { name: target.selfName });
     const ariaLabel = this._i18n.t('lang.toggleAriaLabel', { name: target.selfName });
     document.querySelectorAll('.lang-btn').forEach((el) => {
-      el.textContent = target.selfName.slice(0, 2).toUpperCase();
+      el.innerHTML = '<img src="gfx/' + target.id + '.gif" alt="" aria-hidden="true">';
       el.title = title;
       el.setAttribute('aria-label', ariaLabel);
     });
