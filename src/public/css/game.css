@@ -475,10 +475,14 @@
    Trump box — color-coded trump-suit display above the status box
    ============================================================ */
 
+/* max-content + nowrap: the box sits in the narrow centre grid column, which
+   otherwise squeezes it and wraps "No trump" onto two lines on small screens. */
 .trump-box {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: max-content;
+  max-width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -490,12 +494,14 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .trump-box__suit {
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .trump-box__suit--red {
