@@ -1335,6 +1335,19 @@
     padding: 0.4rem 12rem 0.4rem 0.75rem;
   }
 
+}
+
+/* 640px — hand fan-stack + opponent single-card collapse */
+@media (max-width: 640px) {
+  .hand-view {
+    flex-wrap: nowrap;
+    justify-content: center;
+  }
+
+  .hand-view__card + .hand-view__card {
+    margin-left: calc(-1 * var(--card-width) * 0.55);
+  }
+
   /* Opponent: collapse stack to single card on narrow viewports.
      OpponentView writes inline styles for width/left, so !important is the only
      way to override them from CSS — refactoring to custom properties is tracked
@@ -1353,18 +1366,6 @@
 
   .opponent-view__count {
     display: inline;
-  }
-}
-
-/* 640px — hand fan-stack */
-@media (max-width: 640px) {
-  .hand-view {
-    flex-wrap: nowrap;
-    justify-content: center;
-  }
-
-  .hand-view__card + .hand-view__card {
-    margin-left: calc(-1 * var(--card-width) * 0.55);
   }
 }
 
