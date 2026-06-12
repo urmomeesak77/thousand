@@ -138,8 +138,13 @@
    row carries left | talon | right; hand + stats span the bottom.
    Scoped under .game-table--four so 3-player is untouched.
    ------------------------------------------------------------ */
+/* The across row uses minmax(min-content, auto), not plain auto: items carry
+   min-height:0 (see .game-table > *), and an auto row sized from that zero
+   minimum collapses on short viewports — the seat's absolutely-positioned
+   stack cards then paint over the trump/status boxes below. min-content
+   keeps the row at content height so the table scrolls instead. */
 .game-table--four {
-  grid-template-rows: auto minmax(min-content, 1fr) auto auto;
+  grid-template-rows: minmax(min-content, auto) minmax(min-content, 1fr) auto auto;
 }
 
 .game-table--four > .across-zone {
@@ -322,6 +327,9 @@
 .opponent-view__stack {
   position: relative;
   height: var(--card-height);
+  /* Fixed-height flex item: never let it compress — its cards are absolutely
+     positioned and would overflow onto neighbouring boxes instead of clipping. */
+  flex-shrink: 0;
 }
 
 .opponent-view__stack-card {
